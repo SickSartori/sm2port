@@ -4,6 +4,7 @@
 #include <d3dcompiler.h>
 #include <dxgi1_2.h>
 #include <shellapi.h>
+#include <wincodec.h>
 #include <bcrypt.h>
 #include <winhttp.h>
 #include <wrl/client.h>
@@ -21,6 +22,7 @@
 #include <iterator>
 #include <memory>
 #include <mutex>
+#include <random>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -35,8 +37,8 @@
 #include "pc/hle_patches.h"
 #include "pc/input_hle.h"
 #include "pc/keyboard_bindings.h"
-#include "pc/launcher_art.h"
 #include "pc/launcher_music.h"
+#include "pc/launcher_web.h"
 #include "pc/log.h"
 #include "pc/nv2a.h"
 #include "pc/paths.h"
@@ -573,7 +575,6 @@ private:
     float pad_icon(ImDrawList* list, const char* name, ImVec2 at, float h, bool draw = true);
     void resize_if_needed();
     void upload_art();
-    void start_art_loader(const std::filesystem::path& disc_path);
     void draw_background(float now);
     void frame(float now, float dt);
 
@@ -651,9 +652,6 @@ private:
 
     std::optional<GameDisc> disc_;
     std::string disc_problem_;
-    std::mutex art_mutex_;
-    std::optional<LauncherArt> loaded_art_;  // from the loader thread, uploaded by the next frame
-    std::thread art_thread_;
     ComPtr<ID3D11ShaderResourceView> logo_;
     std::vector<ComPtr<ID3D11ShaderResourceView>> artwork_;
     int slide_ = 0;
@@ -692,6 +690,8 @@ private:
     float panel_width_ = 0, cursor_ = 0, row_extra_ = 0;
     std::unordered_map<ImGuiID, float> anims_;
     std::vector<Trail> trails_;
+    WebEffects web_;
+    float web_page_since_ = -1;  // page_since_ at the last web burst
     std::vector<ImVec4> drops_;
 };
 
@@ -819,7 +819,6 @@ void Launcher::load_fonts() {
 
 void Launcher::stop_graphics() {
     music_.reset();  // fades out
-    if (art_thread_.joinable()) art_thread_.join();
     if (update_thread_.joinable()) update_thread_.join();
     if (download_thread_.joinable()) download_thread_.join();
     {
@@ -865,66 +864,67 @@ void Launcher::resize_if_needed() {
     scale_ = std::max(0.65f, std::min(width / 1600.0f, height / 900.0f));
 }
 
-ComPtr<ID3D11ShaderResourceView> dxt_texture(ID3D11Device* device, const DxtImage& image) {
-    if (image.blocks.empty()) return nullptr;
+// A background picture (a JPEG in the DLL's resources) as a texture, through Windows' image decoders.
+ComPtr<ID3D11ShaderResourceView> picture_texture(ID3D11Device* device, const std::vector<char>& file) {
+    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    ComPtr<IWICImagingFactory> factory;
+    ComPtr<IWICStream> stream;
+    ComPtr<IWICBitmapDecoder> decoder;
+    ComPtr<IWICBitmapFrameDecode> frame;
+    ComPtr<IWICFormatConverter> converter;
+    UINT width = 0, height = 0;
+    if (file.empty() || FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory))) ||
+        FAILED(factory->CreateStream(&stream)) ||
+        FAILED(stream->InitializeFromMemory(reinterpret_cast<BYTE*>(const_cast<char*>(file.data())), static_cast<DWORD>(file.size()))) ||
+        FAILED(factory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, &decoder)) ||
+        FAILED(decoder->GetFrame(0, &frame)) || FAILED(factory->CreateFormatConverter(&converter)) ||
+        FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, nullptr, 0,
+                                     WICBitmapPaletteTypeCustom)) ||
+        FAILED(converter->GetSize(&width, &height)) || !width || !height) {
+        return nullptr;
+    }
+    std::vector<uint8_t> pixels(static_cast<size_t>(width) * height * 4);
+    if (FAILED(converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data()))) return nullptr;
     D3D11_TEXTURE2D_DESC desc{};
-    desc.Width = image.width;
-    desc.Height = image.height;
+    desc.Width = width;
+    desc.Height = height;
     desc.MipLevels = 1;
     desc.ArraySize = 1;
-    desc.Format = DXGI_FORMAT_BC3_UNORM;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     desc.SampleDesc.Count = 1;
     desc.Usage = D3D11_USAGE_IMMUTABLE;
     desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    const D3D11_SUBRESOURCE_DATA data{image.blocks.data(), image.width / 4 * 16, 0};
+    const D3D11_SUBRESOURCE_DATA data{pixels.data(), width * 4, 0};
     ComPtr<ID3D11Texture2D> texture;
     ComPtr<ID3D11ShaderResourceView> view;
     if (SUCCEEDED(device->CreateTexture2D(&desc, &data, &texture))) device->CreateShaderResourceView(texture.Get(), nullptr, &view);
     return view;
 }
 
-void Launcher::start_art_loader(const std::filesystem::path& disc_path) {
-    if (art_thread_.joinable()) art_thread_.join();
-    art_thread_ = std::thread([this, disc_path] {
-        std::string error;
-        const std::unique_ptr<XdvdfsImage> disc = XdvdfsImage::open(disc_path, &error);
-        if (!disc) return;
-        LauncherArt art = load_launcher_art(*disc);
-        std::lock_guard<std::mutex> lock(art_mutex_);
-        loaded_art_ = std::move(art);
-    });
-}
-
+// Once, on the first frame outside the game (inside it the game is the background): the pictures, in random order.
 void Launcher::upload_art() {
-    std::optional<LauncherArt> art;
-    {
-        std::lock_guard<std::mutex> lock(art_mutex_);
-        art.swap(loaded_art_);
+    if (!artwork_.empty() || in_game_) return;
+    for (int id = IDR_LAUNCHER_BG_FIRST; id < IDR_LAUNCHER_BG_FIRST + IDR_LAUNCHER_BG_COUNT; ++id) {
+        if (ComPtr<ID3D11ShaderResourceView> view = picture_texture(device_.Get(), load_font_resource(id))) artwork_.push_back(view);
     }
-    if (!art) return;
-    logo_ = dxt_texture(device_.Get(), art->logo);
-    artwork_.clear();
-    if (in_game_) return;  // the game is the background
-    for (const DxtImage& picture : art->artwork) {
-        if (ComPtr<ID3D11ShaderResourceView> view = dxt_texture(device_.Get(), picture)) artwork_.push_back(view);
-    }
+    std::shuffle(artwork_.begin(), artwork_.end(), std::mt19937(std::random_device{}()));
     slide_ = 0;
     slide_start_ = -100;
 }
 
-// The part of a 512x256 picture covering the screen: inside its painted frame, zoomed by `zoom`, panned by `pan`.
+// The part of a 1376x768 picture covering the screen, zoomed by `zoom`, panned by `pan`.
 void cover_rect(float screen_aspect, float zoom, float pan, float* rect) {
-    constexpr float kWidth = 512, kHeight = 256, kInnerWidth = kWidth * 0.94f, kInnerHeight = kHeight * 0.88f;
+    constexpr float kWidth = 1376.0f / 768.0f, kHeight = 1;
     float w, h;
-    if (screen_aspect < kInnerWidth / kInnerHeight) {
-        h = kInnerHeight / zoom;
+    if (screen_aspect < kWidth / kHeight) {
+        h = kHeight / zoom;
         w = h * screen_aspect;
     } else {
-        w = kInnerWidth / zoom;
+        w = kWidth / zoom;
         h = w / screen_aspect;
     }
-    const float cx = std::clamp(kWidth * (0.5f - pan), kWidth * 0.03f + w / 2, kWidth * 0.97f - w / 2);
-    const float cy = kHeight * 0.47f;
+    const float cx = std::clamp(kWidth * (0.5f - pan), w / 2, kWidth - w / 2);
+    const float cy = kHeight * 0.5f;
     rect[0] = (cx - w / 2) / kWidth;
     rect[1] = (cy - h / 2) / kHeight;
     rect[2] = w / kWidth;
@@ -1295,7 +1295,6 @@ void Launcher::run_disc_dialog() {
         setting_save_text("disc_image", std::string(path.begin(), path.end()));
         disc_ = std::move(disc);
         disc_problem_.clear();
-        start_art_loader(chosen);
     } else {
         disc_problem_ = problem;
     }
@@ -1853,6 +1852,14 @@ void Launcher::frame(float now, float dt) {
         back->AddLine(ImVec2(drop.x, drop.y), ImVec2(drop.x - px(drop.z) * 0.25f, drop.y + px(drop.z)), IM_COL32(220, 220, 225, 34));
     }
 
+    // Webs: behind everything, and a small one for each click and page change.
+    if (ImGui::IsMouseClicked(0)) web_.burst(ImGui::GetMousePos(), px(60), now);
+    if (page_since_ != web_page_since_) {
+        if (web_page_since_ >= 0) web_.burst(ImVec2(screen.x - px(96) - px(560) - px(56), px(220)), px(110), now);
+        web_page_since_ = page_since_;
+    }
+    web_.draw(back, screen, scale_, now, dt, now - start_time_);
+
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(screen);
     ImGui::Begin("##launcher", nullptr,
@@ -1885,6 +1892,7 @@ void Launcher::header(float since) {
                         ImVec2(0, 0), ImVec2(1, 1), fade(IM_COL32_WHITE));
     } else {
         text(black_, px(64), logo_at, kInk, "SPIDER-MAN");
+        text(black_, px(64), ImVec2(logo_at.x + measure(black_, px(64), "SPIDER-MAN ").x, logo_at.y), kRed, "2");
         text(heading_, px(26), ImVec2(logo_at.x + px(4), logo_at.y + px(66)), kRed, "PC PORT");
     }
     std::string tag;
@@ -2557,7 +2565,6 @@ void Launcher::overlay(ID3D11Device* device, ID3D11DeviceContext* context, ID3D1
         context_ = context;
         QueryPerformanceCounter(&clock_start_);
         start_imgui();
-        if (!disc_path_.empty()) start_art_loader(disc_path_);
         log_line("game menu: ready (F1, or Back+Start on a controller)");
     }
     LARGE_INTEGER frequency, counter;
@@ -2637,7 +2644,6 @@ std::optional<GameDisc> Launcher::run() {
     nv2a_set_window_hook(window_hook);
     disc_ = find_game_disc(exe_directory_, disc_problem_);
     wizard_ = !disc_;
-    if (disc_) start_art_loader(disc_->path);
     if (setting("check_updates") != 0) update_thread_ = std::thread(check_for_updates, &updates_);
     char page[16] = {};  // SM2_LAUNCHER_PAGE=settings|controls|cheats|about: test screenshots
     if (GetEnvironmentVariableA("SM2_LAUNCHER_PAGE", page, sizeof(page)) && !wizard_) {

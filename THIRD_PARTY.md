@@ -12,6 +12,7 @@ licences:
 
 The Barlow fonts and the music are built into `sm2runtime.dll` as resources.
 
-Not included, and never distributed: anything from Midnight Club 3: DUB Edition Remix. The launcher's logo and
-pictures, and all of the game, are read from the player's own disc image at run time. They belong to Take-Two
-Interactive / Rockstar Games.
+Not included, and never distributed: anything from Spider-Man 2. The game is read from the player's own disc image at run time. It
+belongs to its owners (Marvel, Activision, Treyarch).
+
+The launcher's eight background pictures (`res/launcher_bg_*.jpg`) were generated for sm2port with Magnific. They show no people, text or logos.
