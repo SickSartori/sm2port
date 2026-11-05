@@ -1,0 +1,173 @@
+sm2port <version> - Spider-Man 2 on Windows
+=================================================================
+
+An unofficial, non-commercial fan project: a native Windows port of the
+European Xbox release, run from your own disc image. It is not affiliated
+with, endorsed by or sponsored by Rockstar Games, Take-Two Interactive or
+Microsoft. No game data is included or distributed: no disc images, no
+executables, no textures, sounds, music or films. Please do not ask for
+game files and do not share them.
+
+The full guide, with pictures, is README.md in this folder and online at
+https://github.com/SickSartori/sm2port
+
+
+WHAT YOU NEED
+-------------
+
+- Windows 10 or 11, 64-bit. Nothing else to install: the Visual C++
+  runtime is built in, and Direct3D 11, XAudio2 and the shader compiler
+  are part of Windows 10 and 11.
+  Windows "N" editions only: install the Media Feature Pack (Settings >
+  Apps > Optional features), or sm2runtime.dll will not load.
+- A graphics card and driver with Direct3D 11 (feature level 11_0).
+- A disc image (.iso or .cci) of Spider-Man 2, Xbox,
+  Europe (En, Fr, De, Es, It). XISO and full Redump dumps both work, in one
+  file or split in parts (name.1.iso, name.2.iso: choose any part), and so
+  does the compressed CCI format. Other
+  releases (for example the North American one) are not supported: the
+  launcher checks the game's executable and tells you if the disc is a
+  different version.
+- Optional: an Xbox controller (Xbox 360, One, Series or any XInput
+  controller), up to four. Without one, the keyboard is controller 1.
+  PlayStation and other controllers work through Steam Input or
+  DS4Windows.
+- Optional: an internet connection, only for the update check (it can be
+  switched off in Settings).
+- An audio output device is not required: without one the game runs
+  silent.
+
+
+FIRST START
+-----------
+
+1. Portable zip: extract it where you like; it contains this "sm2port"
+   folder. Installer: run it; it installs for your user only, without
+   administrator rights.
+2. Start sm2.exe. The files are not code signed, so Windows SmartScreen
+   may ask once: "More info", then "Run anyway". To check a download,
+   compare its SHA-256 with the SHA256SUMS file of the release.
+3. The launcher asks for your disc image: choose the .iso (or .cci) file. sm2port
+   checks it and remembers where it is; if you move the file later,
+   choose it again.
+4. Pick a quality preset, the aspect ratio and the frame rate, then PLAY.
+   Next time the launcher opens on its main page: PLAY, Enter or A starts
+   the game.
+
+The first time each graphics shader is needed it is compiled in the
+background, so the first minutes can hitch; the results are kept in the
+shader_cache folder and later runs are smooth from the start.
+
+
+WHERE YOUR FILES ARE
+--------------------
+
+Settings (sm2port.ini), saves (the xbox_hdd folder), the log (sm2port.log)
+and the shader cache live in %LOCALAPPDATA%\sm2port, normally
+C:\Users\<you>\AppData\Local\sm2port. Updates and uninstalling never
+touch them; to remove everything, delete that folder too.
+
+To back up your progress, copy the xbox_hdd folder.
+
+Portable mode: to keep everything next to sm2.exe instead (a USB stick,
+say), create an empty file named portable.txt in the same folder as
+sm2.exe before the first start.
+
+
+UPDATING
+--------
+
+Installer: when a new version is out, the launcher says so on its first
+page and offers to update. It downloads the new installer, checks its
+SHA-256 and shows it in Explorer: start it to install the update.
+
+Portable zip: extract the new version in the same place, replacing the
+files of this folder. Settings and saves are kept.
+
+What changed in each version: CHANGELOG.md in this folder.
+
+
+KEYS
+----
+
+Default keyboard layout (all keys can be changed in the launcher's
+Controls page):
+
+  W / S                  accelerate / brake, reverse
+  A / D                  steer
+  Space / Esc / Z / C    handbrake / weight transfer / nitrous / look back
+  F                      special ability (Zone, Agro, Roar)
+  Left Shift / Left Ctrl change camera / flash headlights
+  Enter / Backspace      Start (pause) / Back (navigation system)
+  Arrow keys             D-pad (map, hydraulics, music)
+  I / J / K / L          right stick (camera)
+
+  F1 (controller: Back+Start)  in-game menu: settings, controls, resume,
+                               exit; the game pauses meanwhile
+  F11 or Alt+Enter             full screen on and off
+  F10                          modern effects on and off
+
+
+IF SOMETHING GOES WRONG
+-----------------------
+
+- "Cannot load sm2runtime.dll": the file must be next to sm2.exe. If it
+  is there, a Windows component is missing: on Windows N editions
+  install the Media Feature Pack. An antivirus may also have quarantined
+  the file; the SHA-256 in SHA256SUMS lets you check it is the original.
+- The program closes at once, or the game crashes: open the launcher's
+  About page and press "Log folder"; sm2port.log says what happened last.
+- The game is not smooth: choose 30 fps, a lower internal resolution, or
+  the Balanced or Original preset, in Settings. The processor counts more than the graphics card.
+  sm2port has been tested on few machines so far.
+- No sound: the output device that is the Windows default when the game
+  starts is the one used.
+- The sound is quiet: check Volume in Settings (100 is the loudest), then
+  the Windows volume. The level leaves room for many sounds at once.
+- The disc is refused: only the European release is supported; the
+  launcher's message says what it found.
+
+To report a problem, press "Report a problem" on the launcher's About
+page: it opens the form on GitHub with your version and PC filled in, and
+the folder with sm2port.log to attach. Or open an issue at
+https://github.com/SickSartori/sm2port/issues with your Windows version,
+your graphics card, what you were doing and sm2port.log attached. On
+Linux, also give the distribution, the Wine or Proton version, the
+graphics driver and how you started the game.
+
+
+LINUX (EXPERIMENTAL)
+--------------------
+
+sm2port also runs on Linux through a recent Wine (tested: 11.0) with
+32-bit support
+(on Debian and Ubuntu: the i386 architecture and the 32-bit OpenGL and
+Vulkan libraries libgl1:i386, libegl1:i386, libvulkan1:i386). Use this
+zip: put your .iso in this folder, then run "wine sm2.exe" here. Your
+files are in the Wine prefix, under
+drive_c/users/<you>/AppData/Local/sm2port.
+
+It has been tested on one machine only, with Wine 11 under WSL2: the
+launcher, the opening films and the career's menus work, sound included.
+Not tested yet: the speed with a real Linux graphics driver, Proton and
+DXVK, controllers, the Steam Deck. Expect problems, and please report
+them as above.
+
+
+KNOWN ISSUES
+------------
+
+- Only the European release is supported.
+- Online play (Xbox Live) is not available. Split screen works.
+- On monitors wider than 16:9 there are thin black bars at the sides.
+- The Xbox sound chip's own effects, such as reverb, are not reproduced.
+- Linux (Wine, Proton) is experimental and only partly tested.
+
+
+LICENCE
+-------
+
+sm2port's code is released under the MIT licence (LICENSE). Third-party
+parts keep their own licences: THIRD_PARTY.md and the licenses folder.
+The game itself, and everything read from your disc, belongs to its
+owners.

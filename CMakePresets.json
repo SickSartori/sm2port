@@ -1,0 +1,15 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "pc-x86",
+      "displayName": "PC - Windows x86 (Visual Studio)",
+      "architecture": "Win32",
+      "binaryDir": "${sourceDir}/build/pc-x86"
+    }
+  ],
+  "buildPresets": [
+    { "name": "pc-x86-debug", "configurePreset": "pc-x86", "configuration": "Debug" },
+    { "name": "pc-x86-release", "configurePreset": "pc-x86", "configuration": "RelWithDebInfo" }
+  ]
+}

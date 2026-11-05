@@ -1,0 +1,46 @@
+// Version information for sm2.exe and sm2runtime.dll, shown by Windows in the file's properties. The numbers come
+// from project(... VERSION ...) in CMakeLists.txt (SM2_VERSION_MAJOR/MINOR/PATCH); SM2_RC_APP is defined for sm2.exe.
+#include <winver.h>
+
+#define SM2_STR_(x) #x
+#define SM2_STR(x) SM2_STR_(x)
+#define SM2_VERSION_STRING SM2_STR(SM2_VERSION_MAJOR.SM2_VERSION_MINOR.SM2_VERSION_PATCH)
+
+#ifdef SM2_RC_APP
+#define SM2_FILE_TYPE VFT_APP
+#define SM2_FILE_NAME "sm2.exe"
+#define SM2_FILE_DESCRIPTION "sm2port: Spider-Man 2 on Windows"
+#else
+#define SM2_FILE_TYPE VFT_DLL
+#define SM2_FILE_NAME "sm2runtime.dll"
+#define SM2_FILE_DESCRIPTION "sm2port runtime: Xbox kernel, GPU, sound and controllers on Windows"
+#endif
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION SM2_VERSION_MAJOR, SM2_VERSION_MINOR, SM2_VERSION_PATCH, 0
+PRODUCTVERSION SM2_VERSION_MAJOR, SM2_VERSION_MINOR, SM2_VERSION_PATCH, 0
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE SM2_FILE_TYPE
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "sm2port"
+            VALUE "FileDescription", SM2_FILE_DESCRIPTION
+            VALUE "FileVersion", SM2_VERSION_STRING
+            VALUE "InternalName", SM2_FILE_NAME
+            VALUE "LegalCopyright", "MIT licence. Not affiliated with Marvel, Activision, Treyarch or Microsoft."
+            VALUE "OriginalFilename", SM2_FILE_NAME
+            VALUE "ProductName", "sm2port"
+            VALUE "ProductVersion", SM2_VERSION_STRING
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

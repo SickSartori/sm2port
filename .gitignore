@@ -1,0 +1,22 @@
+# Build output
+/build/
+/out/
+/.vs/
+
+# Game data: never commit it, every user supplies their own disc
+*.iso
+*.xbe
+/game/
+Vimm's Lair.txt
+
+# Runtime logs
+*.log
+
+# Test dumps (SM2_AUDIO_DUMP, SM2_DUMP_FRAMES, SM2_DUMP_TEXTURE, SM2_DUMP_BUFFER)
+*.wav
+*.bmp
+buffer-*.bin
+
+# Release packages (tools/package.ps1)
+/dist/
+/quiver_submission/

@@ -1,0 +1,11 @@
+#pragma once
+
+#include "core/xbe.h"
+
+namespace sm2::pc {
+
+// Redirects the DirectSound library's entry points to the software mixer (audio_mixer.cpp). Only for the XBE whose
+// addresses were analysed (SM2 PAL, DSOUND 5849); any other XBE keeps its own DirectSound.
+void install_dsound_hle(const Xbe& xbe);
+
+}  // namespace sm2::pc

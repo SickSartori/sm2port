@@ -1,0 +1,4 @@
+// Resources of the launcher (sm2.exe): the program icon, also used by the game window (resource 1).
+1 ICON "sm2.ico"
+
+#include "version.rc"

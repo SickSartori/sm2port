@@ -1,0 +1,650 @@
+// sm2runtime.dll: loaded by the launcher (sm2.exe), takes over the launcher's address range and runs the game.
+//
+// Order matters: everything that needs the launcher's PE header or the Windows loader's view of sm2.exe
+// (module path, image size, command line) happens before map_xbe() overwrites the image with the XBE.
+
+#include <windows.h>
+#include <dbghelp.h>
+#include <dxgi1_4.h>
+#include <intrin.h>
+#include <shellapi.h>
+#include <wrl/client.h>
+
+#include <algorithm>
+#include <cstdarg>
+#include <cstddef>
+#include <cstdio>
+#include <cstring>
+#include <cwchar>
+#include <cwctype>
+#include <filesystem>
+#include <memory>
+#include <optional>
+#include <string>
+
+#include "core/xbe.h"
+#include "core/xdvdfs.h"
+#include "pc/exec_memory.h"
+#include "pc/dsound_hle.h"
+#include "pc/fs_patch.h"
+#include "pc/game_disc.h"
+#include "pc/hle_patches.h"
+#include "pc/input_hle.h"
+#include "pc/kernel.h"
+#include "pc/kernel_internal.h"
+#include "pc/keyboard_bindings.h"
+#include "pc/launcher_ui.h"
+#include "pc/log.h"
+#include "pc/nv2a.h"
+#include "pc/paths.h"
+#include "pc/physical_memory.h"
+#include "pc/privileged.h"
+#include "pc/profile.h"
+#include "pc/settings.h"
+#include "pc/xbox_thread.h"
+
+static_assert(sizeof(void*) == 4, "the PC runtime runs the game's x86 code natively and must be 32-bit");
+
+namespace sm2::pc {
+namespace {
+
+constexpr uint32_t kMainThreadStackSize = 1024 * 1024;
+
+struct HostImage {
+    uint8_t* base;
+    uint32_t size;
+};
+
+struct MainThreadStart {
+    uint32_t entry_point;
+    XbeTlsTemplate tls;
+};
+
+std::unique_ptr<XdvdfsImage> g_disc;
+std::optional<Xbe> g_xbe;
+ExecMemory g_exec_memory;
+MainThreadStart g_main_thread_start;
+
+[[noreturn]] void fatal(const char* format, ...) {
+    char message[1024];
+    va_list args;
+    va_start(args, format);
+    std::vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+    log_line("FATAL: %s", message);
+    // SM2_NO_DIALOG keeps automated runs from blocking on the message box.
+    if (!GetEnvironmentVariableW(L"SM2_NO_DIALOG", nullptr, 0)) {
+        MessageBoxA(nullptr, message, "sm2port", MB_ICONERROR | MB_OK);
+    }
+    end_process(1);
+}
+
+HostImage host_image() {
+    auto* base = reinterpret_cast<uint8_t*>(GetModuleHandleW(nullptr));
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base + dos->e_lfanew);
+    return HostImage{base, nt->OptionalHeader.SizeOfImage};
+}
+
+void log_xbe(const Xbe& xbe) {
+    log_line("XBE: '%s' title id %08X, %s", xbe.title().c_str(), xbe.title_id(), xbe.is_retail() ? "retail" : "debug");
+    log_line("  base %08X, image %08X bytes, entry %08X, kernel thunk %08X", xbe.base_address(), xbe.image_size(),
+             xbe.entry_point(), xbe.kernel_thunk_address());
+    std::string libraries;
+    for (const XbeLibrary& library : xbe.libraries()) {
+        libraries += " " + library.name + "." + std::to_string(library.build);
+    }
+    log_line("  XDK libraries:%s", libraries.c_str());
+}
+
+// Windows keeps reading the PE header at the image base after startup: the kernel takes the default stack
+// sizes of every new thread from it. The game needs its XBE header at the same address, so both live there.
+// The XBE's first 0x104 bytes are its magic and RSA signature, unused once loaded: a minimal PE header
+// (no sections, no data directories) fits in them. Only the magic changes, "XBEH" -> "MZEH"; the game's code
+// never checks it (no code section contains the constant).
+void write_hybrid_pe_header(uint8_t* base, const std::vector<uint8_t>& launcher_header) {
+    constexpr uint32_t kNtHeadersOffset = 0x40;
+    constexpr uint32_t kXbeFirstUsedField = 0x104;  // XBE base address field
+    constexpr uint32_t kOptionalHeaderSize = offsetof(IMAGE_OPTIONAL_HEADER32, DataDirectory);
+    static_assert(kNtHeadersOffset + offsetof(IMAGE_NT_HEADERS32, OptionalHeader) + kOptionalHeaderSize <=
+                  kXbeFirstUsedField);
+
+    const auto* old_dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(launcher_header.data());
+    const auto* old_nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(launcher_header.data() + old_dos->e_lfanew);
+
+    auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
+    dos->e_magic = IMAGE_DOS_SIGNATURE;
+    dos->e_lfanew = kNtHeadersOffset;
+    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS32*>(base + kNtHeadersOffset);
+    nt->Signature = IMAGE_NT_SIGNATURE;
+    nt->FileHeader = old_nt->FileHeader;
+    nt->FileHeader.NumberOfSections = 0;
+    nt->FileHeader.SizeOfOptionalHeader = kOptionalHeaderSize;
+    std::memcpy(&nt->OptionalHeader, &old_nt->OptionalHeader, kOptionalHeaderSize);
+    nt->OptionalHeader.NumberOfRvaAndSizes = 0;
+}
+
+// Replaces the launcher image with the XBE: header at the base, preloaded sections at their addresses.
+void map_xbe(const Xbe& xbe, const HostImage& host) {
+    const uint32_t host_begin = address_of(host.base);
+    const uint32_t host_end = host_begin + host.size;
+    if (xbe.base_address() != host_begin || xbe.image_size() > host.size) {
+        fatal("XBE wants %08X-%08X but the launcher reserved %08X-%08X", xbe.base_address(),
+              xbe.base_address() + xbe.image_size(), host_begin, host_end);
+    }
+    for (const XbeSection& section : xbe.sections()) {
+        if (section.virtual_address < host_begin || section.virtual_size > host_end - section.virtual_address) {
+            fatal("XBE section %s lies outside the reserved range", section.name.c_str());
+        }
+    }
+
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(host.base);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(host.base + dos->e_lfanew);
+    const std::vector<uint8_t> launcher_header(host.base, host.base + nt->OptionalHeader.SizeOfHeaders);
+
+    DWORD old_protection = 0;
+    if (!VirtualProtect(host.base, host.size, PAGE_EXECUTE_READWRITE, &old_protection)) {
+        fatal("VirtualProtect on the launcher image failed (error %lu)", GetLastError());
+    }
+    // From here on the launcher's own headers and code are gone; nothing may return into them.
+    std::memset(host.base, 0, host.size);
+
+    const std::vector<uint8_t>& file = xbe.file();
+    std::memcpy(host.base, file.data(), xbe.header_size());
+    write_hybrid_pe_header(host.base, launcher_header);
+    for (const XbeSection& section : xbe.sections()) {
+        if (!section.preload()) continue;
+        const uint32_t size = std::min(section.raw_size, section.virtual_size);
+        std::memcpy(reinterpret_cast<void*>(static_cast<uintptr_t>(section.virtual_address)),
+                    file.data() + section.raw_address, size);
+    }
+}
+
+XbeTlsTemplate prepare_tls(const Xbe& xbe) {
+    XbeTlsTemplate tls;
+    const std::optional<XbeTlsDirectory> directory = xbe.tls();
+    if (!directory) return tls;
+    if (directory->raw_data_end > directory->raw_data_start) {
+        tls.data = reinterpret_cast<const uint8_t*>(static_cast<uintptr_t>(directory->raw_data_start));
+        tls.data_size = directory->raw_data_end - directory->raw_data_start;
+    }
+    tls.zero_fill_size = directory->zero_fill_size;
+    // XAPI overwrites the TLS index at startup with -(TLS area size / 4); see attach_xbox_thread_context.
+    log_line("TLS: %u bytes of data, %u zero-filled, index at %08X", tls.data_size, tls.zero_fill_size,
+             directory->index_address);
+    return tls;
+}
+
+// A C++ exception carries the MSVC throw information: its first catchable type names the thrown class.
+void log_cpp_exception(const EXCEPTION_RECORD* record) {
+    struct TypeDescriptor {
+        const void* vtable;
+        void* spare;
+        char name[1];
+    };
+    struct CatchableType {
+        uint32_t properties;
+        const TypeDescriptor* type;
+    };
+    struct CatchableTypeArray {
+        int32_t count;
+        const CatchableType* types[1];
+    };
+    struct ThrowInfo {
+        uint32_t attributes;
+        const void* unwind;
+        const void* forward_compat;
+        const CatchableTypeArray* catchable;
+    };
+    const auto* throw_info = reinterpret_cast<const ThrowInfo*>(record->ExceptionInformation[2]);
+    const auto* object = reinterpret_cast<const std::exception*>(record->ExceptionInformation[1]);
+    if (!throw_info || !throw_info->catchable || throw_info->catchable->count < 1) return;
+    const char* name = throw_info->catchable->types[0]->type->name;
+    // Every catchable type of a std::exception lists std::exception last.
+    const CatchableType* last = throw_info->catchable->types[throw_info->catchable->count - 1];
+    const bool standard = std::strcmp(last->type->name, ".?AVexception@std@@") == 0;
+    log_line("  C++ exception %s%s%s", name, standard ? ": " : "", standard ? object->what() : "");
+}
+
+// Host code frames, named from the PDBs next to the program (RelWithDebInfo builds).
+void log_host_backtrace(const CONTEXT* context) {
+    HANDLE process = GetCurrentProcess();
+    static const bool symbols = SymInitialize(process, nullptr, TRUE) != FALSE;
+    CONTEXT copy = *context;
+    STACKFRAME64 frame{};
+    frame.AddrPC = {copy.Eip, 0, AddrModeFlat};
+    frame.AddrFrame = {copy.Ebp, 0, AddrModeFlat};
+    frame.AddrStack = {copy.Esp, 0, AddrModeFlat};
+    for (int depth = 0; depth < 24 && StackWalk64(IMAGE_FILE_MACHINE_I386, process, GetCurrentThread(), &frame, &copy,
+                                                  nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr);
+         ++depth) {
+        alignas(SYMBOL_INFO) char buffer[sizeof(SYMBOL_INFO) + 256] = {};
+        auto* symbol = reinterpret_cast<SYMBOL_INFO*>(buffer);
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen = 255;
+        DWORD64 displacement = 0;
+        IMAGEHLP_LINE64 line{sizeof(line)};
+        DWORD column = 0;
+        const DWORD64 pc = frame.AddrPC.Offset;
+        const bool named = symbols && SymFromAddr(process, pc, &displacement, symbol);
+        const bool lined = symbols && SymGetLineFromAddr64(process, pc, &column, &line);
+        log_line("  at %08X %s%s%s:%lu", static_cast<uint32_t>(pc), named ? symbol->Name : "?", lined ? " " : "",
+                 lined ? line.FileName : "", lined ? line.LineNumber : 0ul);
+    }
+}
+
+// "in xaudio2_9.dll+1CB2F", or "in the game's code" for the XBE range (Windows sees it as sm2.exe): which side
+// of the port a crash is on, without mapping the address by hand.
+std::string describe_code_address(uint32_t address) {
+    HMODULE module = nullptr;
+    if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCWSTR>(static_cast<uintptr_t>(address)), &module)) {
+        return "(no module)";
+    }
+    if (module == GetModuleHandleW(nullptr)) return "(in the game's code)";
+    wchar_t path[MAX_PATH] = {};
+    GetModuleFileNameW(module, path, MAX_PATH);
+    const wchar_t* name = std::wcsrchr(path, L'\\');
+    name = name ? name + 1 : path;
+    char text[MAX_PATH + 32];
+    std::snprintf(text, sizeof(text), "(in %ls+%X)", name, address - address_of(module));
+    return text;
+}
+
+// The first crash of a run also goes to sm2port-crash.dmp next to the log: every thread's registers and stack, and
+// the memory they point at, for crashes the log alone does not explain. Module paths are left out (they hold the
+// user's name), so the file can be attached to a public report.
+void write_crash_dump(EXCEPTION_POINTERS* info) {
+    static volatile long written = 0;
+    if (InterlockedExchange(&written, 1)) return;
+    const std::filesystem::path path = data_directory() / "sm2port-crash.dmp";
+    HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) return;
+    MINIDUMP_EXCEPTION_INFORMATION exception{GetCurrentThreadId(), info, FALSE};
+    const auto type = static_cast<MINIDUMP_TYPE>(MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithThreadInfo |
+                                                 MiniDumpFilterModulePaths);
+    const bool ok = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, type, &exception, nullptr,
+                                      nullptr) != FALSE;
+    CloseHandle(file);
+    log_line(ok ? "crash dump written: %ls" : "crash dump failed: %ls", path.c_str());
+}
+
+LONG WINAPI on_unhandled_exception(EXCEPTION_POINTERS* info) {
+    const EXCEPTION_RECORD* record = info->ExceptionRecord;
+    const CONTEXT* context = info->ContextRecord;
+    write_crash_dump(info);
+    log_line("");
+    log_line("unhandled exception %08lX at %08X %s", record->ExceptionCode, address_of(record->ExceptionAddress),
+             describe_code_address(address_of(record->ExceptionAddress)).c_str());
+    constexpr DWORD kMsvcCppException = 0xE06D7363;
+    if (record->ExceptionCode == kMsvcCppException && record->NumberParameters >= 3) {
+        log_cpp_exception(record);
+        log_host_backtrace(context);
+    }
+    if (record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && record->NumberParameters >= 2) {
+        const uint32_t address = static_cast<uint32_t>(record->ExceptionInformation[1]);
+        log_line("  %s of address %08X", record->ExceptionInformation[0] ? "write" : "read", address);
+        MEMORY_BASIC_INFORMATION memory{};
+        if (VirtualQuery(reinterpret_cast<void*>(static_cast<uintptr_t>(address)), &memory, sizeof(memory))) {
+            log_line("  memory there: region %08X+%lX (%s), allocation at %08X", address_of(memory.BaseAddress),
+                     static_cast<unsigned long>(memory.RegionSize),
+                     memory.State == MEM_COMMIT ? "committed" : memory.State == MEM_RESERVE ? "reserved" : "free",
+                     address_of(memory.AllocationBase));
+            // The region just below: what the game was reading past.
+            MEMORY_BASIC_INFORMATION below{};
+            if (address >= 0x1000 && VirtualQuery(reinterpret_cast<void*>(static_cast<uintptr_t>(address - 0x1000)),
+                                                  &below, sizeof(below))) {
+                log_line("  memory below: region %08X+%lX (%s), allocation at %08X", address_of(below.BaseAddress),
+                         static_cast<unsigned long>(below.RegionSize),
+                         below.State == MEM_COMMIT ? "committed" : below.State == MEM_RESERVE ? "reserved" : "free",
+                         address_of(below.AllocationBase));
+            }
+        }
+    }
+    log_line("  eax=%08lX ebx=%08lX ecx=%08lX edx=%08lX esi=%08lX edi=%08lX ebp=%08lX esp=%08lX", context->Eax,
+             context->Ebx, context->Ecx, context->Edx, context->Esi, context->Edi, context->Ebp, context->Esp);
+    if (const XboxThreadContext* thread = current_xbox_thread()) {
+        const auto* tls = reinterpret_cast<const uint32_t*>(thread->tls_area);
+        const std::optional<XbeTlsDirectory> directory = g_xbe ? g_xbe->tls() : std::nullopt;
+        const uint32_t index = directory && directory->index_address ? *guest<uint32_t>(directory->index_address) : 0;
+        log_line("  xbox thread %u: tls area %08X = [%08X %08X %08X], tls index %u, irql %u", thread->thread_id,
+                 address_of(tls), tls[0], tls[1], tls[2], index, current_irql());
+    } else {
+        log_line("  not an Xbox thread");
+    }
+    // ESP itself may be what went wrong: only read memory that is committed and readable.
+    const auto readable = [](uint32_t address, uint32_t bytes) {
+        MEMORY_BASIC_INFORMATION region{};
+        const auto* pointer = reinterpret_cast<const uint8_t*>(static_cast<uintptr_t>(address));
+        return VirtualQuery(pointer, &region, sizeof(region)) && region.State == MEM_COMMIT &&
+               pointer + bytes <= static_cast<const uint8_t*>(region.BaseAddress) + region.RegionSize &&
+               !(region.Protect & (PAGE_GUARD | PAGE_NOACCESS));
+    };
+    // What the registers point at (objects, their vtables): a bad call through an object shows its contents.
+    const struct {
+        const char* name;
+        uint32_t value;
+    } registers[] = {{"eax", context->Eax}, {"ebx", context->Ebx}, {"ecx", context->Ecx},
+                     {"esi", context->Esi}, {"edi", context->Edi}};
+    for (const auto& r : registers) {
+        if (r.value < 0x10000 || !readable(r.value, 32)) continue;
+        const auto* words = reinterpret_cast<const uint32_t*>(static_cast<uintptr_t>(r.value));
+        log_line("  [%s] %08X %08X %08X %08X %08X %08X %08X %08X", r.name, words[0], words[1], words[2], words[3],
+                 words[4], words[5], words[6], words[7]);
+        if (words[0] >= 0x10000 && readable(words[0], 64)) {
+            const auto* table = reinterpret_cast<const uint32_t*>(static_cast<uintptr_t>(words[0]));
+            log_line("  [[%s]] %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X", r.name, table[0],
+                     table[1], table[2], table[3], table[4], table[5], table[6], table[7], table[8], table[9],
+                     table[10], table[11]);
+        }
+    }
+    const auto* stack = reinterpret_cast<const uint32_t*>(static_cast<uintptr_t>(context->Esp));
+    if (readable(context->Esp, 32)) {
+        log_line("  stack: %08X %08X %08X %08X %08X %08X %08X %08X", stack[0], stack[1], stack[2], stack[3], stack[4],
+                 stack[5], stack[6], stack[7]);
+        if (readable(context->Esp, 0xA0)) {  // the caller's frame too
+            for (int row = 8; row < 40; row += 8) {
+                log_line("  stack+%02X: %08X %08X %08X %08X %08X %08X %08X %08X", row * 4, stack[row], stack[row + 1],
+                         stack[row + 2], stack[row + 3], stack[row + 4], stack[row + 5], stack[row + 6], stack[row + 7]);
+            }
+        }
+        log_game_return_addresses(stack);
+    } else {
+        log_line("  stack pointer %08lX is not readable", context->Esp);
+    }
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+// XAPI inspects the kernel image's own PE header at its fixed address (0x80010000) and looks for an "INIT"
+// section to reclaim. A header with one ordinary section tells it there is nothing to do.
+void map_kernel_image_header() {
+    constexpr uint32_t kKernelImageBase = 0x80010000;
+    constexpr uint32_t kNtHeadersOffset = 0x80;
+    // Inside the physical memory window, in the pages reserved for the kernel.
+    auto* base = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(kKernelImageBase));
+    auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
+    dos->e_magic = IMAGE_DOS_SIGNATURE;
+    dos->e_lfanew = kNtHeadersOffset;
+    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS32*>(base + kNtHeadersOffset);
+    nt->Signature = IMAGE_NT_SIGNATURE;
+    nt->FileHeader.Machine = IMAGE_FILE_MACHINE_I386;
+    nt->FileHeader.NumberOfSections = 1;
+    nt->FileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER32);
+    nt->OptionalHeader.Magic = IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+    nt->OptionalHeader.ImageBase = kKernelImageBase;
+    auto* section = IMAGE_FIRST_SECTION(nt);
+    std::memcpy(section->Name, ".data", 5);
+}
+
+// MCPX devices the port does not emulate. DirectSound is replaced (dsound_hle.cpp), but its hardware stays
+// mapped as plain memory for any leftover access; the network stack sees an adapter without a link.
+void map_audio_placeholder() {
+    struct Region {
+        uint32_t base;
+        uint32_t size;
+    };
+    constexpr Region kRegions[] = {
+        {0xFE800000, 0x80000},  // APU
+        {0xFEC00000, 0x1000},   // AC97
+        {0xFEF00000, 0x1000},   // network controller: the port is offline, the network stack only initialises
+    };
+    for (const Region& region : kRegions) {
+        if (!VirtualAlloc(reinterpret_cast<void*>(static_cast<uintptr_t>(region.base)), region.size,
+                          MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE)) {
+            fatal("cannot map the audio placeholder at %08X (error %lu)", region.base, GetLastError());
+        }
+    }
+    const auto preset = [](uint32_t address, uint32_t value) {
+        *reinterpret_cast<volatile uint32_t*>(static_cast<uintptr_t>(address)) = value;
+    };
+    preset(0xFE820010, 0x20);   // APU global processor counter: DirectSound waits for it to pass 0x20
+    preset(0xFEC0012C, 0x100);  // AC97 global status: primary codec ready
+}
+
+// The Xbox has one CPU, and game code may rely on it (for example by never expecting two of its threads to run
+// at the same time): game threads share one core, the emulated GPU gets the others. SM2_MULTICORE=1 lifts the
+// restriction.
+void restrict_to_one_core() {
+    if (GetEnvironmentVariableW(L"SM2_MULTICORE", nullptr, 0)) return;
+    DWORD_PTR process_mask = 0, system_mask = 0;
+    if (!GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask) || !process_mask) return;
+    const DWORD_PTR first_core = process_mask & (~process_mask + 1);
+    set_game_cores(first_core);
+    log_line("game code runs on one CPU core (mask %08lX), like the Xbox; the GPU on mask %08lX",
+             static_cast<unsigned long>(first_core), emulation_cores());
+}
+
+// The game installs its own exception handlers (its crash screen exits to the dashboard), so faults would
+// never reach on_unhandled_exception. A vectored handler sees them first; it only logs.
+LONG WINAPI on_first_chance_exception(EXCEPTION_POINTERS* info) {
+    constexpr DWORD kMsvcCppException = 0xE06D7363;
+    constexpr DWORD kSetThreadName = 0x406D1388;
+    static volatile long reported = 0;
+    const DWORD code = info->ExceptionRecord->ExceptionCode;
+    if (code == STATUS_PRIVILEGED_INSTRUCTION && emulate_privileged_instruction(info->ContextRecord)) {
+        profile_privileged_instruction();
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
+    // Wine reports wbinvd, invd, rdmsr and wrmsr as an access violation at 0xFFFFFFFF, not as a privileged
+    // instruction; the emulator only acts on those opcodes, so anything else goes on to the checks below.
+    if (code == EXCEPTION_ACCESS_VIOLATION && info->ExceptionRecord->NumberParameters >= 2 &&
+        info->ExceptionRecord->ExceptionInformation[1] == 0xFFFFFFFF &&
+        emulate_privileged_instruction(info->ContextRecord)) {
+        profile_privileged_instruction();
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
+    if (code == EXCEPTION_ACCESS_VIOLATION && info->ExceptionRecord->NumberParameters >= 2 &&
+        nv2a_handle_access_violation(info->ContextRecord,
+                                     static_cast<uint32_t>(info->ExceptionRecord->ExceptionInformation[1]))) {
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
+    constexpr ULONG_PTR kReadFault = 0;
+    if (code == EXCEPTION_ACCESS_VIOLATION && info->ExceptionRecord->NumberParameters >= 2 &&
+        info->ExceptionRecord->ExceptionInformation[0] == kReadFault &&
+        commit_reserved_page(static_cast<uint32_t>(info->ExceptionRecord->ExceptionInformation[1]))) {
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
+    if (code == kMsvcCppException || code == kSetThreadName || code == DBG_PRINTEXCEPTION_C ||
+        code == DBG_PRINTEXCEPTION_WIDE_C) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    // Windows components (the file dialog's shell and RPC code) raise and handle their own: only game threads.
+    if (!current_xbox_thread()) return EXCEPTION_CONTINUE_SEARCH;
+    if (InterlockedIncrement(&reported) <= 20) {
+        log_line("first-chance exception:");
+        on_unhandled_exception(info);
+    }
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+// What a report needs about the machine, so that nobody has to be asked: sm2port's version, Windows' real
+// version (RtlGetVersion is not subject to the manifest), processor, memory and every graphics adapter with its
+// video memory and driver version.
+void log_host() {
+    log_line("sm2port %s", SM2PORT_VERSION);
+    using RtlGetVersionFunction = LONG(__stdcall*)(RTL_OSVERSIONINFOW*);
+    RTL_OSVERSIONINFOW os{sizeof(os)};
+    if (HMODULE ntdll = GetModuleHandleW(L"ntdll.dll")) {
+        if (auto rtl_get_version = reinterpret_cast<RtlGetVersionFunction>(GetProcAddress(ntdll, "RtlGetVersion"))) {
+            rtl_get_version(&os);
+        }
+    }
+    int cpu_info[4] = {};
+    char brand[49] = {};
+    __cpuid(cpu_info, 0x80000000);
+    if (static_cast<unsigned>(cpu_info[0]) >= 0x80000004) {
+        for (int i = 0; i < 3; ++i) {
+            __cpuid(cpu_info, 0x80000002 + i);
+            std::memcpy(brand + 16 * i, cpu_info, 16);
+        }
+    }
+    // The name is padded with spaces: at the end on AMD processors, at the start on some Intel ones.
+    for (size_t end = std::strlen(brand); end > 0 && brand[end - 1] == ' '; --end) brand[end - 1] = 0;
+    const char* processor = brand;
+    while (*processor == ' ') ++processor;
+    SYSTEM_INFO system{};
+    GetNativeSystemInfo(&system);
+    MEMORYSTATUSEX memory{sizeof(memory)};
+    GlobalMemoryStatusEx(&memory);
+    log_line("host: Windows %lu.%lu build %lu, %s, %lu logical processors, %llu MB RAM", os.dwMajorVersion,
+             os.dwMinorVersion, os.dwBuildNumber, *processor ? processor : "unknown processor",
+             system.dwNumberOfProcessors, static_cast<unsigned long long>(memory.ullTotalPhys >> 20));
+
+    Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
+    if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) {
+        log_line("host: no DXGI factory");
+        return;
+    }
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+    for (UINT i = 0; factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+        DXGI_ADAPTER_DESC1 desc{};
+        adapter->GetDesc1(&desc);
+        LARGE_INTEGER driver{};
+        adapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &driver);  // the user-mode driver's version
+        // The description's memory sizes are SIZE_T, so a 32-bit process sees large ones cut short (an 8 GB card
+        // showed 3072 MB). Such a card gets the budget of its own memory instead, which is 64-bit: what Windows lets
+        // a program use of it. Integrated graphics keep their dedicated size, since for them "their own memory" is
+        // the system memory they share.
+        uint64_t video_memory = desc.DedicatedVideoMemory;
+        Microsoft::WRL::ComPtr<IDXGIAdapter3> adapter3;
+        DXGI_QUERY_VIDEO_MEMORY_INFO budget{};
+        if (video_memory >= (2ull << 30) && SUCCEEDED(adapter.As(&adapter3)) &&
+            SUCCEEDED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &budget)) &&
+            budget.Budget > video_memory) {
+            video_memory = budget.Budget;
+        }
+        log_line("host: adapter %u: %ls, %llu MB video memory, driver %u.%u.%u.%u%s", i, desc.Description,
+                 static_cast<unsigned long long>(video_memory >> 20), HIWORD(driver.HighPart), LOWORD(driver.HighPart),
+                 HIWORD(driver.LowPart), LOWORD(driver.LowPart),
+                 (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) ? " (software)" : "");
+    }
+}
+
+// Under Wine (Linux, Proton) the log says so, with the Wine and host versions: a report from there is read
+// differently (TECHNICAL_NOTES.md, "Wine"; README, "Linux"). Wine's ntdll exports these two; Windows' has neither.
+void log_wine() {
+    HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+    if (!ntdll) return;
+    using WineVersion = const char*(__cdecl*)();
+    using WineHostVersion = void(__cdecl*)(const char** sysname, const char** release);
+    auto wine_version = reinterpret_cast<WineVersion>(GetProcAddress(ntdll, "wine_get_version"));
+    if (!wine_version) return;
+    const char* sysname = nullptr;
+    const char* release = nullptr;
+    if (auto host_version = reinterpret_cast<WineHostVersion>(GetProcAddress(ntdll, "wine_get_host_version"))) {
+        host_version(&sysname, &release);
+    }
+    log_line("host: Wine %s on %s %s (experimental, partly tested)", wine_version(), sysname ? sysname : "?",
+             release ? release : "?");
+}
+
+DWORD WINAPI xbox_main_thread(void* parameter) {
+    const auto* start = static_cast<const MainThreadStart*>(parameter);
+    attach_xbox_thread_context(start->tls, 0);
+    profile_name_thread(true, "main");
+    log_line("jumping to the XBE entry point %08X", start->entry_point);
+    using EntryPoint = void(__stdcall*)();
+    reinterpret_cast<EntryPoint>(static_cast<uintptr_t>(start->entry_point))();
+    log_line("the XBE entry point returned");
+    return 0;
+}
+
+}  // namespace
+}  // namespace sm2::pc
+
+// Called by the launcher; never returns, because the launcher's code no longer exists once the XBE is mapped.
+extern "C" __declspec(dllexport) __declspec(noreturn) void __cdecl sm2_run(void* reserved, unsigned long reserved_size) {
+    using namespace sm2;
+    using namespace sm2::pc;
+
+    const HostImage host = host_image();
+    const std::filesystem::path exe_directory = program_directory();
+    // Restarted from the in-game menu: the old process first lets go of the log, the settings and the saves.
+    wchar_t restart_from[16] = {};
+    if (GetEnvironmentVariableW(L"SM2_RESTART_FROM", restart_from, 16)) {
+        SetEnvironmentVariableW(L"SM2_RESTART_FROM", nullptr);
+        if (HANDLE old = OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(std::wcstoul(restart_from, nullptr, 10)))) {
+            WaitForSingleObject(old, 10000);
+            CloseHandle(old);
+        }
+    }
+    log_open(data_directory() / "sm2port.log");
+    // Started by RecompLauncher (recomplauncher.json in the release): it installs updates itself, and in its Big
+    // Picture mode the player is on a controller in front of a full screen. Set before the settings read SM2_*.
+    if (GetEnvironmentVariableW(L"RECOMPLAUNCHER", nullptr, 0)) SetEnvironmentVariableW(L"SM2_CHECK_UPDATES", L"0");
+    wchar_t launcher_mode[16] = {};
+    if (GetEnvironmentVariableW(L"RECOMPLAUNCHER_MODE", launcher_mode, 16) && std::wcscmp(launcher_mode, L"bigpicture") == 0) {
+        SetEnvironmentVariableW(L"SM2_FULLSCREEN", L"1");
+    }
+    settings_load(data_directory() / "sm2port.ini");
+    log_line("files: program in %s, data in %s%s", reinterpret_cast<const char*>(exe_directory.u8string().c_str()),
+             reinterpret_cast<const char*>(data_directory().u8string().c_str()), portable_mode() ? " (portable)" : "");
+    log_host();
+    log_wine();
+    SetUnhandledExceptionFilter(on_unhandled_exception);
+    AddVectoredExceptionHandler(1, on_first_chance_exception);
+
+    const uint32_t reserved_offset = address_of(reserved) - address_of(host.base);  // wraps if below the base
+    if (reserved_offset > host.size || reserved_size > host.size - reserved_offset) {
+        fatal("launcher reservation %08X+%08lX is not inside its own image", address_of(reserved), reserved_size);
+    }
+
+    load_key_bindings();
+    nv2a_load_icons();  // the exe's resources, before the XBE overwrites them
+    // The launcher, unless a disc image is given on the command line (frontends, test scripts) or SM2_SKIP_LAUNCHER
+    // or SM2_NO_DIALOG is set.
+    const bool skip_launcher = !command_line_disc().empty() || GetEnvironmentVariableW(L"SM2_SKIP_LAUNCHER", nullptr, 0) ||
+                               GetEnvironmentVariableW(L"SM2_NO_DIALOG", nullptr, 0);
+    std::optional<GameDisc> disc =
+        skip_launcher ? open_game_disc(exe_directory) : run_launcher(nv2a_open_window(), exe_directory);
+    if (!disc) {
+        log_line("no game disc: exiting");
+        ExitProcess(command_line_disc().empty() ? 0 : 2);  // 2: the disc given was refused (recomplauncher.json explains it)
+    }
+    log_line("disc image: %s", reinterpret_cast<const char*>(disc->path.u8string().c_str()));
+    settings_freeze();  // from here on, keys the game reads once change only for the next start
+    const std::filesystem::path disc_path = disc->path;
+    g_disc = std::move(disc->image);
+    g_xbe = std::move(disc->xbe);
+    log_xbe(*g_xbe);
+
+    std::string error;
+
+    map_xbe(*g_xbe, host);
+
+    apply_hle_patches(*g_xbe);
+    install_dsound_hle(*g_xbe);
+    install_input_hle(*g_xbe);
+    const FsPatchReport fs = patch_fs_reads(*g_xbe, g_exec_memory);
+    log_line("fs: reads patched: %u (%u helpers), skipped: %u", fs.patched, fs.helpers, fs.skipped);
+
+    register_all_kernel_functions();
+    KernelThunkReport kernel;
+    if (!install_kernel_thunks(*g_xbe, g_exec_memory, &kernel, &error)) fatal("%s", error.c_str());
+    log_line("kernel imports: %u implemented, %u data, %u stubs", kernel.implemented, kernel.data,
+             kernel.unimplemented);
+
+    set_kernel_xbe(&*g_xbe);
+    const std::filesystem::path hdd_directory = data_directory() / "xbox_hdd";
+    configure_file_system(g_disc.get(), hdd_directory.c_str());
+    log_line("hard disk partitions: %s", reinterpret_cast<const char*>(hdd_directory.u8string().c_str()));
+    restrict_to_one_core();
+    if (!map_physical_memory()) fatal("cannot map the Xbox physical memory window at %08X", kPhysicalMapBase);
+    map_kernel_image_header();
+    if (!start_nv2a()) fatal("cannot start the NV2A emulation");
+    start_game_menu(nv2a_open_window(), disc_path);
+    map_audio_placeholder();
+
+    g_main_thread_start = MainThreadStart{g_xbe->entry_point(), prepare_tls(*g_xbe)};
+    start_dispatcher_services(g_main_thread_start.tls);
+    const XbeSection& text = g_xbe->sections().front();
+    start_thread_watchdog(text.virtual_address, g_xbe->base_address() + g_xbe->image_size());
+    // Committed, not just reserved: see kMinimumStackSize in kernel_threads.cpp.
+    HANDLE thread = CreateThread(nullptr, kMainThreadStackSize, xbox_main_thread, &g_main_thread_start, 0, nullptr);
+    if (!thread) fatal("CreateThread failed (error %lu)", GetLastError());
+    CloseHandle(thread);
+
+    // The XBE's startup thread ends once it has created the game's main thread; the game leaves through
+    // HalReturnToFirmware, which exits the process.
+    for (;;) Sleep(INFINITE);
+}
