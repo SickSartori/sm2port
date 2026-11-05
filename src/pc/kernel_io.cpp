@@ -477,14 +477,6 @@ NTSTATUS open_host(const Location& location, uint32_t access, uint32_t dispositi
     return kStatusSuccess;
 }
 
-// skip_intro: the logo films at start (Rockstar, Rockstar San Diego) ignore the controller, so they are reported
-// missing and the game goes on to the next one.
-bool skip_intro_video(const std::string& xbox_path) {
-    if (setting("skip_intro") == 0) return false;
-    const std::string path = lower(xbox_path);
-    return path == "\\device\\cdrom0\\video\\rockstar.bik" || path == "\\device\\cdrom0\\video\\sdlogo.bik";
-}
-
 NTSTATUS __stdcall NtCreateFile(uint32_t* file_handle, uint32_t desired_access, const XObjectAttributes* attributes,
                                 XIoStatusBlock* io_status, const int64_t* /*allocation_size*/,
                                 uint32_t /*file_attributes*/, uint32_t /*share_access*/, uint32_t disposition,
@@ -502,11 +494,9 @@ NTSTATUS __stdcall NtCreateFile(uint32_t* file_handle, uint32_t desired_access, 
     NTSTATUS status = location->device == Device::Disc
                           ? open_disc(*location, disposition, options, *file, &information)
                           : open_host(*location, desired_access, disposition, options, *file, &information);
-    if (status >= 0 && skip_intro_video(location->xbox_path)) status = kStatusObjectNameNotFound;
     log_line("NtCreateFile('%s' -> %s, disposition %u, options %X) = %08X", name.c_str(),
              location->xbox_path.c_str(), disposition, options, static_cast<uint32_t>(status));
     if (status >= 0) input_note_file_opened(location->xbox_path);
-    if (status >= 0 && lower(location->xbox_path).find("\\flash\\loadscreen_") != std::string::npos) note_loading_screen();
     complete(io_status, status, information);
     if (status < 0) return status;
     if (location->device == Device::Disc) {

@@ -1,4 +1,5 @@
-// Resources of sm2runtime.dll: the launcher's music (generated for sm2port with ElevenLabs Music) and fonts (Barlow Semi Condensed, SIL Open Font License, see
+// Resources of sm2runtime.dll: the launcher's music (generated for sm2port with ElevenLabs Music), its 8 background
+// pictures (generated for sm2port with Magnific) and fonts (Barlow Semi Condensed, SIL Open Font License, see
 // third_party/fonts/OFL.txt). In the DLL, not in sm2.exe, whose image the XBE overwrites.
 #include "launcher_resources.h"
 #include "version.rc"
@@ -9,3 +10,11 @@ IDR_FONT_MEDIUM_ITALIC RCDATA "../third_party/fonts/BarlowSemiCondensed-MediumIt
 IDR_FONT_EXTRABOLD_ITALIC RCDATA "../third_party/fonts/BarlowSemiCondensed-ExtraBoldItalic.ttf"
 IDR_LAUNCHER_MUSIC RCDATA "launcher_music.mp3"
 IDR_FONT_BLACK_ITALIC RCDATA "../third_party/fonts/BarlowSemiCondensed-BlackItalic.ttf"
+207 RCDATA "launcher_bg_1.jpg"
+208 RCDATA "launcher_bg_2.jpg"
+209 RCDATA "launcher_bg_3.jpg"
+210 RCDATA "launcher_bg_4.jpg"
+211 RCDATA "launcher_bg_5.jpg"
+212 RCDATA "launcher_bg_6.jpg"
+213 RCDATA "launcher_bg_7.jpg"
+214 RCDATA "launcher_bg_8.jpg"

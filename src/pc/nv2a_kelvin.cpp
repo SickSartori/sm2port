@@ -210,7 +210,8 @@ uint32_t dma_address(uint32_t context_dma, uint32_t offset) {
     return (context_dma == 2 ? g_k.dma_b : g_k.dma_a) + offset;
 }
 
-std::unordered_map<uint32_t, uint32_t> g_drawn_widths;  // kelvin_drawn_width, by physical address
+std::unordered_map<uint32_t, uint32_t> g_drawn_widths;   // kelvin_drawn_width, by physical address
+std::unordered_map<uint32_t, uint32_t> g_drawn_heights;  // kelvin_drawn_height
 
 SurfaceState surface() {
     SurfaceState s{};
@@ -236,6 +237,8 @@ SurfaceState surface() {
         s.height = s.clip_y + s.clip_height;
         uint32_t& drawn = g_drawn_widths[s.color_address & 0x0FFFFFFF];
         drawn = std::max(drawn, s.clip_x + s.clip_width);
+        uint32_t& drawn_height = g_drawn_heights[s.color_address & 0x0FFFFFFF];
+        drawn_height = std::max(drawn_height, s.clip_y + s.clip_height);
     }
     return s;
 }
@@ -1142,6 +1145,11 @@ void end_primitive() {
 uint32_t kelvin_drawn_width(uint32_t address) {
     const auto found = g_drawn_widths.find(address & 0x0FFFFFFF);
     return found != g_drawn_widths.end() ? found->second : 0;
+}
+
+uint32_t kelvin_drawn_height(uint32_t address) {
+    const auto found = g_drawn_heights.find(address & 0x0FFFFFFF);
+    return found != g_drawn_heights.end() ? found->second : 0;
 }
 
 void kelvin_initialise(DmaResolver resolver) {

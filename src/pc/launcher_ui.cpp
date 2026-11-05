@@ -4,6 +4,7 @@
 #include <d3dcompiler.h>
 #include <dxgi1_2.h>
 #include <shellapi.h>
+#include <wincodec.h>
 #include <bcrypt.h>
 #include <winhttp.h>
 #include <wrl/client.h>
@@ -21,6 +22,7 @@
 #include <iterator>
 #include <memory>
 #include <mutex>
+#include <random>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -35,8 +37,8 @@
 #include "pc/hle_patches.h"
 #include "pc/input_hle.h"
 #include "pc/keyboard_bindings.h"
-#include "pc/launcher_art.h"
 #include "pc/launcher_music.h"
+#include "pc/launcher_web.h"
 #include "pc/log.h"
 #include "pc/nv2a.h"
 #include "pc/paths.h"
@@ -87,8 +89,8 @@ struct Texts {
 
 const Texts kEnglish = {
     "PLAY", "SETTINGS", "CONTROLS", "ABOUT", "QUIT",
-    "READY TO RACE", "The streets of San Diego, Atlanta, Detroit and Tokyo are waiting.", "Disc verified",
-    "No disc chosen", "Choose the disc image (ISO) of your European Xbox copy.", "Change", "Choose the ISO",
+    "READY TO SWING", "New York is waiting.", "Disc verified",
+    "No disc chosen", "Choose the disc image (ISO) of your Xbox copy (Italy or Europe).", "Change", "Choose the ISO",
     "Controller connected", "Xbox and compatible controllers", "No controller", "The keyboard works too", "Edit",
     "Game", "Display", "Graphics", "Effects",
     "Game language", "The game's text and speech", "Like Windows", "Frames per second", "60 is smoother; 30 like the Xbox",
@@ -112,7 +114,7 @@ const Texts kEnglish = {
     "MIT licence \xC2\xB7 Dear ImGui (MIT) \xC2\xB7 Barlow Semi Condensed (OFL)",
     "Update", "Downloads and checks the installer, then shows it to you to start", "Downloading the update...",
     "The update could not be downloaded or checked",
-    "WELCOME", "You need your own copy: a disc image (ISO) of the European Xbox Spider-Man 2.",
+    "WELCOME", "You need your own copy: a disc image (ISO) of the Xbox Spider-Man 2 (Italy, or Europe in French, German or Spanish).",
     "NEXT", "QUALITY", "You can change it any time in the settings.", "ALL SET",
     "Disc verified. Connect a controller or use the keyboard.",
     "Disc", "Xbox \xC2\xB7 Europe", "none", "Controller", "connected", "not connected", "Version", "Select", "Back",
@@ -127,7 +129,7 @@ const Texts kEnglish = {
     "Skip the opening films", "The Rockstar logos and the intro, straight to the title screen",
     "Restart needed", "For the changes that apply at start; unsaved progress is lost", "Restart now",
     "HUD", "sm2port's: the dials drawn again, sharp at any resolution", "The game's", "Speed unit",
-    "Sharp HUD pictures", "The radar's map, icons and letters enlarged with clean edges",
+    "Sharp HUD pictures", "Icons and letters of the HUD enlarged with clean edges",
     "CHEATS", "With a career loaded: money, and the game's own codes to type in its Options > Cheat Codes.",
     "Money", "Added to the career: it stays once the game saves", "+ $10,000", "The game's codes",
     "Type them in the game's menu, Options > Cheat Codes (as found in the game's own check).",
@@ -136,8 +138,8 @@ const Texts kEnglish = {
 
 const Texts kItalian = {
     "GIOCA", "IMPOSTAZIONI", "CONTROLLI", "INFO", "ESCI",
-    "PRONTO A CORRERE", "Le strade di San Diego, Atlanta, Detroit e Tokyo ti aspettano.", "Disco verificato",
-    "Nessun disco scelto", "Scegli l'immagine del disco (ISO) della tua copia Xbox europea.", "Cambia", "Scegli l'ISO",
+    "PRONTO ALL'AZIONE", "New York ti aspetta.", "Disco verificato",
+    "Nessun disco scelto", "Scegli l'immagine del disco (ISO) della tua copia Xbox (Italia o Europa).", "Cambia", "Scegli l'ISO",
     "Controller collegato", "Controller Xbox e compatibili", "Nessun controller", "Anche la tastiera funziona", "Modifica",
     "Gioco", "Schermo", "Grafica", "Effetti",
     "Lingua del gioco", "Testi e voci del gioco", "Come Windows", "Fotogrammi al secondo",
@@ -165,7 +167,7 @@ const Texts kItalian = {
     "Aggiorna", "Scarica e verifica l'installer, poi te lo mostra da avviare", "Scarico l'aggiornamento...",
     "Non \xC3\xA8 stato possibile scaricare o verificare l'aggiornamento",
     "BENVENUTO",
-    "Per giocare serve la tua copia: l'immagine ISO del disco Xbox europeo di Spider-Man 2.",
+    "Per giocare serve la tua copia: l'immagine ISO del disco Xbox di Spider-Man 2 (Italia, oppure Europa in francese, tedesco o spagnolo).",
     "AVANTI", "QUALIT\xC3\x80", "Potrai cambiarla quando vuoi nelle impostazioni.", "TUTTO PRONTO",
     "Disco verificato. Collega un controller o usa la tastiera.",
     "Disco", "Xbox \xC2\xB7 Europa", "nessuno", "Controller", "collegato", "non collegato", "Versione", "Seleziona",
@@ -181,7 +183,7 @@ const Texts kItalian = {
     "Salta i video iniziali", "I loghi Rockstar e l'introduzione, dritto alla schermata del titolo",
     "Riavvio necessario", "Per le modifiche che valgono all'avvio; i progressi non salvati si perdono", "Riavvia ora",
     "HUD", "Quello di sm2port: quadranti ridisegnati, nitidi a ogni risoluzione", "Del gioco", "Unit\xC3\xA0 di velocit\xC3\xA0",
-    "Immagini dell'HUD nitide", "Mappa del radar, icone e lettere ingrandite con bordi puliti",
+    "Immagini dell'HUD nitide", "Icone e lettere dell'HUD ingrandite con bordi puliti",
     "CHEAT", "Con una carriera caricata: soldi, e i codici del gioco da scrivere in Opzioni > Codici.",
     "Soldi", "Si aggiungono alla carriera: restano quando il gioco salva", "+ 10.000 $", "Codici del gioco",
     "Da scrivere nel menu del gioco, Opzioni > Codici (come li controlla il gioco stesso).",
@@ -279,6 +281,9 @@ std::string key_name(int virtual_key) {
         case VK_SPACE: return italian() ? "Spazio" : "Space";
         case VK_RETURN: return italian() ? "Invio" : "Enter";
         case VK_BACK: return "Backspace";
+        case VK_LBUTTON: return italian() ? "Mouse sx" : "Mouse L";
+        case VK_RBUTTON: return italian() ? "Mouse dx" : "Mouse R";
+        case VK_MBUTTON: return italian() ? "Mouse centro" : "Mouse M";
         case VK_LSHIFT: case VK_RSHIFT: return "Shift";
         case VK_LCONTROL: case VK_RCONTROL: return "Ctrl";
         default: break;
@@ -534,7 +539,7 @@ public:
 
 private:
     // In game, kPlay is the pause page and kQuit the page that exits the game.
-    enum class Page { kPlay, kSettings, kControls, kCheats, kAbout, kQuit };
+    enum class Page { kPlay, kSettings, kControls, kAbout, kQuit };
 
     bool start_graphics();
     void start_imgui();
@@ -573,7 +578,6 @@ private:
     float pad_icon(ImDrawList* list, const char* name, ImVec2 at, float h, bool draw = true);
     void resize_if_needed();
     void upload_art();
-    void start_art_loader(const std::filesystem::path& disc_path);
     void draw_background(float now);
     void frame(float now, float dt);
 
@@ -606,7 +610,6 @@ private:
     void page_play();
     void page_settings();
     void page_controls();
-    void page_cheats();
     void page_about();
     void update_row(bool always);
     bool update_available();
@@ -651,9 +654,6 @@ private:
 
     std::optional<GameDisc> disc_;
     std::string disc_problem_;
-    std::mutex art_mutex_;
-    std::optional<LauncherArt> loaded_art_;  // from the loader thread, uploaded by the next frame
-    std::thread art_thread_;
     ComPtr<ID3D11ShaderResourceView> logo_;
     std::vector<ComPtr<ID3D11ShaderResourceView>> artwork_;
     int slide_ = 0;
@@ -674,7 +674,6 @@ private:
     Page page_ = Page::kPlay;
     float page_since_ = 0;
     int settings_tab_ = 0;
-    bool show_codes_ = false;  // the Cheats page lists the game's codes
     float tab_since_ = 0;                 // the settings tab's content fades in from here
     int hover_item_ = -1;                 // side menu: the item the mouse rests on, selected after a short dwell
     float hover_since_ = 0;
@@ -692,6 +691,8 @@ private:
     float panel_width_ = 0, cursor_ = 0, row_extra_ = 0;
     std::unordered_map<ImGuiID, float> anims_;
     std::vector<Trail> trails_;
+    WebEffects web_;
+    float web_page_since_ = -1;  // page_since_ at the last web burst
     std::vector<ImVec4> drops_;
 };
 
@@ -819,7 +820,6 @@ void Launcher::load_fonts() {
 
 void Launcher::stop_graphics() {
     music_.reset();  // fades out
-    if (art_thread_.joinable()) art_thread_.join();
     if (update_thread_.joinable()) update_thread_.join();
     if (download_thread_.joinable()) download_thread_.join();
     {
@@ -865,66 +865,67 @@ void Launcher::resize_if_needed() {
     scale_ = std::max(0.65f, std::min(width / 1600.0f, height / 900.0f));
 }
 
-ComPtr<ID3D11ShaderResourceView> dxt_texture(ID3D11Device* device, const DxtImage& image) {
-    if (image.blocks.empty()) return nullptr;
+// A background picture (a JPEG in the DLL's resources) as a texture, through Windows' image decoders.
+ComPtr<ID3D11ShaderResourceView> picture_texture(ID3D11Device* device, const std::vector<char>& file) {
+    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    ComPtr<IWICImagingFactory> factory;
+    ComPtr<IWICStream> stream;
+    ComPtr<IWICBitmapDecoder> decoder;
+    ComPtr<IWICBitmapFrameDecode> frame;
+    ComPtr<IWICFormatConverter> converter;
+    UINT width = 0, height = 0;
+    if (file.empty() || FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory))) ||
+        FAILED(factory->CreateStream(&stream)) ||
+        FAILED(stream->InitializeFromMemory(reinterpret_cast<BYTE*>(const_cast<char*>(file.data())), static_cast<DWORD>(file.size()))) ||
+        FAILED(factory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, &decoder)) ||
+        FAILED(decoder->GetFrame(0, &frame)) || FAILED(factory->CreateFormatConverter(&converter)) ||
+        FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, nullptr, 0,
+                                     WICBitmapPaletteTypeCustom)) ||
+        FAILED(converter->GetSize(&width, &height)) || !width || !height) {
+        return nullptr;
+    }
+    std::vector<uint8_t> pixels(static_cast<size_t>(width) * height * 4);
+    if (FAILED(converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data()))) return nullptr;
     D3D11_TEXTURE2D_DESC desc{};
-    desc.Width = image.width;
-    desc.Height = image.height;
+    desc.Width = width;
+    desc.Height = height;
     desc.MipLevels = 1;
     desc.ArraySize = 1;
-    desc.Format = DXGI_FORMAT_BC3_UNORM;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     desc.SampleDesc.Count = 1;
     desc.Usage = D3D11_USAGE_IMMUTABLE;
     desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    const D3D11_SUBRESOURCE_DATA data{image.blocks.data(), image.width / 4 * 16, 0};
+    const D3D11_SUBRESOURCE_DATA data{pixels.data(), width * 4, 0};
     ComPtr<ID3D11Texture2D> texture;
     ComPtr<ID3D11ShaderResourceView> view;
     if (SUCCEEDED(device->CreateTexture2D(&desc, &data, &texture))) device->CreateShaderResourceView(texture.Get(), nullptr, &view);
     return view;
 }
 
-void Launcher::start_art_loader(const std::filesystem::path& disc_path) {
-    if (art_thread_.joinable()) art_thread_.join();
-    art_thread_ = std::thread([this, disc_path] {
-        std::string error;
-        const std::unique_ptr<XdvdfsImage> disc = XdvdfsImage::open(disc_path, &error);
-        if (!disc) return;
-        LauncherArt art = load_launcher_art(*disc);
-        std::lock_guard<std::mutex> lock(art_mutex_);
-        loaded_art_ = std::move(art);
-    });
-}
-
+// Once, on the first frame outside the game (inside it the game is the background): the pictures, in random order.
 void Launcher::upload_art() {
-    std::optional<LauncherArt> art;
-    {
-        std::lock_guard<std::mutex> lock(art_mutex_);
-        art.swap(loaded_art_);
+    if (!artwork_.empty() || in_game_) return;
+    for (int id = IDR_LAUNCHER_BG_FIRST; id < IDR_LAUNCHER_BG_FIRST + IDR_LAUNCHER_BG_COUNT; ++id) {
+        if (ComPtr<ID3D11ShaderResourceView> view = picture_texture(device_.Get(), load_font_resource(id))) artwork_.push_back(view);
     }
-    if (!art) return;
-    logo_ = dxt_texture(device_.Get(), art->logo);
-    artwork_.clear();
-    if (in_game_) return;  // the game is the background
-    for (const DxtImage& picture : art->artwork) {
-        if (ComPtr<ID3D11ShaderResourceView> view = dxt_texture(device_.Get(), picture)) artwork_.push_back(view);
-    }
+    std::shuffle(artwork_.begin(), artwork_.end(), std::mt19937(std::random_device{}()));
     slide_ = 0;
     slide_start_ = -100;
 }
 
-// The part of a 512x256 picture covering the screen: inside its painted frame, zoomed by `zoom`, panned by `pan`.
+// The part of a 1376x768 picture covering the screen, zoomed by `zoom`, panned by `pan`.
 void cover_rect(float screen_aspect, float zoom, float pan, float* rect) {
-    constexpr float kWidth = 512, kHeight = 256, kInnerWidth = kWidth * 0.94f, kInnerHeight = kHeight * 0.88f;
+    constexpr float kWidth = 1376.0f / 768.0f, kHeight = 1;
     float w, h;
-    if (screen_aspect < kInnerWidth / kInnerHeight) {
-        h = kInnerHeight / zoom;
+    if (screen_aspect < kWidth / kHeight) {
+        h = kHeight / zoom;
         w = h * screen_aspect;
     } else {
-        w = kInnerWidth / zoom;
+        w = kWidth / zoom;
         h = w / screen_aspect;
     }
-    const float cx = std::clamp(kWidth * (0.5f - pan), kWidth * 0.03f + w / 2, kWidth * 0.97f - w / 2);
-    const float cy = kHeight * 0.47f;
+    const float cx = std::clamp(kWidth * (0.5f - pan), w / 2, kWidth - w / 2);
+    const float cy = kHeight * 0.5f;
     rect[0] = (cx - w / 2) / kWidth;
     rect[1] = (cy - h / 2) / kHeight;
     rect[2] = w / kWidth;
@@ -1295,7 +1296,6 @@ void Launcher::run_disc_dialog() {
         setting_save_text("disc_image", std::string(path.begin(), path.end()));
         disc_ = std::move(disc);
         disc_problem_.clear();
-        start_art_loader(chosen);
     } else {
         disc_problem_ = problem;
     }
@@ -1393,15 +1393,6 @@ void Launcher::page_settings() {
         const char* toggle[] = {t.off, t.on};
         int pause = setting("pause_in_background") != 0 ? 1 : 0;
         if (segmented("##background_pause", toggle, 2, &pause)) set_setting("pause_in_background", static_cast<float>(pause));
-        if (!in_game_) {  // the films are already over
-            row(t.skip_intro, t.skip_intro_sub);
-            int skip = setting("skip_intro") != 0 ? 1 : 0;
-            if (segmented("##skip_intro", toggle, 2, &skip)) set_setting("skip_intro", static_cast<float>(skip));
-        }
-        row(t.loading_screens, t.loading_screens_sub);
-        const char* durations[] = {t.off, "2 s", "4 s", "6 s"};
-        int duration = std::clamp(static_cast<int>(setting("loading_screen_seconds")) / 2, 0, 3);
-        if (segmented("##loading_screens", durations, 4, &duration)) set_setting("loading_screen_seconds", duration * 2.0f);
     } else if (settings_tab_ == 1) {
         row(t.aspect, t.aspect_sub, true);
         const char* aspects[] = {"4:3", "16:9"};
@@ -1438,16 +1429,6 @@ void Launcher::page_settings() {
         const char* toggle[] = {t.off, t.on};
         int counter = setting("fps_counter") != 0 ? 1 : 0;
         if (segmented("##fps_counter", toggle, 2, &counter)) set_setting("fps_counter", static_cast<float>(counter));
-        row(t.hud, t.hud_sub, true);
-        const char* huds[] = {t.hud_game, "sm2port"};
-        int hud = setting("hud_style") != 0 ? 1 : 0;
-        if (segmented("##hud", huds, 2, &hud)) set_setting("hud_style", static_cast<float>(hud));
-        if (hud) {
-            row(t.speed_unit, nullptr);
-            const char* units[] = {"mph", "km/h"};
-            int unit = setting("hud_units") != 0 ? 1 : 0;
-            if (segmented("##hud_units", units, 2, &unit)) set_setting("hud_units", static_cast<float>(unit));
-        }
     } else if (settings_tab_ == 2) {
         row(t.anisotropy, nullptr, true);
         const char* levels[] = {"1x", "4x", "8x", "16x"};
@@ -1517,8 +1498,8 @@ void Launcher::page_settings() {
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
         for (const char* key : {"game_language", "frame_rate", "volume", "launcher_music", "pause_in_background",
-                                "skip_intro", "loading_screen_seconds", "widescreen", "fullscreen", "fps_counter", "render_scale", "hud_style",
-                                "hud_units", "anisotropy", "gpu_vertices", "sharp_2d", "effects", "sharpen", "bloom",
+                                "widescreen", "fullscreen", "fps_counter", "render_scale", 
+                                "anisotropy", "gpu_vertices", "sharp_2d", "effects", "sharpen", "bloom",
                                 "bloom_threshold", "saturation", "contrast", "vignette", "motion_blur", "light_streaks",
                                 "effects_advanced", "ambient_occlusion", "ambient_occlusion_radius"}) {
             set_setting(key, setting_default(key));
@@ -1534,59 +1515,6 @@ void Launcher::page_settings() {
     ImGui::PopStyleVar();
     g_alpha = panel_alpha;
     origin_.x = origin_x;
-}
-
-// The game's cheat codes, decoded from its check (0x001923B0 compares the typed text, encoded by 0x00192350, with
-// the strings at 0x00463D10), with what each sets there.
-struct CheatCode {
-    const char *code, *english, *italian;
-};
-const CheatCode kCheatCodes[] = {
-    {"roadtrip", "Unlocks (the same as the next two)", "Sblocca (come i due seguenti)"},
-    {"crosscountry", "Unlocks", "Sblocca"},
-    {"urbansprawl", "Unlocks", "Sblocca"},
-    {"ontheroad", "No damage", "Nessun danno"},
-    {"hyperagro", "Heavier cars", "Auto pi\xC3\xB9 pesanti"},
-    {"dfens", "Agro special ability", "Abilit\xC3\xA0 Agro"},
-    {"allin", "Zone special ability", "Abilit\xC3\xA0 Zone"},
-    {"Rjnr", "Roar ability (capital R)", "Abilit\xC3\xA0 Roar (R maiuscola)"},
-    {"trythisathome", "Flaming head, on or off", "Testa in fiamme, s\xC3\xAC o no"},
-    {"getheadj", "Smiley head", "Testa sorridente"},
-    {"getheadk", "Pumpkin head", "Testa di zucca"},
-    {"getheadl", "Bunny head", "Testa di coniglio"},
-    {"getheadm", "Snowman head", "Testa di pupazzo"},
-    {"kubmir", "+$1 each time", "+1 $ ogni volta"},
-    {"rimbuk", "-$1 each time", "-1 $ ogni volta"},
-};
-
-void Launcher::page_cheats() {
-    const Texts& t = T();
-    title(t.cheats);
-    lead(t.cheats_lead);
-    // Money: with a career loaded, in the in-game menu (the game is paused, nothing else writes it meanwhile).
-    if (int32_t* money = in_game_ ? career_money() : nullptr) {
-        char heading[48];
-        std::snprintf(heading, sizeof(heading), "%s: $%d", t.cheat_money, *money);
-        row(heading, t.cheat_money_sub);
-        const ImVec2 at(origin_.x + panel_width_ - px(170), origin_.y + cursor_ + px(6));
-        // shortcut: capped at $999,999, the most the game's six-digit counters are sure to show; raise once checked.
-        if (small_button(t.add_money, at, "##add_money")) *money = std::min(*money + 10000, 999999);
-        cursor_ += px(58);
-    }
-    if (small_button(t.game_codes, ImVec2(origin_.x, origin_.y + cursor_), "##game_codes")) show_codes_ = !show_codes_;
-    cursor_ += px(52);
-    if (!show_codes_) return;
-    text(body_, px(16), ImVec2(origin_.x, origin_.y + cursor_), kDim, t.game_codes_lead, panel_width_);
-    cursor_ += px(30);
-    const float row_height = px(28), column = panel_width_ / 2 + px(10);
-    const int count = static_cast<int>(std::size(kCheatCodes));
-    for (int i = 0; i < count; ++i) {
-        const CheatCode& c = kCheatCodes[i];
-        const float x = origin_.x + (i % 2 ? column : 0.0f), y = origin_.y + cursor_ + row_height * static_cast<float>(i / 2);
-        text(body_bold_, px(16), ImVec2(x, y), kInk, c.code);
-        text(body_, px(15), ImVec2(x + px(130), y + px(1)), kInk, italian() ? c.italian : c.english);
-    }
-    cursor_ += row_height * static_cast<float>((count + 1) / 2) + px(12);
 }
 
 void Launcher::page_controls() {
@@ -1853,6 +1781,14 @@ void Launcher::frame(float now, float dt) {
         back->AddLine(ImVec2(drop.x, drop.y), ImVec2(drop.x - px(drop.z) * 0.25f, drop.y + px(drop.z)), IM_COL32(220, 220, 225, 34));
     }
 
+    // Webs: behind everything, and a small one for each click and page change.
+    if (ImGui::IsMouseClicked(0)) web_.burst(ImGui::GetMousePos(), px(60), now);
+    if (page_since_ != web_page_since_) {
+        if (web_page_since_ >= 0) web_.burst(ImVec2(screen.x - px(96) - px(560) - px(56), px(220)), px(110), now);
+        web_page_since_ = page_since_;
+    }
+    web_.draw(back, screen, scale_, now, dt, now - start_time_);
+
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(screen);
     ImGui::Begin("##launcher", nullptr,
@@ -1885,6 +1821,7 @@ void Launcher::header(float since) {
                         ImVec2(0, 0), ImVec2(1, 1), fade(IM_COL32_WHITE));
     } else {
         text(black_, px(64), logo_at, kInk, "SPIDER-MAN");
+        text(black_, px(64), ImVec2(logo_at.x + measure(black_, px(64), "SPIDER-MAN ").x, logo_at.y), kRed, "2");
         text(heading_, px(26), ImVec2(logo_at.x + px(4), logo_at.y + px(66)), kRed, "PC PORT");
     }
     std::string tag;
@@ -1918,7 +1855,6 @@ void Launcher::panel(float now, float since) {
             case Page::kPlay: in_game_ ? page_paused() : page_play(); break;
             case Page::kSettings: page_settings(); break;
             case Page::kControls: page_controls(); break;
-            case Page::kCheats: page_cheats(); break;
             case Page::kAbout: page_about(); break;
             case Page::kQuit:
                 if (in_game_) page_exit();
@@ -2467,9 +2403,9 @@ void Launcher::frame_in_game(float now) {
     list_ = ImGui::GetWindowDrawList();
     // The launcher's entrance, twice as quick.
     header(since * 2);
-    const char* labels[] = {t.resume, t.settings, t.controls, t.cheats, t.quit};
-    const Page targets[] = {Page::kPlay, Page::kSettings, Page::kControls, Page::kCheats, Page::kQuit};
-    side_menu(now, since * 2, labels, targets, 5);
+    const char* labels[] = {t.resume, t.settings, t.controls, t.quit};
+    const Page targets[] = {Page::kPlay, Page::kSettings, Page::kControls, Page::kQuit};
+    side_menu(now, since * 2, labels, targets, 4);
     panel(now, since * 2);
     bottom_bar(since * 2);
     g_alpha = 1;
@@ -2557,7 +2493,6 @@ void Launcher::overlay(ID3D11Device* device, ID3D11DeviceContext* context, ID3D1
         context_ = context;
         QueryPerformanceCounter(&clock_start_);
         start_imgui();
-        if (!disc_path_.empty()) start_art_loader(disc_path_);
         log_line("game menu: ready (F1, or Back+Start on a controller)");
     }
     LARGE_INTEGER frequency, counter;
@@ -2637,12 +2572,11 @@ std::optional<GameDisc> Launcher::run() {
     nv2a_set_window_hook(window_hook);
     disc_ = find_game_disc(exe_directory_, disc_problem_);
     wizard_ = !disc_;
-    if (disc_) start_art_loader(disc_->path);
     if (setting("check_updates") != 0) update_thread_ = std::thread(check_for_updates, &updates_);
-    char page[16] = {};  // SM2_LAUNCHER_PAGE=settings|controls|cheats|about: test screenshots
+    char page[16] = {};  // SM2_LAUNCHER_PAGE=settings|controls|about: test screenshots
     if (GetEnvironmentVariableA("SM2_LAUNCHER_PAGE", page, sizeof(page)) && !wizard_) {
         page_ = !std::strcmp(page, "settings") ? Page::kSettings : !std::strcmp(page, "controls") ? Page::kControls
-                : !std::strcmp(page, "about") ? Page::kAbout : !std::strcmp(page, "cheats") ? Page::kCheats : Page::kPlay;
+                : !std::strcmp(page, "about") ? Page::kAbout : Page::kPlay;
     }
     music_ = std::make_unique<LauncherMusic>();
     log_line("launcher: open (%s)", disc_ ? "disc found" : "first-run guide");

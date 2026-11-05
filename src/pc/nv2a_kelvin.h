@@ -16,5 +16,7 @@ bool kelvin_method(uint32_t method, uint32_t argument);
 // How much of the linear surface at `address` (physical) the game draws into: the widest clip seen there, 0 if
 // none. The framebuffer can be wider than the picture (widescreen: 720 pixels in a 768-pixel pitch).
 uint32_t kelvin_drawn_width(uint32_t address);
+// The same for the height: 480 lines on NTSC, 576 on PAL (this game's PAL build draws 640x576), 0 if none.
+uint32_t kelvin_drawn_height(uint32_t address);
 
 }  // namespace sm2::pc

@@ -20,7 +20,7 @@ namespace {
 // SHA-256 of default.xbe on Spider-Man 2 (Europe) (En,Fr,De,Es,It): the build the port's
 // code patches (hle_patches.cpp, dsound_hle.cpp, input_hle.cpp) are made for.
 constexpr char kSupportedXbe[] = "2c0032e3b579c2c4b51bd1740b46e37e9a5c77ab9e5788e1d4667e15ed4c2597";  // Italy
-constexpr char kSupportedXbeEurope[] = "0c466591001257abee3d96fc8844635b045cb037d66b0925cca1a8c6d1b866fb";  // Europe (Fr,De,Es)
+constexpr char kSupportedXbeEurope[] = "0c466591001257abee3d96fc8844635b045cb037d66b0925ccb1a8c6d1b866fb";  // Europe (Fr,De,Es)
 constexpr char kSupportedName[] = "Spider-Man 2, Xbox, Italy or Europe (Fr,De,Es)";
 
 // Dialog texts in English, or in Italian on an Italian Windows.

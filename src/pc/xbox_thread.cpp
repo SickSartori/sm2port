@@ -26,7 +26,7 @@
 namespace sm2::pc {
 namespace {
 
-// Xbox KPCR layout (the fields the game reads, see docs/ANALISI_XBE.md).
+// Xbox KPCR layout (the fields the game reads, from the XBE).
 constexpr uint32_t kKpcrStackBase = 0x04;   // NtTib.StackBase: on Xbox it points just past the TLS area
 constexpr uint32_t kKpcrStackLimit = 0x08;  // NtTib.StackLimit
 constexpr uint32_t kKpcrSelf = 0x18;        // NtTib.Self

@@ -521,7 +521,7 @@ void log_host() {
 }
 
 // Under Wine (Linux, Proton) the log says so, with the Wine and host versions: a report from there is read
-// differently (TECHNICAL_NOTES.md, "Wine"; README, "Linux"). Wine's ntdll exports these two; Windows' has neither.
+// differently (README, "Known issues"). Wine's ntdll exports these two; Windows' has neither.
 void log_wine() {
     HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
     if (!ntdll) return;
