@@ -385,7 +385,9 @@ void service_present() {
     const uint32_t drawn = kelvin_drawn_width(front & 0x0FFFFFFF);
     const uint32_t width = drawn && drawn < display.pitch / 4 ? drawn : display.pitch / 4;
     ProfileScope scope(ProfileTime::present);
-    renderer_present(front & 0x0FFFFFFF, width, 480, display.pitch);
+    const uint32_t drawn_height = kelvin_drawn_height(front & 0x0FFFFFFF);
+    const uint32_t height = drawn_height >= 240 && drawn_height <= 1080 ? drawn_height : 480;
+    renderer_present(front & 0x0FFFFFFF, width, height, display.pitch);
 }
 
 // --- traps and flips: the GPU waits for the CPU ---
@@ -729,7 +731,13 @@ std::atomic<WindowHook> g_window_hook{nullptr};  // nv2a_set_window_hook
 // caller: the window hung.
 constexpr UINT kSetFullScreenMessage = WM_APP + 1;
 
+std::atomic<bool> g_cursor_hidden{false};
+
 LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+    if (message == WM_SETCURSOR && g_cursor_hidden && LOWORD(lparam) == HTCLIENT) {
+        SetCursor(nullptr);
+        return TRUE;
+    }
     if (message == kSetFullScreenMessage) {
         if ((wparam != 0) != g_full_screen) toggle_full_screen(window);
         return 0;
@@ -964,6 +972,11 @@ HWND nv2a_open_window() {
 void nv2a_set_window_hook(WindowHook hook) { g_window_hook = hook; }
 
 uint32_t nv2a_frames_shown() { return g_frames_shown; }
+
+void nv2a_hide_cursor(bool hidden) {
+    g_cursor_hidden = hidden;
+    if (!hidden) PostMessageW(g_window, WM_SETCURSOR, reinterpret_cast<WPARAM>(g_window), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+}
 
 int nv2a_vblank_hz() { return setting_at_start("frame_rate") >= 60 ? 120 : 60; }
 

@@ -3,7 +3,7 @@
 // NV2A vertex programs ("transform programs"), executed on the CPU.
 //
 // Each instruction is 4 dwords (the first unused) and pairs a MAC operation (vector math) with an ILU operation
-// (scalar functions); see docs/ANALISI_XBE.md for the field layout. Programs output the position already in screen
+// (scalar functions); from the XBE for the field layout. Programs output the position already in screen
 // space (the Xbox D3D appends the viewport transform), plus colours, fog and texture coordinates.
 
 #include <array>

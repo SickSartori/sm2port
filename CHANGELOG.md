@@ -1,198 +1,21 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 (first test version)
+
+First public test of sm2port, started from mc3port 0.3.1.
 
 ### New
 
-- **Split and compressed disc images**: an image split in parts, as for the Xbox's own hard disk (`name.1.iso`,
-  `name.2.iso`; choose any part), and the compressed CCI format (`.cci`, also split) work like a single `.iso`.
-- **Report a problem** (launcher, About): opens the bug report form on GitHub with the version and the PC filled in,
-  and the folder with `sm2port.log` to attach.
+- Spider-Man 2 for the Xbox runs on Windows: the Italian and the European (French, German, Spanish) releases, from the
+  title screen to the missions, with the films, the music and the sound effects.
+- Widescreen 16:9 (the game's own mode) showing the whole 576-line PAL picture, 30 or 60 fps, internal resolution up to
+  4K, anisotropic filtering and optional modern effects.
+- Keyboard and mouse: WASD to move, the mouse (or the arrow keys) for the camera, rebindable keys, and Xbox controllers.
+- A launcher with new artwork and spider-web animations, an in-game menu (F1) and a new program icon.
+- DirectSound entry points of this game replaced by the port's mixer; entry points not identified yet are logged.
 
-### Improved
+### Known issues
 
-- sm2port's HUD drops the three small bars left of the speedometer (the game's light for the rev limiter, which
-  the rev counter's red zone already shows) and draws the special ability's arc only once it holds a charge.
-- The log says which part of showing a frame took the time when it took more than a quarter of a second.
-
-## 0.2.5 (2026-11-04)
-
-### New
-
-- **Internal resolution by name**: Auto (as many lines as your screen, the default), SD 480p (like the Xbox), HD 720p,
-  Full HD 1080p, 2K 1440p and 4K 2160p, instead of 1x to 4x. 1080p and 4K are not whole multiples of the game's 480
-  lines; the renderer now handles that. An earlier 2x becomes Full HD, 4x becomes 4K.
-- **Effects style**: Original (the Xbox's picture, speed blur and light streaks included), Enhanced (the modern
-  effects, without the blur and the streaks; the default) or Custom, which alone shows every value, in two columns
-  that stay on screen. The speed blur and the streaks from street lights are now separate settings, both off by
-  default; an untouched 0.5 from earlier versions becomes off.
-- **The HUD keeps its shape in 16:9**: the game drew it with 4:3 sizes stretched to the wider screen, so the radar
-  and the dials were oval. They are round again, in their corners, with the radar's map and icons and the special
-  ability's arc; texts and the rest of the picture are untouched. `hud_aspect = 0` in `sm2port.ini` brings back the stretched HUD.
-- **sm2port's HUD** (Settings, Display; off by default): the speedometer, the rev counter, the gear and the special
-  ability's charge drawn again by sm2port, sharp at any resolution, in mph or km/h. The values come from the game's
-  own dials, which are then left out; the radar stays the game's.
-- **Sharp HUD pictures** (Settings, Graphics; on by default): the radar's map, the icons and the letters, small
-  pictures the game stretches over many pixels, are enlarged with their edges kept instead of blurred.
-- **Replacement pictures**: a PNG or JPG named after a 2D picture's hash in a folder `textures_replace` next to
-  `sm2port.ini` is drawn instead of it, at any size. `SM2_DUMP_2D=1` saves the HUD's pictures with their names.
-- **Skip the opening films** (Settings, Game; on by default): straight from PLAY to the title screen, without the
-  Rockstar logos and the game's intro.
-- **Restart from the in-game menu**: after changing a setting that applies the next time the game starts
-  (language, frame rate, aspect ratio, resolution, filtering), the menu offers to restart the game at once.
-
-### Improved
-
-- The Quality preset no longer sets the resolution, so choosing one never undoes the other, and the chosen preset
-  stays selected.
-- A setting's description no longer runs under a wider control next to it.
-- A little more of the picture's edge is left out, as a television's overscan did: 1/48 of each side instead of
-  1/80. The game's notification box at the top left now meets the edge of the screen.
-
-- **Update** no longer installs the new version by itself: the launcher downloads the installer, checks its SHA-256
-  and shows it in Explorer, and you start it. Some antivirus programs took a program that starts a downloaded
-  installer on its own for malware. The installer is saved only once its check passes.
-
-### Fixed
-
-- Choosing Full screen in the in-game menu (or the launcher) made the window stop answering, and Windows then closed
-  the game. F11 and Alt+Enter were not affected.
-- Crashes at random moments in the career, in the game's sound code, and while loading a race: 0.2.3 made them
-  rarer, but they were still there. On the Xbox nothing else runs while the system is in the middle of certain
-  work (interrupts, sound updates). When that work needed something another part of sm2port was using at that
-  moment (the sound mixer, the timer, the graphics chip's registers), it waited for it, and Windows ran the rest of
-  the game in the meantime. Now it waits without letting go of the processor, as on the Xbox.
-- The log no longer gets a line each time the game switches the format it draws into, several times per frame: it
-  is about a hundred times smaller, and writing it no longer holds up the game.
-
-## 0.2.4 (2026-11-01)
-
-### New
-
-- **Linux, through Wine (experimental)**: the README has a Linux section with what it takes (a recent Wine with
-  32-bit support, the portable zip) and where the files are. Tested on one machine only, with Wine 11 under WSL2:
-  the launcher, the opening films and the career's menus work, sound included. Not tested yet: the speed with a
-  real Linux graphics driver, Proton and DXVK, controllers and the Steam Deck. Problems are expected; the issue
-  form asks for the distribution, the Wine or Proton version and the graphics driver.
-
-### Fixed
-
-- Under Wine the vertex shaders did not compile (they used `isnan`, which Wine's shader compiler does not know), so
-  every vertex was transformed on the processor; they go to the graphics card again.
-- Closing the window, or Exit in the in-game menu, now ends the program at once, every part of it. Under Wine the
-  process stayed in memory after the window had closed, with one of the game's threads busy at full speed.
-- When Direct3D 11 cannot start, the launcher crashed while falling back to asking for the disc with a dialog.
-
-## 0.2.3 (2026-11-01)
-
-### Improved
-
-- The zip and the installer now contain `README.txt`, a short guide to what you need, the first start, where your
-  files are and what to do if something goes wrong, and `CHANGELOG.md`. The installer offers to open `README.txt`
-  at the end.
-- The README's requirements say what is and is not needed (nothing to install besides Windows 10 or 11; Windows N
-  editions need the Media Feature Pack; an audio device is optional) and a troubleshooting section covers the
-  common cases.
-- When `sm2runtime.dll` does not load, the message gives Windows' error and the likely causes (a missing Windows
-  component, a quarantined file) instead of only saying where the file must be.
-- The log starts with what a report needs: sm2port's version, Windows' version and build, processor, memory, and
-  every graphics adapter with its video memory and driver version. A crash names the module it happened in (or the
-  game's code), not only the address. A graphics resource the driver refuses to create is logged with what was
-  asked for, where before it failed silently.
-- The zip now contains a folder `sm2port` instead of loose files; the folder has the same name in every version,
-  so a new zip extracted in the same place updates the old one.
-- Cleaner sound when many sounds play at once, as in the city: the level comes down smoothly just before a peak
-  instead of each peak being rounded off, which made the sound harsh and crackly; the overall level is a little
-  lower, so this happens less often.
-
-### Fixed
-
-- The likely cause of a crash at random moments in the city during the career, inside the game's sound engine. On
-  the Xbox's single processor no other part of the game runs while the system is in the middle of certain work
-  (interrupts, sound updates); the port now keeps that rule even when Windows would switch to another part of the
-  game meanwhile.
-- SM2 parks its notification box just off the left edge, where a television hid it: its last pixels stayed on
-  screen. Like a TV, the outermost edge of the picture (1/80 of each side) is no longer shown.
-- The Motion blur setting now also covers the blur SM2 adds at high speed, the streaks across the picture and
-  from the street lights: at 0 they are gone, where before they stayed whatever the setting.
-- Linux with Wine or Proton is still unsupported, but two known reasons for failing there are gone. Without an
-  audio output device the launcher closed at once (Wine's XAudio2 crashes where Windows' reports an error): the
-  port now checks for an output device first and runs silent without one. Wine reports four privileged
-  instructions (wbinvd, invd, rdmsr, wrmsr) as a memory fault, which the port now recognises and emulates as on
-  Windows. The log says when the program runs under Wine, with the Wine and host versions.
-
-## 0.2.2 (2026-10-27)
-
-### New
-
-- A new program icon and logo, in the spirit of the game's: chrome "MC" and a big red "3".
-- Controller buttons as icons (A, B, X, Y in their colours, bumpers, triggers, sticks, d-pad, Start and Back) in the
-  Controls page, in the bottom bar when a controller is connected, and in the hint at the start of the game.
-- The Controls page names what each button does in the game (handbrake, weight transfer, nitrous, look back,
-  camera, headlights, navigation system, map, hydraulics, music) instead of "A button", "B button".
-- A key for the left stick click, the special ability (Zone, Agro or Roar): F by default. Before, the keyboard
-  had no way to use it.
-
-### Improved
-
-- When a newer version is out, the launcher says so at the top of its first page (and of the first-run guide),
-  with a pulsing marker, and marks the About entry of the menu; before, the notice sat low on the page.
-- `sm2.exe` and `sm2runtime.dll` now carry their version number: Windows shows it in the file's properties, which
-  helps when reporting a problem.
-- Launcher polish: the Settings tabs' content fades in like a page; while choosing a key, Esc, a click elsewhere or
-  B cancels, and the box says so (before, any key was taken, Esc included, and cancelling meant waiting);
-  the side menu follows the mouse after a brief rest on an item instead of flipping pages as it passes; a hand
-  cursor over everything clickable; with a controller the bottom bar says how to get into a page.
-- The build is checked on every change, not only at release time.
-- Smoother motion at 60 fps: a finished frame reaches the screen on time even while the next one is still being
-  drawn. Before, about one frame in four came a refresh late and the following one early: the same frame rate, but
-  uneven movement.
-- The log notes every 10 seconds the game's frame rate, how evenly its frames come and how busy the game and the
-  emulated graphics chip are, which helps when reporting a performance problem.
-
-### Fixed
-
-- Controllers in the launcher and the in-game menu: a controller on any port works (before, only the first), and
-  one plugged in while playing is picked up. The left stick moves through menus and pages like the d-pad, one
-  step at a time (held, it steps again after 0.4 s and then every 0.15 s); up and down in the menu repeat at the
-  same pace from the keyboard and the d-pad.
-- Back+Start opens the in-game menu when tapped; before, the two had to be held together.
-- The launcher's pages no longer draw a white rectangle around the selected control: every control shows its own
-  highlight, as the buttons already did.
-- After an update, the desktop and Start menu shortcuts kept the old icon: the installer now asks Windows to
-  refresh its icons.
-
-## 0.2.0 (2026-10-27)
-
-### New
-
-- **In-game menu**: F1, or Back+Start on a controller. Settings, controls, resume and exit, in the launcher's style.
-  The game pauses while it is open (timers, clocks and sound included) and resumes once the key is let go.
-- In the in-game menu, settings the game reads only when it starts (language, frame rate, aspect ratio, quality,
-  resolution, filtering) say so; the others apply at once.
-- **Motion blur strength** (Settings, Effects): 0 off, 1 as strong as on the Xbox, 0.5 by default.
-- **Frame counter** (Settings, Display), off by default.
-- **Pause in the background**: switching to another window opens the in-game menu (on by default).
-- A hint at the start of the game shows how to open the menu.
-
-### Improved
-
-- Launcher and menu controls work like a console's: up and down through the menu, right into the page, left or B
-  back out, LB/RB (Q/E) switch tabs, Start plays. The bottom bar lists every key, for the keyboard or the connected
-  controller.
-- Long setting descriptions wrap instead of running under the controls.
-
-### Fixed
-
-- At 60 fps the game ran up to twice as fast while driving. Game time now follows real time at 30 and 60 fps.
-- The game's motion blur read an empty picture; it now reads the frame, as on the Xbox.
-- Keyboard and controller navigation skipped the launcher's buttons.
-
-## 0.1.1 (2026-10-27)
-
-First public release.
-
-- Native Windows port of the European Xbox release, run from your own disc image.
-- 16:9, 60 fps, internal resolution up to 4x, anisotropic filtering, optional modern effects.
-- Launcher with disc check, first-run guide, settings, rebindable keys and updates; installer and portable zip.
-- Fixed: the launcher closed when clicking "Choose ISO" (in the withdrawn 0.1.0).
+- Rectangular blocks of other colours in the sky in some views.
+- Some sound calls (3D positioning) are not emulated yet.
+- 60 fps is experimental.

@@ -27,6 +27,8 @@ HWND nv2a_open_window();
 // It runs on the window's thread. nullptr removes it.
 using WindowHook = bool (*)(HWND window, UINT message, WPARAM wparam, LPARAM lparam, LRESULT* result);
 void nv2a_set_window_hook(WindowHook hook);
+// Hides (or shows again) the mouse cursor over the game window: mouse look holds it at the middle.
+void nv2a_hide_cursor(bool hidden);
 // Game frames shown so far (changes of the displayed buffer): the frame rate the player sees.
 uint32_t nv2a_frames_shown();
 // The emulated vertical blank: 60 Hz like the Xbox, 120 Hz for 60 game frames per second (setting frame_rate).

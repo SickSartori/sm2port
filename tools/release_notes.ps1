@@ -16,8 +16,7 @@ $notes = $section.Trim() + @"
 
 ### Download
 
-- **Installer**: ``sm2port-$Version-windows-x86-setup.exe`` (installs for your user; the launcher downloads its updates).
 - **Portable**: ``sm2port-$Version-windows-x86.zip`` (extract anywhere and start ``sm2.exe``).
-- Check a download against ``SHA256SUMS``. You need your own disc image of the European Xbox release: see the README.
+- Check a download against ``SHA256SUMS``. You need your own disc image of the Italian or the European (French, German, Spanish) Xbox release: see the README.
 "@
 Set-Content -Path $Out -Value $notes -Encoding utf8NoBOM

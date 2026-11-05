@@ -12,6 +12,7 @@
 #include "pc/game_pause.h"
 #include "pc/log.h"
 #include "pc/nv2a.h"
+#include "pc/settings.h"
 
 namespace sm2::pc {
 namespace {
@@ -66,74 +67,15 @@ uint32_t __stdcall query_performance_counter(uint64_t* counter) {
     return 1;
 }
 
-// --- frame step ---
-//
-// The game's time manager (0x20B6F0) gives every frame a step in seconds, read by physics and animation (0x4B2D48).
-// Most of the game uses a fixed step, set by 0x20BB00 for the frame rate it had on the Xbox: 1/60 s in menus, 1/30 s in
-// races (a frame every second 60 Hz blank). The port's 60 fps doubles the vertical blank, so a race draws twice as
-// many frames and ran at double speed. The fixed step is now the time the game's frames really take on screen: the
-// average number of blanks between the last shown frames (time_frame_shown), at the port's blank rate.
-//
-// Elsewhere the measured frame time is rounded *up* to 1/60, 1/30, 1/20 or 1/15 s: exact on the Xbox, whose frames
-// came on whole blanks, but here the measurement jitters and a frame a little over 1/60 s became 1/30. It is now
-// rounded to the nearest 1/60 s, the error carried to the next frame so that game time follows real time.
-
-float* const g_step = reinterpret_cast<float*>(0x4B2D48);           // this frame's step
-float* const g_steps_per_second = reinterpret_cast<float*>(0x4B2D50);
-float* const g_fixed_rate = reinterpret_cast<float*>(0x4B2D54);
-float* const g_fixed_step = reinterpret_cast<float*>(0x4B2D58);
-uint32_t* const g_fixed_count = reinterpret_cast<uint32_t*>(0x4B2D64);
-uint32_t* const g_fixed_mode = reinterpret_cast<uint32_t*>(0x534770);
-
-std::atomic<float> g_frame_period{0};  // seconds between the game's shown frames; 0 until measured
-bool g_step_patched = false;           // the three addresses above belong to the Midnight Club 3 port's time manager
-
-void use_fixed_step(float step) {
-    *g_fixed_step = step;
-    *g_steps_per_second = 1.0f / step;
-    static float logged = 0;  // only clear changes (the step follows the frame rate)
-    if (step > logged * 1.2f || step < logged / 1.2f) {
-        log_line("time: fixed frame step %.4f s", step);
-        logged = step;
-    }
-}
-
-void __cdecl set_fixed_step(float rate, uint32_t count) {
-    *g_fixed_rate = rate;
-    *g_fixed_count = count;
-    *g_fixed_mode = 1;
-    const float period = g_frame_period;
-    use_fixed_step(period > 0 ? period : 1.0f / (static_cast<float>(count) * rate));
-    *g_step = *g_fixed_step;
-}
-constexpr float kSixtieth = 1.0f / 60;
-constexpr float kMaximumCarry = 1.0f / 20;
-float g_step_carry = 0;
-
-// Replaces the round-up (0x20B737, measured seconds in xmm0); stores the step and continues at 0x20B776 like it.
-__declspec(naked) void quantize_frame_step() {
+// The game's own clock (0x34E96A): where it has no fixed frame rate it reads the time stamp counter and divides by the
+// Xbox's 733 MHz. It is patched to read the same 733 MHz counter as the rest (the frame rate it runs at, 29.97 or 59.94,
+// needs none of this). Replaces "rdtsc; mov [esp+0Ch],eax" (6 bytes) by a call to this and a nop.
+__declspec(naked) void game_clock_read() {
     __asm {
-        addss xmm0, g_step_carry  // wanted = measured + carry
-        movss xmm1, xmm0
-        divss xmm1, kSixtieth
-        cvtss2si eax, xmm1        // nearest whole sixtieths, at least one
-        cmp eax, 1
-        jge whole
-        mov eax, 1
-    whole:
-        cvtsi2ss xmm1, eax
-        mulss xmm1, kSixtieth
-        subss xmm0, xmm1          // carry = wanted - step, kept small
-        movss xmm2, kMaximumCarry
-        minss xmm0, xmm2
-        xorps xmm2, xmm2
-        subss xmm2, kMaximumCarry
-        maxss xmm0, xmm2
-        movss g_step_carry, xmm0
-        movaps xmm0, xmm1
-        mov eax, 0x004B2D70
-        movss dword ptr [eax], xmm0
-        push 0x0020B776
+        push ecx
+        call xbox_time_stamp
+        pop ecx
+        mov dword ptr [esp + 10h], eax  // the return address is on the stack: [esp+0Ch] of the patched code
         ret
     }
 }
@@ -146,11 +88,14 @@ struct JumpPatch {
 };
 
 // Addresses of the Italian build; the Europe (Fr,De,Es) one has them 0x40 lower (the bytes are checked either way).
-// The game's own clock and frame step (set_fixed_step, quantize_frame_step) are not found in Spider-Man 2 yet.
 const JumpPatch kJumpPatches[] = {
     {"XAPI QueryPerformanceCounter", 0x003907CC, {0x8B, 0x4C, 0x24, 0x04, 0x0F},
      reinterpret_cast<const void*>(&query_performance_counter)},
     {"D3D rdtsc", 0x003C72A0, {0x0F, 0x31, 0xC3, 0xCC, 0xCC}, reinterpret_cast<const void*>(&rdtsc_function)},
+};
+
+const JumpPatch kCallPatches[] = {
+    {"game clock", 0x0034E96C, {0x0F, 0x31, 0x89, 0x44, 0x24, 0x0C}, reinterpret_cast<const void*>(&game_clock_read)},
 };
 
 struct Patch {
@@ -185,24 +130,10 @@ uint32_t find_address(uint32_t address, const std::vector<uint8_t>& original) {
 
 }  // namespace
 
-// On the GPU thread, for each new frame shown: `vblanks` since the previous one. The average over the last frames sets
-// the fixed step, so that game time follows real time even when frames come late now and then.
-void time_frame_shown(uint32_t vblanks) {
-    static uint32_t recent[8] = {};
-    static uint32_t shown = 0;
-    recent[shown++ % 8] = std::min<uint32_t>(vblanks, 8);
-    if (shown < 8 || !g_step_patched) return;
-    uint32_t total = 0;
-    for (const uint32_t v : recent) total += v;
-    const float period = static_cast<float>(total) / 8.0f / static_cast<float>(nv2a_vblank_hz());
-    if (period <= 0) return;
-    g_frame_period = period;
-    if (*g_fixed_mode == 1) use_fixed_step(period);
-}
+// On the GPU thread, for each new frame shown (kept for the renderer: Spider-Man 2 runs at the game's own fixed step).
+void time_frame_shown(uint32_t /*vblanks*/) {}
 bool g_game_loaded = false;  // the XBE is in place: its variables can be read
 
-// Midnight Club 3 only (its career money lives at fixed addresses); Spider-Man 2 has no such entry.
-int32_t* career_money() { return nullptr; }
 
 void apply_hle_patches(const Xbe& /*xbe*/) {
     g_game_loaded = true;
@@ -215,6 +146,30 @@ void apply_hle_patches(const Xbe& /*xbe*/) {
         std::memcpy(reinterpret_cast<void*>(static_cast<uintptr_t>(address)), patch.replacement.data(),
                     patch.replacement.size());
         log_line("HLE: %s at %08X replaced", patch.name, address);
+    }
+    for (const JumpPatch& patch : kCallPatches) {
+        const uint32_t address = find_address(patch.address, patch.original);
+        if (!address) {
+            log_line("HLE: %s at %08X does not match this XBE, not patched", patch.name, patch.address);
+            continue;
+        }
+        auto* code = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(address));
+        code[0] = 0xE8;  // call rel32
+        const uint32_t relative = address_of(patch.target) - (address + 5);
+        std::memcpy(code + 1, &relative, sizeof(relative));
+        code[5] = 0x90;
+        log_line("HLE: %s at %08X called", patch.name, address);
+    }
+    // The game's frame rate mode (0x4BF698, never written: 1 = 29.97 fps, 0 = 59.94 fps). At 60 the port shows 120
+    // blanks a second (frame_rate, nv2a.cpp), so the game takes the 59.94 step or it would run at double speed.
+    if (setting_at_start("frame_rate") >= 60) {
+        const std::vector<uint8_t> thirty = {1, 0, 0, 0};
+        if (const uint32_t address = find_address(0x004BF698, thirty)) {
+            *reinterpret_cast<uint32_t*>(static_cast<uintptr_t>(address)) = 0;
+            log_line("HLE: frame rate mode at %08X set to 59.94 fps", address);
+        } else {
+            log_line("HLE: frame rate mode not found, the game stays at 29.97 fps");
+        }
     }
     for (const JumpPatch& patch : kJumpPatches) {
         const uint32_t address = find_address(patch.address, patch.original);

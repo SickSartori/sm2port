@@ -8,7 +8,7 @@
 namespace sm2::pc {
 
 enum class PadInput : uint8_t {
-    kRightTrigger, kLeftTrigger, kSteerLeft, kSteerRight,
+    kRightTrigger, kLeftTrigger, kMoveLeft, kMoveRight, kMoveUp, kMoveDown,
     kA, kB, kX, kY, kLeftThumb, kBlack, kWhite,
     kStart, kBack, kDpadUp, kDpadDown, kDpadLeft, kDpadRight,
     kLookLeft, kLookRight, kLookUp, kLookDown,

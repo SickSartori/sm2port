@@ -1,7 +1,7 @@
 // DirectSound replaced at its API boundary.
 //
 // Every DirectSound function the game, XACT, Bink and the other libraries call from outside the library (found by
-// scanning the XBE, see docs/ANALISI_XBE.md) is redirected here with the same stdcall prototype. Buffers and streams
+// scanning the XBE, from the XBE) is redirected here with the same stdcall prototype. Buffers and streams
 // become voices of the software mixer (audio_mixer.cpp), which plays through XAudio2. XACT and Bink keep running
 // unchanged on top. Functions whose exact role is not yet confirmed accept their arguments and succeed; they are
 // marked "unidentified" and log their first calls.
@@ -567,7 +567,7 @@ HRESULT32 __stdcall VoiceSetHeadroom(uint32_t self, uint32_t headroom) {
 }
 HRESULT32 __stdcall VoiceSetOutputBuffer(uint32_t, uint32_t) { return kOk; }  // SM2 only ever passes NULL
 
-// DirectSound 3D (see docs/ANALISI_XBE.md): 0x2C7C/0x1627 compute the source position relative to the listener and
+// DirectSound 3D (from the XBE): 0x2C7C/0x1627 compute the source position relative to the listener and
 // 0x0C94 applies the result to the voice, 0x0DC5 switches 3D on and off. XACT only takes that path for 3D cues and
 // SM2 has none (it creates no DSBCAPS_CTRL3D buffer and only ever switches 3D off): it pans with mix bin volumes.
 HRESULT32 __stdcall VoiceUnidentified2a(uint32_t self, uint32_t a) { log_unidentified("voice 0x0C94", self, a); return kOk; }

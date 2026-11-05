@@ -1218,7 +1218,8 @@ ID3D11ShaderResourceView* texture_view(const TextureStage& stage, bool flat) {
     // Unchanged memory needs no look at all; written memory is hashed, and decoded again only if it differs.
     uint32_t written = physical_write_generation(d.address, bytes);
     if (d.palette) written = std::max(written, physical_write_generation(d.palette, 1024));
-    if (cached.srv && written <= cached.checked_generation) return cached.srv.Get();
+    static const bool always_hash = GetEnvironmentVariableA("SM2_ALWAYS_HASH", nullptr, 0) != 0;  // debugging: never trust write tracking
+    if (!always_hash && cached.srv && written <= cached.checked_generation) return cached.srv.Get();
 
     const uint64_t hash_start = ticks();
     // The texture's own bytes name its replacement (the palette address is set for every format, and its memory
