@@ -3,7 +3,7 @@
 # sm2port
 
 An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian and the European
-French/German/Spanish releases). It runs the game from **your own disc image**, with 16:9 widescreen, up to 60 fps, a
+French/German/Spanish releases). It runs the game from **your own disc image**, with 16:9 widescreen, a
 higher internal resolution, keyboard and mouse, and optional modern effects.
 
 > [!IMPORTANT]
@@ -29,7 +29,7 @@ Compared with the console:
 
 - **True 16:9**: the game's own widescreen mode, with a wider view and no black bars. The full picture of the PAL game is
   shown (576 lines).
-- **30 fps like the Xbox, or 60 fps** (in the launcher's settings; 60 needs a PC that handles twice the work).
+- **30 fps, like the Xbox** (60 fps is not available yet).
 - **Higher internal resolution** (up to 4K, or as many lines as your screen) with anisotropic filtering.
 - **Modern effects**, all optional: light glow, sharpening, colour, vignette and ambient occlusion (F10 switches them on
   and off to compare).
@@ -63,8 +63,12 @@ administrator rights) and adds Start menu and desktop shortcuts.
 files are not code signed, so Windows SmartScreen may ask once whether you trust them ("More info", then "Run anyway").
 To check a download, compare its SHA-256 with the `SHA256SUMS` file of the release.
 
-Your settings (`sm2port.ini`), saves (`xbox_hdd`), log and shader cache live in `%LOCALAPPDATA%\sm2port`. To keep them
-next to `sm2.exe` instead, create an empty file named `portable.txt` there.
+Your settings (`sm2port.ini`), saves (`xbox_hdd`), logs (`logs`) and shader cache live in your `Documents\sm2port` folder
+(`C:\Users\<you>\Documents\sm2port`), so updates and uninstalling never touch them and they are easy to find and copy. If you
+played an earlier version (0.1.1 or before), your files are in `%LOCALAPPDATA%\sm2port` and stay in use there until you
+move them: the launcher offers to, and moving never overwrites anything. To keep everything next to `sm2.exe` instead
+(a USB stick, say), create an empty file named `portable.txt` there. Started by RecompLauncher, the game always keeps
+them next to `sm2.exe`.
 
 ## First start
 
@@ -108,7 +112,6 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 | Setting | What it does |
 |---|---|
 | Game language | the game's own languages for your release, by default like Windows |
-| Frames per second | 30 like the Xbox, or 60 |
 | Aspect ratio | 16:9 (the game's widescreen mode) or 4:3 |
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
@@ -120,7 +123,6 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 - **Textures**: some textures look wrong in places (blurred or stretched surfaces, odd stripes on some buildings).
 - **Sound**: the game's sounds, music and films play, but some DirectSound calls (3D positioning among them) are not
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
-- **60 fps** is experimental: the game has a 59.94 fps mode and sm2port selects it, but it has had little play-testing.
 - Online play (Xbox Live) is not available. Only the Italian and the European (French, German, Spanish) releases are supported.
 - On monitors wider than 16:9 there are thin black bars at the sides.
 - Linux (Wine, Proton) has not been tried with this game.

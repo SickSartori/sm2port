@@ -68,7 +68,7 @@ uint32_t __stdcall query_performance_counter(uint64_t* counter) {
 }
 
 // The game's own clock (0x34E96A): where it has no fixed frame rate it reads the time stamp counter and divides by the
-// Xbox's 733 MHz. It is patched to read the same 733 MHz counter as the rest (the frame rate it runs at, 29.97 or 59.94,
+// Xbox's 733 MHz. It is patched to read the same 733 MHz counter as the rest (the frame rate it runs at, 29.97,
 // needs none of this). Replaces "rdtsc; mov [esp+0Ch],eax" (6 bytes) by a call to this and a nop.
 __declspec(naked) void game_clock_read() {
     __asm {
@@ -153,17 +153,6 @@ void apply_hle_patches(const Xbe& /*xbe*/) {
         std::memcpy(code + 1, &relative, sizeof(relative));
         code[5] = 0x90;
         log_line("HLE: %s at %08X called", patch.name, address);
-    }
-    // The game's frame rate mode (0x4BF698, never written: 1 = 29.97 fps, 0 = 59.94 fps). At 60 the port shows 120
-    // blanks a second (frame_rate, nv2a.cpp), so the game takes the 59.94 step or it would run at double speed.
-    if (setting_at_start("frame_rate") >= 60) {
-        const std::vector<uint8_t> thirty = {1, 0, 0, 0};
-        if (const uint32_t address = find_address(0x004BF698, thirty)) {
-            *reinterpret_cast<uint32_t*>(static_cast<uintptr_t>(address)) = 0;
-            log_line("HLE: frame rate mode at %08X set to 59.94 fps", address);
-        } else {
-            log_line("HLE: frame rate mode not found, the game stays at 29.97 fps");
-        }
     }
     for (const JumpPatch& patch : kJumpPatches) {
         const uint32_t address = find_address(patch.address, patch.original);

@@ -868,8 +868,7 @@ void interrupt_thread() {
     static const bool interrupts_disabled = GetEnvironmentVariableW(L"SM2_NO_GPU_IRQ", nullptr, 0) != 0;
 
     using Clock = std::chrono::steady_clock;
-    // The game shows a frame every second vertical blank: 30 fps at the Xbox's 60 Hz. Its logic runs on real time
-    // (the same acceleration at 60 and 120 Hz), so 120 Hz blanks give 60 game frames per second (setting frame_rate).
+    // The game shows a frame every second vertical blank: 30 fps at the Xbox's 60 Hz.
     const auto period = std::chrono::nanoseconds(1000000000 / nv2a_vblank_hz());
     auto next = Clock::now() + period;
     for (;;) {
@@ -983,7 +982,7 @@ void nv2a_hide_cursor(bool hidden) {
     if (!hidden) PostMessageW(g_window, WM_SETCURSOR, reinterpret_cast<WPARAM>(g_window), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
 }
 
-int nv2a_vblank_hz() { return setting_at_start("frame_rate") >= 60 ? 120 : 60; }
+int nv2a_vblank_hz() { return 60; }
 
 void nv2a_set_full_screen(bool full_screen) {
     if (g_window) PostMessageW(g_window, kSetFullScreenMessage, full_screen, 0);

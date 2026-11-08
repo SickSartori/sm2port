@@ -66,7 +66,7 @@ build\pc-x86\Debug\sm2.exe "percorso\del\gioco.iso"
 
 Con un'ISO come argomento il launcher viene saltato (anche con `SM2_SKIP_LAUNCHER=1`). Senza argomenti si apre il launcher, che usa l'ISO ricordata in `sm2port.ini`, o la prima `.iso` accanto a `sm2.exe` o nella cartella corrente, o la fa scegliere.
 
-I dati dell'utente stanno in `%LOCALAPPDATA%\sm2port` (`paths.cpp`): l'hard disk dell'Xbox (salvataggi in `UDATA`,
+I dati dell'utente stanno in `Documents\sm2port` (`paths.cpp`; fino alla 0.1.1 in `%LOCALAPPDATA%\sm2port`, dove restano in uso finché il launcher non li sposta, su richiesta, con `SM2_MOVE_OLD_DATA`): l'hard disk dell'Xbox (salvataggi in `UDATA`,
 dati del titolo in `TDATA`, cache `Z:`) è la cartella `xbox_hdd`, i log sono in `logs` (`sm2port.log` e i due avvii prima, `sm2port.1.log` e `.2.log`, più
 il minidump e lo zip di un crash), una cartella `mods` facoltativa sostituisce file del disco con lo stesso percorso, e lì
 stanno anche `sm2port.ini` e `shader_cache`. Se accanto a `sm2.exe` c'è un file `portable.txt` o un `sm2port.ini`,
@@ -93,8 +93,8 @@ F10: accende e spegne gli effetti moderni, per confrontarli con l'immagine origi
 
 ## Impostazioni
 
-Al primo avvio viene creato `sm2port.ini` nella cartella dei dati, con una spiegazione per ogni voce: fotogrammi al
-secondo, schermo panoramico 16:9 (`widescreen`), calcolo dei vertici sulla scheda video (`gpu_vertices`),
+Al primo avvio viene creato `sm2port.ini` nella cartella dei dati, con una spiegazione per ogni voce: schermo
+panoramico 16:9 (`widescreen`), calcolo dei vertici sulla scheda video (`gpu_vertices`),
 risoluzione interna (antialiasing), filtro anisotropico, effetti moderni (nitidezza, bagliore delle luci,
 saturazione, contrasto, vignettatura, ombreggiatura ambientale e suo raggio). Le voci nuove mancanti in un file già
 esistente valgono col loro valore predefinito.

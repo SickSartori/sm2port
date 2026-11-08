@@ -46,9 +46,10 @@ the launcher's Controls page.
 WHERE ARE MY FILES
 ------------------
 
-Settings (sm2port.ini), saves (xbox_hdd), the log and the shader cache are
-in %LOCALAPPDATA%\sm2port. To keep them next to sm2.exe, create an empty
-file named portable.txt there.
+Settings (sm2port.ini), saves (xbox_hdd), logs and the shader cache are in
+Documents\sm2port. Files of version 0.1.1 or earlier are in
+%LOCALAPPDATA%\sm2port until you move them: the launcher offers to. To keep
+everything next to sm2.exe, create an empty file named portable.txt there.
 
 
 IF SOMETHING GOES WRONG
