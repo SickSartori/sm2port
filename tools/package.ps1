@@ -2,6 +2,7 @@
 #   dist/sm2port-<version>-windows-x86.zip        (portable: a folder "sm2port" with sm2.exe, sm2runtime.dll, readmes,
 #                                                  changelog and licences; the same folder name in every version, so a
 #                                                  new zip extracted in the same place updates the old one)
+#   dist/sm2port-<version>-windows-x86-setup.exe  (installer, with Inno Setup 6.6+; skipped if it is missing)
 #   dist/SHA256SUMS
 # The version comes from project(... VERSION ...) in CMakeLists.txt. No game file can end up in the package.
 # PowerShell 7 (pwsh), as in the workflow: Windows PowerShell 5's Compress-Archive writes backslashes in the zip's
@@ -30,7 +31,7 @@ $name = "sm2port-$version-windows-x86"
 $stage = Join-Path "dist" "sm2port"
 if (Test-Path dist) { Remove-Item dist -Recurse -Force }
 New-Item -ItemType Directory -Force "$stage\licenses" | Out-Null
-Copy-Item build/pc-x86/Release/sm2.exe, build/pc-x86/Release/sm2runtime.dll, README.md, CHANGELOG.md, LICENSE, THIRD_PARTY.md $stage
+Copy-Item build/pc-x86/Release/sm2.exe, build/pc-x86/Release/sm2runtime.dll, recomplauncher.json, README.md, CHANGELOG.md, LICENSE, THIRD_PARTY.md $stage
 # README.txt: the short guide (what you need, first start, where the files are), with the version filled in and
 # Windows line endings, so that Notepad shows it properly.
 $readme = ((Get-Content tools/package_readme.txt -Raw).Replace("<version>", $version) -replace "`r?`n", "`r`n")
@@ -42,6 +43,15 @@ $forbidden = Get-ChildItem $stage -Recurse -File | Where-Object { $_.Extension -
 if ($forbidden) { throw "not for the package: $($forbidden.Name -join ', ')" }
 
 Compress-Archive -Path $stage -DestinationPath "dist/$name.zip"
+
+$iscc = @($env:ISCC, "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+          "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe") | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if ($iscc) {
+    & $iscc /Q "/DAppVersion=$version" "/DSourceDir=$(Resolve-Path $stage)" "/DOutputDir=$(Resolve-Path dist)" installer/sm2port.iss
+    if ($LASTEXITCODE) { throw "installer build failed" }
+} else {
+    Write-Warning "Inno Setup not found: no installer"
+}
 
 $lines = foreach ($file in Get-ChildItem dist -File | Where-Object { $_.Extension -in ".zip", ".exe" } | Sort-Object Name) {
     $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()

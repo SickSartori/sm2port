@@ -848,9 +848,7 @@ ComPtr<ID3D11Buffer> g_occlusion_constants;
 ComPtr<ID3D11BlendState> g_multiply_blend;  // destination colour times the source (alpha untouched)
 std::atomic<bool> g_effects_enabled{true};  // F10
 std::atomic<RendererOverlay> g_overlay{nullptr};  // renderer_set_overlay
-uint32_t g_blur_surface = 0;  // the surface a draw read while drawing into it: SM2's motion blur buffer
 std::unordered_set<uint32_t> g_shown_surfaces;  // surfaces renderer_present has shown (the frame buffers)
-std::unordered_set<uint32_t> g_frame_copies;    // surfaces drawn from a shown one: the speed blur's buffer
 
 // Per depth buffer, since its last clear (the start of a scene; presents do not line up with scenes): 3D drawn,
 // occlusion applied.
@@ -2075,25 +2073,6 @@ void bind_draw_state(const SurfaceState& surface, const DrawState& state, const 
         constants_data.texture_scale[i][0] = 1.0f / rendered->second.width;
         constants_data.texture_scale[i][1] = 1.0f / rendered->second.height;
     }
-    // The motion blur: the blur buffer added to the frame, weighted by the frame's alpha (DST_ALPHA, ONE). Setting
-    // motion_blur scales it (1 = like the Xbox, 0 = off).
-    if (g_blur_surface && surface.color_address != g_blur_surface && state.blend_enable && state.blend_source == 0x304 &&
-        state.blend_destination == 1 && state.textures[0].enabled && state.textures[0].descriptor.address == g_blur_surface) {
-        constants_data.alpha_reference[1] = 1 - std::clamp(setting("motion_blur"), 0.0f, 1.0f);
-    }
-    // The speed blur at high speed is made another way: the shown frame is shrunk into a surface, blended there with
-    // slightly enlarged copies of itself (the streaks), and laid back over the frame by its alpha (SRC_ALPHA,
-    // INV_SRC_ALPHA): setting motion_blur scales it. The lights' streaks go through the same surface: their halos
-    // are drawn into it, stretched the same way and added to the frame (SRC_ALPHA, ONE): setting light_streaks.
-    const bool reads_frame = state.textures[0].enabled && g_shown_surfaces.count(state.textures[0].descriptor.address);
-    const bool draws_frame = g_shown_surfaces.count(surface.color_address) != 0;
-    if (reads_frame && !draws_frame) g_frame_copies.insert(surface.color_address);
-    if (draws_frame && state.blend_enable && state.blend_source == 0x302 &&
-        (state.blend_destination == 0x303 || state.blend_destination == 1) && state.textures[0].enabled &&
-        g_frame_copies.count(state.textures[0].descriptor.address)) {
-        const char* key = state.blend_destination == 1 ? "light_streaks" : "motion_blur";
-        constants_data.alpha_reference[2] = 1 - std::clamp(setting(key), 0.0f, 1.0f);
-    }
     if (!bound.valid || std::memcmp(&constants_data, &bound.constants, sizeof(constants_data)) != 0) {
         g_context->UpdateSubresource(g_constants.Get(), 0, nullptr, &constants_data, 0, 0);
         bound.constants = constants_data;
@@ -2106,11 +2085,10 @@ void bind_draw_state(const SurfaceState& surface, const DrawState& state, const 
         if (!state.textures[i].enabled) continue;
         views[i] = texture_view(state.textures[i], state.screen_left <= state.screen_right);
         samplers[i] = sampler(state.textures[i]);
-        // The draw reads its own target: the NV2A then sees what is there now (SM2's motion blur writes its mask
-        // into the frame's alpha this way). Direct3D cannot read and write one texture, so it reads a copy.
+        // The draw reads its own target: the NV2A then sees what is there now. Direct3D cannot read and write one
+        // texture, so it reads a copy.
         if (views[i] == target->srv.Get()) {
             views[i] = target_copy(*target);
-            g_blur_surface = surface.color_address;
         }
     }
     if (!bound.valid || std::memcmp(views, bound.views, sizeof(views)) != 0) {

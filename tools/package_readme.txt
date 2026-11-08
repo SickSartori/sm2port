@@ -8,7 +8,8 @@ or Microsoft. No game data is included or distributed: no disc images, no
 executables, no textures, sounds, music or films. Please do not ask for
 game files and do not share them.
 
-This is a first test version: expect problems, and please report them.
+sm2port is in early development and may still have problems. If you find
+one, please open an issue on GitHub: https://github.com/SickSartori/sm2port/issues
 The full guide is README.md in this folder and online at
 https://github.com/SickSartori/sm2port
 

@@ -36,15 +36,15 @@ Pacchetto della release (zip e SHA256SUMS in `dist/`): `powershell -File tools/p
 ## Branch e rilasci
 
 - `main`: solo versioni pubblicate. Ogni commit su `main` corrisponde a un tag `vx.y.z` e a una release.
-- `develop`: il lavoro di tutti i giorni. I commit hanno il titolo `Phase N · Area: Title` e un corpo breve.
+- `develop`: il lavoro di tutti i giorni. I commit hanno il titolo `X.Y.Z · Area: Title` (la versione in cui esce la modifica) e un corpo breve.
 - Modifiche più grandi: un branch `feature/<nome>` da `develop`, unito in `develop` quando è provato.
 
-Il workflow `release.yml` compila a ogni push su `main` e `develop` e a ogni pull request, e tiene lo zip come
-artifact: una build rotta si vede subito.
+Non c'è un workflow di rilascio: i rilasci si fanno a mano.
 
 Pubblicare una versione: su `develop` aggiornare `project(... VERSION x.y.z)` in `CMakeLists.txt` e aggiungere la
-sezione `## x.y.z` in `CHANGELOG.md`; unire `develop` in `main` e inviare il tag `vx.y.z`. Il workflow compila e
-pubblica la release con le note prese dal CHANGELOG (`tools/release_notes.ps1`).
+sezione `## x.y.z` in `CHANGELOG.md`; `powershell -File tools/package.ps1` crea zip, installer e `SHA256SUMS` in `dist/`;
+unire `develop` in `main` con `--no-ff`, inviare il tag `vx.y.z` e creare la release su GitHub con le note prese dal
+CHANGELOG (`tools/release_notes.ps1`) e i file di `dist/`.
 
 ## Struttura del repository
 

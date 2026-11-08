@@ -15,9 +15,9 @@ higher internal resolution, keyboard and mouse, and optional modern effects.
 > image while it runs. Please do not ask for game files or disc images, and do not share them.
 
 > [!NOTE]
-> **This is a first test version (0.1.0).** The game starts and can be played from the title screen to the first
-> chapter and beyond, but it has been tested for minutes, not hours: expect problems (see [Known issues](#known-issues))
-> and please [report them](https://github.com/SickSartori/sm2port/issues).
+> **sm2port is in early development.** The game can be played from the title screen to the missions, but it has been
+> tested for minutes, not hours, and may still have problems (see [Known issues](#known-issues)). If you find one,
+> please [open an issue on GitHub](https://github.com/SickSartori/sm2port/issues).
 
 ## What it is
 
@@ -55,8 +55,11 @@ Compared with the console:
 
 ## Installing
 
-**Portable** (the only package of this test version): download `sm2port-<version>-windows-x86.zip` from the
-[releases page](https://github.com/SickSartori/sm2port/releases), extract it where you like and start `sm2.exe`. The
+**Installer**: download `sm2port-<version>-windows-x86-setup.exe` from the
+[releases page](https://github.com/SickSartori/sm2port/releases) and run it. It installs for your user only (no
+administrator rights) and adds Start menu and desktop shortcuts.
+
+**Portable**: download `sm2port-<version>-windows-x86.zip`, extract it where you like and start `sm2.exe`. The
 files are not code signed, so Windows SmartScreen may ask once whether you trust them ("More info", then "Run anyway").
 To check a download, compare its SHA-256 with the `SHA256SUMS` file of the release.
 
@@ -114,6 +117,7 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 
 ## Known issues
 
+- **Textures**: some textures look wrong in places (blurred or stretched surfaces, odd stripes on some buildings).
 - **Sound**: the game's sounds, music and films play, but some DirectSound calls (3D positioning among them) are not
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
 - **60 fps** is experimental: the game has a 59.94 fps mode and sm2port selects it, but it has had little play-testing.

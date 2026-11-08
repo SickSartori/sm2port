@@ -45,8 +45,6 @@ const Setting kSettings[] = {
     {"saturation", 1.12f, "Colour saturation: 1 = original, higher = more vivid."},
     {"contrast", 1.06f, "Contrast: 1 = original."},
     {"vignette", 0.15f, "Slight darkening of the picture's edges: 0 = off."},
-    {"motion_blur", 0, "The game's speed blur: 0 = off, 1 = as strong as on the Xbox."},
-    {"light_streaks", 0, "The streaks the game draws from lights at speed and in turns: 0 = off, 1 = as on the Xbox."},
     {"effects_advanced", 0, "Effects style Custom, with every effect's value in the settings: 1 = yes, 0 = Original or Enhanced."},
     {"ambient_occlusion", 0.6f, "Ambient occlusion (darker corners and contact areas): 0 = off, 1 = strong."},
     {"ambient_occlusion_radius", 1, "Ambient occlusion size: 0.5 = tight, 2 = wide."},
