@@ -64,7 +64,7 @@ files are not code signed, so Windows SmartScreen may ask once whether you trust
 To check a download, compare its SHA-256 with the `SHA256SUMS` file of the release.
 
 Your settings (`sm2port.ini`), saves (`xbox_hdd`), log and shader cache live in `%LOCALAPPDATA%\sm2port`. To keep them
-next to `sm2.exe` instead, create an empty file named `portable.txt` there.
+next to `sm2.exe` instead, create an empty file named `portable.txt` there. Started by RecompLauncher, the game always keeps them next to `sm2.exe`.
 
 ## First start
 

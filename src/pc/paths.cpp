@@ -18,7 +18,11 @@ bool portable_mode() {
     static const bool portable = [] {
         std::error_code ignored;
         const std::filesystem::path program = program_directory();
-        return std::filesystem::exists(program / "portable.txt", ignored) ||
+        // RecompLauncher keeps a game's saves and logs in its install folder (recomplauncher.json) and writes sm2port.ini
+        // there only when it has something to set: without this the data would start in %LOCALAPPDATA% and seem to vanish
+        // once the ini appears.
+        return GetEnvironmentVariableW(L"RECOMPLAUNCHER", nullptr, 0) != 0 ||
+               std::filesystem::exists(program / "portable.txt", ignored) ||
                std::filesystem::exists(program / "sm2port.ini", ignored);
     }();
     return portable;

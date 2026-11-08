@@ -1,0 +1,53 @@
+# Builds the Windows package on every push to main or develop and on pull requests. A tag vX.Y.Z (matching the
+# version in CMakeLists.txt, with a section in CHANGELOG.md) publishes it as a GitHub release with its SHA256SUMS and
+# notes; any other run keeps the package as an artifact, so a broken build shows up before a release.
+name: Release
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Inno Setup (for the installer)
+        run: choco install innosetup --no-progress -y
+
+      - name: Build and package
+        shell: pwsh
+        run: ./tools/package.ps1
+
+      - name: Check the tag matches the version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path CMakeLists.txt -Pattern 'project\(sm2port VERSION ([0-9.]+)').Matches[0].Groups[1].Value
+          if ("${{ github.ref_name }}" -ne "v$version") { throw "tag ${{ github.ref_name }} but CMakeLists.txt says $version" }
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # The notes: the version's section of CHANGELOG.md (tools/release_notes.ps1), then GitHub's compare link.
+        run: |
+          ./tools/release_notes.ps1 -Version ("${{ github.ref_name }}".TrimStart("v")) -Out notes.md
+          gh release create "${{ github.ref_name }}" (Get-ChildItem dist -File).FullName --title "sm2port ${{ github.ref_name }}" --notes-file notes.md --generate-notes
+
+      - name: Keep the package
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: sm2port-windows
+          path: |
+            dist/*.zip

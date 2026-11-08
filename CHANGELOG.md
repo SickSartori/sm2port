@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+### Fixed
+
+- Started by RecompLauncher, the game keeps its saves, settings and logs in its install folder from the first start, so
+  they no longer seem to vanish when RecompLauncher writes its settings file.
+
 ## 0.1.1
 
 ### New

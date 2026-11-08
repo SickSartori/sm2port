@@ -1,0 +1,59 @@
+name: Bug report
+description: Something does not work in sm2port
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. sm2port is in early development, so problems are expected. Please do not attach or link
+        disc images, game files or saves: sm2port never distributes game data. The log and your system details are enough.
+  - type: input
+    id: version
+    attributes:
+      label: sm2port version
+      description: Shown on the launcher's About page.
+      placeholder: "0.1.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How it is installed
+      options:
+        - Installer
+        - Portable zip
+        - RecompLauncher
+    validations:
+      required: true
+  - type: dropdown
+    id: release
+    attributes:
+      label: Which disc
+      description: The release of Spider-Man 2 for the Xbox that you play from.
+      options:
+        - Italy
+        - Europe (French, German, Spanish)
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System and graphics card
+      description: Windows version and graphics card.
+      placeholder: "Windows 11 24H2, NVIDIA GeForce RTX 3060"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you were doing (which menu, which chapter or mission) and what went wrong. A screenshot helps with picture problems.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: sm2port.log
+      description: Open the launcher's About page and press "Log folder"; attach sm2port.log here (drag it in), or sm2port-crash-report.zip after a crash.
+    validations:
+      required: true
