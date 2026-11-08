@@ -36,15 +36,15 @@ Pacchetto della release (zip e SHA256SUMS in `dist/`): `powershell -File tools/p
 ## Branch e rilasci
 
 - `main`: solo versioni pubblicate. Ogni commit su `main` corrisponde a un tag `vx.y.z` e a una release.
-- `develop`: il lavoro di tutti i giorni. I commit hanno il titolo `Phase N · Area: Title` e un corpo breve.
+- `develop`: il lavoro di tutti i giorni. I commit hanno il titolo `X.Y.Z · Area: Title` (la versione in cui esce la modifica) e un corpo breve.
 - Modifiche più grandi: un branch `feature/<nome>` da `develop`, unito in `develop` quando è provato.
 
-Il workflow `release.yml` compila a ogni push su `main` e `develop` e a ogni pull request, e tiene lo zip come
-artifact: una build rotta si vede subito.
+Non c'è un workflow di rilascio: i rilasci si fanno a mano.
 
 Pubblicare una versione: su `develop` aggiornare `project(... VERSION x.y.z)` in `CMakeLists.txt` e aggiungere la
-sezione `## x.y.z` in `CHANGELOG.md`; unire `develop` in `main` e inviare il tag `vx.y.z`. Il workflow compila e
-pubblica la release con le note prese dal CHANGELOG (`tools/release_notes.ps1`).
+sezione `## x.y.z` in `CHANGELOG.md`; `powershell -File tools/package.ps1` crea zip, installer e `SHA256SUMS` in `dist/`;
+unire `develop` in `main` con `--no-ff`, inviare il tag `vx.y.z` e creare la release su GitHub con le note prese dal
+CHANGELOG (`tools/release_notes.ps1`) e i file di `dist/`.
 
 ## Struttura del repository
 
@@ -54,10 +54,9 @@ pubblica la release con le note prese dal CHANGELOG (`tools/release_notes.ps1`).
 | `src/pc` | runtime Windows x86: kernel emulato, GPU NV2A su D3D11, audio, input, launcher |
 | `third_party` | Dear ImGui e i font Barlow, con le loro licenze |
 | `res` | risorse Win32: icona, musica del launcher |
-| `installer` | script Inno Setup |
 | `tools` | script di build, pacchetto, note di rilascio e analisi dell'XBE |
-| `docs` | questo documento, le note tecniche, l'analisi dell'XBE, logo e screenshot |
-| `.github` | workflow di build e release, modelli per le issue |
+| `docs` | questo documento e il logo |
+| `tests` | prove automatiche, senza file del gioco |
 
 ## Avvio
 
@@ -68,7 +67,8 @@ build\pc-x86\Debug\sm2.exe "percorso\del\gioco.iso"
 Con un'ISO come argomento il launcher viene saltato (anche con `SM2_SKIP_LAUNCHER=1`). Senza argomenti si apre il launcher, che usa l'ISO ricordata in `sm2port.ini`, o la prima `.iso` accanto a `sm2.exe` o nella cartella corrente, o la fa scegliere.
 
 I dati dell'utente stanno in `%LOCALAPPDATA%\sm2port` (`paths.cpp`): l'hard disk dell'Xbox (salvataggi in `UDATA`,
-dati del titolo in `TDATA`, cache `Z:`) è la cartella `xbox_hdd`, il log di ogni avvio è `sm2port.log`, e lì
+dati del titolo in `TDATA`, cache `Z:`) è la cartella `xbox_hdd`, i log sono in `logs` (`sm2port.log` e i due avvii prima, `sm2port.1.log` e `.2.log`, più
+il minidump e lo zip di un crash), una cartella `mods` facoltativa sostituisce file del disco con lo stesso percorso, e lì
 stanno anche `sm2port.ini` e `shader_cache`. Se accanto a `sm2.exe` c'è un file `portable.txt` o un `sm2port.ini`,
 tutto resta invece accanto a `sm2.exe` (modalità portatile): è il caso delle build in `build\pc-x86\<config>`.
 
@@ -135,11 +135,24 @@ Variabili d'ambiente:
 | `SM2_PROFILE=1` | ogni 10 s, oltre alla riga `profile:` sempre presente (fps del gioco, vblank per fotogramma, carico del core del gioco e del thread della GPU): tempo CPU e attese di ogni thread, registri della GPU letti o scritti dal gioco tramite eccezioni, con l'indirizzo del codice |
 | `SM2_INPUT_SCRIPT=<s>:<pulsante>,<da>-<a>:<pulsante>,...` | preme (0,2 s) o tiene premuti pulsanti del controller 1 a quei secondi dall'avvio, per i test (`start back a b x y black white up down left right lt rt`, `sl`/`sr` per sterzare). Con `@<file>[#n]+<s>[~<durata>]:<pulsante>` il tempo conta da quando il gioco apre un file con quel nome (per esempio `@bg_main+5:down`). Con il prefisso `p2`...`p4` (`p2start`, `p2rt`) i pulsanti vanno ai controller 2-4, che compaiono collegati anche senza un controller vero; con un controller vero sulla porta 1 le pressioni si sommano alle sue |
 | `SM2_DUMP_BUFFER=<byte>` | salva i dati grezzi dei buffer audio di quella dimensione in `buffer-<byte>-<indirizzo>.bin` (cartella di lavoro) |
+| `SM2_TRACE_SAVES=1` | nel log, tutti i file del disco (dimensione e hash del primo MB) e cosa il gioco chiede ai file system con la risposta e l'indirizzo che chiede (`saves: from ...`, fino a 3000 righe) |
 | `SM2_TRACE_WAITS=1` | registra le attese del kernel che durano più di 5 s, con gli ultimi eventi segnalati |
 | `SM2_AUDIO_DUMP=<s>` | i primi `s` secondi dell'audio in uscita in `audio.wav` (cartella di lavoro) |
 | `SM2_AUDIO_VOICES=1` | ogni 10 s, l'elenco delle voci audio attive con formato, volume, tono, regioni, età e uscite |
 | `SM2_SKIP=<texture>:<superficie>:<fusione>` / `SM2_DUMP_DRAW=...` | salta, o salva prima e dopo, i draw corrispondenti (per isolare un difetto grafico) |
 | `SM2_WATCHDOG=<s>` | ogni `s` secondi, dove si trovano i thread del gioco (cambia la temporizzazione) |
+
+## Prove automatiche
+
+```bash
+ctest --test-dir build/pc-x86 -C RelWithDebInfo --output-on-failure
+```
+
+`tests/` non contiene e non richiede file del gioco: dischi ed eseguibili sono creati dalle prove. Coprono XBE e immagini
+del disco, il controllo del disco, lo zip del crash (riaperto con il `tar` di Windows: da PowerShell, non dalla shell di
+Git), i log, i punti della modalità poligono POINT, le texture e il loro ingrandimento. `disc_real` controlla il disco
+vero se `SM2_TEST_DISC` indica una propria immagine, altrimenti risulta saltata. `tools/package.ps1` si ferma se una prova
+fallisce.
 
 ## Strumenti
 

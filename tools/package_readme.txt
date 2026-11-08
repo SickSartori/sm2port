@@ -8,7 +8,8 @@ or Microsoft. No game data is included or distributed: no disc images, no
 executables, no textures, sounds, music or films. Please do not ask for
 game files and do not share them.
 
-This is a first test version: expect problems, and please report them.
+sm2port is in early development and may still have problems. If you find
+one, please open an issue on GitHub: https://github.com/SickSartori/sm2port/issues
 The full guide is README.md in this folder and online at
 https://github.com/SickSartori/sm2port
 
@@ -55,5 +56,5 @@ IF SOMETHING GOES WRONG
 
 Open the launcher's About page and press "Log folder": sm2port.log says
 what happened last. "Report a problem" opens the form on GitHub with your
-version and PC filled in. Known issues: rectangular blocks in the sky in
-some views, and some sound calls (3D positioning) not emulated yet.
+version and PC filled in. Known issue: some sound calls (3D positioning)
+are not emulated yet.

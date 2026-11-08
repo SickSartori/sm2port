@@ -33,8 +33,8 @@
 #include "backends/imgui_impl_win32.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pc/crash_report.h"
 #include "pc/game_pause.h"
-#include "pc/hle_patches.h"
 #include "pc/input_hle.h"
 #include "pc/keyboard_bindings.h"
 #include "pc/launcher_music.h"
@@ -79,12 +79,11 @@ struct Texts {
     const char *bar_disc, *bar_disc_ok, *bar_disc_none, *bar_pad, *bar_pad_on, *bar_pad_off, *bar_version, *select, *back;
     const char *resume, *back_to_game, *paused, *paused_lead, *exit_game, *exit_lead, *exit_now, *next_start, *menu_key;
     const char *fps_counter, *fps_counter_sub, *background_pause, *background_pause_sub, *resume_hint, *tabs_hint, *play_hint;
-    const char *pad_keys, *pad_menu_keys, *motion_blur, *pages_hint, *move_hint, *dpad, *enter_hint;
-    const char *effects_style, *effects_style_sub, *enhanced, *original_effects, *light_streaks, *custom_effects;
-    const char *skip_intro, *skip_intro_sub, *restart_needed, *restart_lead, *restart_now;
-    const char *hud, *hud_sub, *hud_game, *speed_unit, *sharp_2d, *sharp_2d_sub;
-    const char *cheats, *cheats_lead, *cheat_money, *cheat_money_sub, *add_money, *game_codes, *game_codes_lead;
-    const char *loading_screens, *loading_screens_sub;
+    const char *pad_keys, *pad_menu_keys, *pages_hint, *move_hint, *dpad, *enter_hint;
+    const char *effects_style, *effects_style_sub, *enhanced, *original_effects, *custom_effects;
+    const char *restart_needed, *restart_lead, *restart_now;
+    const char *sharp_2d, *sharp_2d_sub;
+    const char *crash_heading, *crash_sub, *crash_button, *crash_link;
 };
 
 const Texts kEnglish = {
@@ -122,18 +121,13 @@ const Texts kEnglish = {
     "Progress since the last save will be lost.", "EXIT", "Applies the next time the game starts", "In-game menu",
     "Frame counter", "In a corner while playing", "Pause in the background",
     "Opens the menu when you switch windows", "Resume", "Tabs", "Play",
-    "D-pad \xC2\xB7 A \xC2\xB7 B \xC2\xB7 LB RB \xC2\xB7 Start", "Controller: move, select, back, tabs, play", "Motion blur", "Pages", "Move", "D-pad",
+    "D-pad \xC2\xB7 A \xC2\xB7 B \xC2\xB7 LB RB \xC2\xB7 Start", "Controller: move, select, back, tabs, play", "Pages", "Move", "D-pad",
     "Move \xC2\xB7 right: into the page",
-    "Effects style", "Original: as on the Xbox. Enhanced: modern picture, no blur or streaks", "Enhanced", "Original",
-    "Light streaks", "Custom",
-    "Skip the opening films", "The Rockstar logos and the intro, straight to the title screen",
+    "Effects style", "Original: the picture as on the Xbox. Enhanced: glow, sharpening, colour and shading", "Enhanced", "Original",
+    "Custom",
     "Restart needed", "For the changes that apply at start; unsaved progress is lost", "Restart now",
-    "HUD", "sm2port's: the dials drawn again, sharp at any resolution", "The game's", "Speed unit",
     "Sharp HUD pictures", "Icons and letters of the HUD enlarged with clean edges",
-    "CHEATS", "With a career loaded: money, and the game's own codes to type in its Options > Cheat Codes.",
-    "Money", "Added to the career: it stays once the game saves", "+ $10,000", "The game's codes",
-    "Type them in the game's menu, Options > Cheat Codes (as found in the game's own check).",
-    "Loading screens", "At least this long, to read them as on the Xbox (from the disc image loading is instant)",
+    "The game crashed last time", "sm2port-crash-report.zip is ready to attach to a report", "Report", "Report the crash",
 };
 
 const Texts kItalian = {
@@ -176,18 +170,13 @@ const Texts kItalian = {
     "I progressi dall'ultimo salvataggio andranno persi.", "ESCI", "Vale dal prossimo avvio del gioco", "Menu in gioco",
     "Contatore FPS", "In un angolo durante il gioco", "Pausa in secondo piano",
     "Apre il menu se cambi finestra", "Riprendi", "Schede", "Gioca",
-    "Croce \xC2\xB7 A \xC2\xB7 B \xC2\xB7 LB RB \xC2\xB7 Start", "Controller: muoversi, scegliere, tornare, schede, gioca", "Sfocatura in velocit\xC3\xA0", "Pagine", "Muovi",
+    "Croce \xC2\xB7 A \xC2\xB7 B \xC2\xB7 LB RB \xC2\xB7 Start", "Controller: muoversi, scegliere, tornare, schede, gioca", "Pagine", "Muovi",
     "Croce", "Muovi \xC2\xB7 destra: nella pagina",
-    "Stile degli effetti", "Originale: come sull'Xbox. Migliorato: immagine moderna, senza sfocatura n\xC3\xA9 scie",
-    "Migliorato", "Originale", "Scie delle luci", "Personalizzato",
-    "Salta i video iniziali", "I loghi Rockstar e l'introduzione, dritto alla schermata del titolo",
+    "Stile degli effetti", "Originale: l'immagine come sull'Xbox. Migliorato: bagliore, nitidezza, colore e ombreggiatura",
+    "Migliorato", "Originale", "Personalizzato",
     "Riavvio necessario", "Per le modifiche che valgono all'avvio; i progressi non salvati si perdono", "Riavvia ora",
-    "HUD", "Quello di sm2port: quadranti ridisegnati, nitidi a ogni risoluzione", "Del gioco", "Unit\xC3\xA0 di velocit\xC3\xA0",
     "Immagini dell'HUD nitide", "Icone e lettere dell'HUD ingrandite con bordi puliti",
-    "CHEAT", "Con una carriera caricata: soldi, e i codici del gioco da scrivere in Opzioni > Codici.",
-    "Soldi", "Si aggiungono alla carriera: restano quando il gioco salva", "+ 10.000 $", "Codici del gioco",
-    "Da scrivere nel menu del gioco, Opzioni > Codici (come li controlla il gioco stesso).",
-    "Schermate di caricamento", "Almeno questa durata, per leggerle come sull'Xbox (dall'immagine del disco si carica subito)",
+    "L'ultima volta il gioco si \xC3\xA8 chiuso per un errore", "sm2port-crash-report.zip \xC3\xA8 pronto da allegare alla segnalazione", "Segnala", "Segnala il crash",
 };
 
 const Texts& T() {
@@ -517,11 +506,6 @@ struct BackgroundConstants {
 
 // --- the launcher ---
 
-struct Trail {
-    float x, y, speed, length;
-    ImU32 colour;
-};
-
 class Launcher {
 public:
     Launcher(HWND window, const std::filesystem::path& exe_directory, bool in_game = false)
@@ -555,6 +539,7 @@ private:
     void claim_focus() {
         if (!focus_panel_) return;
         ImGui::SetKeyboardFocusHere();
+        ImGui::SetNavCursorVisible(true);  // without it A does nothing until a direction is pressed
         focus_panel_ = false;
     }
     // Keyboard and controller: the menu on the left (handled by side_menu) or the page (ImGui's navigation).
@@ -690,7 +675,6 @@ private:
     ImVec2 origin_;  // panel content top left
     float panel_width_ = 0, cursor_ = 0, row_extra_ = 0;
     std::unordered_map<ImGuiID, float> anims_;
-    std::vector<Trail> trails_;
     WebEffects web_;
     float web_page_since_ = -1;  // page_since_ at the last web burst
     std::vector<ImVec4> drops_;
@@ -1253,7 +1237,7 @@ void Launcher::apply_quality(int preset) {
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
-         {"game_language", "frame_rate", "widescreen", "render_scale", "anisotropy", "hud_style", "sharp_2d"}) {
+         {"game_language", "frame_rate", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
         if (setting(key) != setting_at_start(key)) return true;
     }
     return false;
@@ -1303,11 +1287,14 @@ void Launcher::run_disc_dialog() {
 
 // --- pages ---
 
+void report_problem();
+
 void Launcher::page_play() {
     const Texts& t = T();
     title(t.ready);
     lead(t.ready_lead);
     update_row(false);
+    if (crash_report_ready() && status(false, t.crash_heading, t.crash_sub, t.crash_button, "##crash_report")) report_problem();
     if (disc_) {
         if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox \xC2\xB7 PAL", t.change, "##disc")) choose_disc();
     } else if (status(false, t.disc_none, disc_problem_.empty() ? t.disc_none_sub : disc_problem_.c_str(), t.choose_iso, "##disc")) {
@@ -1446,23 +1433,16 @@ void Launcher::page_settings() {
         int sharp = setting("sharp_2d") != 0 ? 1 : 0;
         if (segmented("##sharp_2d", toggle, 2, &sharp)) set_setting("sharp_2d", static_cast<float>(sharp));
     } else {
-        // Two ready-made looks and a custom one. Original: the Xbox's picture, speed blur and light streaks included.
-        // Enhanced: the modern effects, without the blur and the streaks. Custom (setting effects_advanced): every
-        // value by itself, in two columns so that the page stays on screen.
+        // Two ready-made looks and a custom one. Original: the Xbox's picture. Enhanced: the modern effects. Custom
+        // (setting effects_advanced): every value by itself, in two columns so that the page stays on screen.
         row(t.effects_style, t.effects_style_sub, false, 330);
         const char* styles[] = {t.original_effects, t.enhanced, t.custom_effects};
         const bool modern = setting("effects") != 0;
-        const float blur = setting("motion_blur"), streaks = setting("light_streaks");
-        int style = setting("effects_advanced") != 0             ? 2
-                    : !modern && blur == 1 && streaks == 1 ? 0
-                    : modern && blur == 0 && streaks == 0  ? 1
-                                                           : 2;
+        int style = setting("effects_advanced") != 0 ? 2 : modern ? 1 : 0;
         if (segmented("##effects_style", styles, 3, &style, nullptr, 330)) {
             set_setting("effects_advanced", style == 2 ? 1.0f : 0.0f);
             if (style != 2) {
                 set_setting("effects", style == 1 ? 1.0f : 0.0f);
-                set_setting("motion_blur", style == 1 ? 0.0f : 1.0f);
-                set_setting("light_streaks", style == 1 ? 0.0f : 1.0f);
                 renderer_set_effects(style == 1);
             }
         }
@@ -1476,7 +1456,6 @@ void Launcher::page_settings() {
             {t.sharpen, "sharpen", 0, 1},           {t.bloom, "bloom", 0, 1},
             {t.bloom_threshold, "bloom_threshold", 0, 1}, {t.saturation, "saturation", 0.5f, 1.5f},
             {t.contrast, "contrast", 0.8f, 1.3f},   {t.vignette, "vignette", 0, 0.5f},
-            {t.motion_blur, "motion_blur", 0, 1},   {t.light_streaks, "light_streaks", 0, 1},
             {t.occlusion, "ambient_occlusion", 0, 1}, {t.occlusion_radius, "ambient_occlusion_radius", 0.5f, 2},
         };
         const size_t shown = advanced ? std::size(sliders) : 0;
@@ -1500,7 +1479,7 @@ void Launcher::page_settings() {
         for (const char* key : {"game_language", "frame_rate", "volume", "launcher_music", "pause_in_background",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
                                 "anisotropy", "gpu_vertices", "sharp_2d", "effects", "sharpen", "bloom",
-                                "bloom_threshold", "saturation", "contrast", "vignette", "motion_blur", "light_streaks",
+                                "bloom_threshold", "saturation", "contrast", "vignette",
                                 "effects_advanced", "ambient_occlusion", "ambient_occlusion_radius"}) {
             set_setting(key, setting_default(key));
         }
@@ -1639,9 +1618,10 @@ bool Launcher::update_available() {
     return updates_.state == 2 && updates_.download != 2;
 }
 
-// sm2port.log selected in Explorer.
+// sm2port.log selected in Explorer, or the report of a crash when there is a new one.
 void show_log() {
-    const std::wstring argument = L"/select,\"" + (data_directory() / "sm2port.log").wstring() + L"\"";
+    const std::filesystem::path file = crash_report_ready() ? crash_report_path() : log_directory() / "sm2port.log";
+    const std::wstring argument = L"/select,\"" + file.wstring() + L"\"";
     ShellExecuteW(nullptr, L"open", L"explorer.exe", argument.c_str(), nullptr, SW_SHOWNORMAL);
 }
 
@@ -1650,7 +1630,7 @@ void show_log() {
 // in on GitHub.
 void report_problem() {
     std::string system;
-    if (std::FILE* file = _wfopen((data_directory() / "sm2port.log").c_str(), L"r")) {
+    if (std::FILE* file = _wfopen((log_directory() / "sm2port.log").c_str(), L"r")) {
         char line[512];
         for (int i = 0; i < 80 && std::fgets(line, sizeof(line), file); ++i) {
             line[std::strcspn(line, "\r\n")] = 0;
@@ -1748,21 +1728,7 @@ void Launcher::frame(float now, float dt) {
     const ImVec2 screen(static_cast<float>(width_), static_cast<float>(height_));
     ImDrawList* back = ImGui::GetBackgroundDrawList();
 
-    // Light trails and rain over the background.
-    if (static_cast<float>(std::rand()) / RAND_MAX < dt * 5) {
-        const float pick = static_cast<float>(std::rand()) / RAND_MAX;
-        const ImU32 colour = pick < 0.55f ? IM_COL32(255, 64, 64, 255) : pick < 0.8f ? IM_COL32(255, 210, 122, 255) : IM_COL32(255, 255, 255, 255);
-        trails_.push_back({-px(300), screen.y * (0.55f + 0.37f * static_cast<float>(std::rand()) / RAND_MAX),
-                           px(1400 + 1600 * static_cast<float>(std::rand()) / RAND_MAX),
-                           px(200 + 320 * static_cast<float>(std::rand()) / RAND_MAX), colour});
-    }
-    for (Trail& trail : trails_) {
-        trail.x += trail.speed * dt;
-        back->AddRectFilledMultiColor(ImVec2(trail.x - trail.length, trail.y), ImVec2(trail.x, trail.y + px(2.5f)),
-                                      trail.colour & ~IM_COL32_A_MASK, trail.colour, trail.colour, trail.colour & ~IM_COL32_A_MASK);
-    }
-    trails_.erase(std::remove_if(trails_.begin(), trails_.end(), [&](const Trail& trail) { return trail.x - trail.length > screen.x; }),
-                  trails_.end());
+    // Rain over the background.
     if (drops_.size() != 140) {
         drops_.clear();
         for (int i = 0; i < 140; ++i) {
@@ -2066,7 +2032,7 @@ void Launcher::bottom_bar(float since) {
             page_since_ = static_cast<float>(ImGui::GetTime());
         }
     }
-    if (link(t.report, kInk)) report_problem();
+    if (crash_report_ready() ? link(t.crash_link, kAmber) : link(t.report, kInk)) report_problem();
     float right = screen.x - px(86);
     const bool pad = pad_connected_;
     const auto hint = [&](const char* key, ImU32 colour, const char* label) {
@@ -2534,8 +2500,7 @@ void Launcher::overlay(ID3D11Device* device, ID3D11DeviceContext* context, ID3D1
     }
     const bool counter_on = setting("fps_counter") != 0;
     const bool hint_on = now < kMenuHintEnd;  // how to open the menu, for the first seconds of the game
-    const bool hud_on = hud_enabled();
-    if (!visible_ && !counter_on && !hint_on && !hud_on) return;
+    if (!visible_ && !counter_on && !hint_on) return;
 
     width_ = width;
     height_ = height;
@@ -2548,7 +2513,6 @@ void Launcher::overlay(ID3D11Device* device, ID3D11DeviceContext* context, ID3D1
         ImGui_ImplWin32_NewFrame();
         poll_gamepads(now);
         ImGui::NewFrame();
-        if (hud_on) hud_draw(ImGui::GetBackgroundDrawList(), HudFonts{heading_, body_bold_});  // under the menu
         if (visible_) {
             frame_in_game(now);
         } else {

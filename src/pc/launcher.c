@@ -6,7 +6,7 @@
 
 #include <windows.h>
 
-/* Covers the XBE image (0x57A280 bytes for SM2) with room for sections loaded on demand. */
+/* Covers the XBE image (0x52F9C0 bytes for SM2) with room for sections loaded on demand. */
 #define XBE_RESERVE_SIZE 0x01000000u
 
 /* In the ordinary uninitialised data (.data, no file bytes): a section of its own with an unusual name and no data is

@@ -135,6 +135,7 @@ small = master(outline=22, depth=30)  # 16-32 px: thicker outlines, or they vani
 sizes = [256, 128, 64, 48, 40, 32, 24, 20, 16]
 frames = [(big if n >= 48 else small).resize((n, n), Image.LANCZOS) for n in sizes]
 big.resize((256, 256), Image.LANCZOS).save(OUT + "/icon-256.png")
+big.resize((512, 512), Image.LANCZOS).save(OUT + "/icon-512.png")  # RecompStore wants 512x512 or more
 sheet = Image.new("RGBA", (256 + 16 + sum(n + 16 for n in sizes[1:]), 256), (40, 40, 44, 255))
 x = 0
 for f in frames:

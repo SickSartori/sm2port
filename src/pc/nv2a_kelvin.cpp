@@ -16,13 +16,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include "pc/hud.h"
 #include "pc/log.h"
 #include "pc/nv2a_combiner.h"
 #include "pc/nv2a_texture.h"
 #include "pc/nv2a_vsh.h"
 #include "pc/physical_memory.h"
 #include "pc/profile.h"
+#include "pc/point_quads.h"
 #include "pc/renderer_d3d11.h"
 #include "pc/settings.h"
 #include "pc/xbox_thread.h"
@@ -67,6 +67,9 @@ struct Kelvin {
     Vec4 attribute[kVshAttributes] = {};
 
     uint32_t primitive = kEnd;
+    // shortcut: of the polygon modes only POINT is drawn as such (LINE fills), add it when a game shows wireframes.
+    uint32_t polygon_mode = 0x1B02;  // GL_FILL
+    float point_size = 1;            // surface pixels
     std::vector<uint32_t> inline_data;
     std::vector<uint32_t> elements;
 
@@ -217,12 +220,17 @@ SurfaceState surface() {
     SurfaceState s{};
     s.color_address = g_k.dma_color + g_k.color_offset;
     s.zeta_address = (g_k.surface_format & 0xF0) ? g_k.dma_zeta + g_k.zeta_offset : 0;
-    // The clip only limits where draws write (the HUD's radar shrinks it to its own square); pixel coordinates
+    // The clip only limits where draws write; pixel coordinates
     // are relative to the whole surface.
-    s.clip_x = g_k.clip_horizontal & 0xFFFF;
-    s.clip_width = g_k.clip_horizontal >> 16;
-    s.clip_y = g_k.clip_vertical & 0xFFFF;
-    s.clip_height = g_k.clip_vertical >> 16;
+    // An anti-aliased surface has 2 (CENTER_CORNER_2, across) or 2 by 2 (SQUARE_OFFSET_4) pixels per coordinate of the
+    // clip and of the positions. The game draws its sky's dome this way, on the frame's own 640x576 surface.
+    const uint32_t anti_aliasing = (g_k.surface_format >> 12) & 0xF;
+    s.pixels_x = anti_aliasing ? 2 : 1;
+    s.pixels_y = anti_aliasing == 2 ? 2 : 1;
+    s.clip_x = (g_k.clip_horizontal & 0xFFFF) * s.pixels_x;
+    s.clip_width = (g_k.clip_horizontal >> 16) * s.pixels_x;
+    s.clip_y = (g_k.clip_vertical & 0xFFFF) * s.pixels_y;
+    s.clip_height = (g_k.clip_vertical >> 16) * s.pixels_y;
     constexpr uint32_t kSurfaceSwizzled = 2;
     if (((g_k.surface_format >> 8) & 0xF) == kSurfaceSwizzled) {
         // A swizzled surface is a whole power-of-two texture (log2 sizes in the format).
@@ -825,14 +833,13 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
     const SurfaceState target = surface();
     if (!target.width || !target.height) return;
 
-    // Setting hud_aspect: where a flat draw over the 3D scene falls on the screen. Flat: w 1 on every vertex and one
+    // Setting sharp_2d: where a flat draw over the 3D scene falls on the screen. Flat: w 1 on every vertex and one
     // z for all, 0 when the draw compares or writes depth (the HUD: some of it does, at z 0, to stack its pieces);
     // glows and halos of lights over the scene have a z each, and the scene's other flat passes a z of their own.
     // Only the positions go through the CPU once more, and only for draws whose first vertex is flat: more work
     // here slowed this thread enough to change the game's timing, and the game crashed.
     g_k.draw.screen_left = 1, g_k.draw.screen_right = 0;
-    static const bool measure = (setting_at_start("widescreen") != 0 && setting_at_start("hud_aspect") != 0) ||
-                                setting_at_start("hud_style") != 0 || setting_at_start("sharp_2d") != 0;
+    static const bool measure = setting_at_start("sharp_2d") != 0;
     if (measure && target.width >= 640 && count <= 1024 && renderer_over_shown_scene(target)) {
         Vec4 inputs[kVshAttributes];
         Vec4 outputs[kVshOutputs];
@@ -859,36 +866,11 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
             g_k.draw.screen_left = left, g_k.draw.screen_right = right;
             g_k.draw.screen_top = top, g_k.draw.screen_bottom = bottom;
         }
-        // Setting hud_style: the game's dials are read here and left out (hud.cpp).
-        if (flat && count == 4 && hud_reading()) {
-            const HudPicture picture = renderer_hud_picture();
-            if (left >= (picture.surface_width + 2 * picture.surface_left) / 2) {
-                HudQuad quad{};
-                quad.program = !fixed_function;
-                quad.texture = (g_k.texture_control0[0] & 0x40000000)
-                                   ? dma_address(g_k.texture_format[0] & 3, g_k.texture_offset[0])
-                                   : 0;
-                for (uint32_t i = 0; i < 4; ++i) {
-                    std::copy(std::begin(g_k.attribute), std::end(g_k.attribute), inputs);
-                    fetch(i, inputs);
-                    if (fixed_function) {
-                        transform_fixed_function(inputs, outputs);
-                    } else {
-                        g_k.vertex_program.execute(inputs, g_k.constants, outputs);
-                    }
-                    quad.x[i] = outputs[kOutPosition][0], quad.y[i] = outputs[kOutPosition][1];
-                    quad.u[i] = outputs[kOutTexture0][0], quad.v[i] = outputs[kOutTexture0][1];
-                    if (i == 0) std::memcpy(quad.colour, outputs[kOutDiffuse].data(), sizeof(quad.colour));
-                }
-                if (hud_take_quad(quad)) {
-                    ++g_draws;
-                    return;
-                }
-            }
-        }
     }
 
-    if (gpu_fixed_function() && !g_debug_window_open &&
+    constexpr uint32_t kPolygonPoint = 0x1B00;
+    const bool points = g_k.polygon_mode == kPolygonPoint;
+    if (gpu_fixed_function() && !g_debug_window_open && !points &&
         (fixed_function ? draw_fixed_function_on_gpu(target, count, source) : draw_program_on_gpu(target, count, source))) {
         ++g_draws;
         update_debug_window();
@@ -978,11 +960,15 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
                  g_k.draw.blend_source, g_k.draw.blend_destination, g_k.draw.depth_test, g_k.draw.depth_write,
                  g_k.alpha_test, g_k.draw.color_mask);
     }
-    std::vector<uint32_t> order;
-    append_triangles(g_k.primitive, count, order);
     std::vector<RenderVertex> triangles;
-    triangles.reserve(order.size());
-    for (uint32_t index : order) triangles.push_back(vertices[index]);
+    if (points) {
+        append_point_quads(vertices, g_k.point_size, triangles);
+    } else {
+        std::vector<uint32_t> order;
+        append_triangles(g_k.primitive, count, order);
+        triangles.reserve(order.size());
+        for (uint32_t index : order) triangles.push_back(vertices[index]);
+    }
     prepare_draw_state();
     // SM2_SKIP=<texture>[:<target>[:<blend destination factor>]] (hex, 0 = any): skip the matching draws, to find
     // which one makes a visual defect. Texture addresses match by 4 KB page.
@@ -1324,6 +1310,9 @@ bool kelvin_method(uint32_t method, uint32_t argument) {
         case 0x034C: unpack_color(argument, d.blend_color); return true;
         case 0x0350: d.blend_equation = argument; return true;
         case 0x0354: d.depth_function = argument; return true;
+        case 0x038C: g_k.polygon_mode = argument; return true;  // the front faces'; the game sets both alike
+        case 0x0390: return true;
+        case 0x043C: g_k.point_size = static_cast<float>(argument) / 8; return true;
         case 0x0308: d.cull_enable = argument != 0; return true;
         case 0x039C: d.cull_face = argument; return true;
         case 0x03A0: d.front_face = argument; return true;
@@ -1389,8 +1378,13 @@ bool kelvin_method(uint32_t method, uint32_t argument) {
                          g_k.clear_vertical & 0xFFFF, g_k.clear_horizontal >> 16, g_k.clear_vertical >> 16,
                          surface().color_address);
             }
-            renderer_clear(surface(), argument, g_k.color_clear, g_k.zstencil_clear, g_k.clear_horizontal & 0xFFFF,
-                           g_k.clear_vertical & 0xFFFF, g_k.clear_horizontal >> 16, g_k.clear_vertical >> 16);
+            {
+                const SurfaceState cleared = surface();
+            // The rectangle is in the surface's coordinates too; its maximum is inclusive.
+            renderer_clear(cleared, argument, g_k.color_clear, g_k.zstencil_clear, (g_k.clear_horizontal & 0xFFFF) * cleared.pixels_x,
+                           (g_k.clear_vertical & 0xFFFF) * cleared.pixels_y, ((g_k.clear_horizontal >> 16) + 1) * cleared.pixels_x - 1,
+                           ((g_k.clear_vertical >> 16) + 1) * cleared.pixels_y - 1);
+            }
             return true;
         default:
             return false;

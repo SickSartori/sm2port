@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(sm2port VERSION 0.1.0 LANGUAGES C CXX)
+project(sm2port VERSION 0.1.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Static CRT everywhere: the runtime DLL must not depend on redistributables.
 # Read when targets are created, so it has to come before them.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# The configuration with symbols inlines like Release, so that what is measured and tried is what ships.
+string(REPLACE "/Ob1" "/Ob2" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+string(REPLACE "/Ob1" "/Ob2" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 
 # Portable core: disc image and XBE parsing, kernel export table.
 # No platform headers here.
@@ -50,7 +54,6 @@ if(WIN32)
         src/pc/game_pause.cpp
         src/pc/handles.cpp
         src/pc/hle_patches.cpp
-        src/pc/hud.cpp
         src/pc/input_hle.cpp
         src/pc/kernel.cpp
         src/pc/kernel_crypto.cpp
@@ -70,6 +73,7 @@ if(WIN32)
         src/pc/nv2a_kelvin.cpp
         src/pc/nv2a_texture.cpp
         src/pc/nv2a_vsh.cpp
+        src/pc/crash_report.cpp
         src/pc/paths.cpp
         src/pc/physical_memory.cpp
         src/pc/privileged.cpp
@@ -85,6 +89,9 @@ if(WIN32)
     target_compile_definitions(sm2runtime PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE
                                SM2PORT_VERSION="${PROJECT_VERSION}" ${SM2_VERSION_DEFINES})
     target_compile_options(sm2runtime PRIVATE /utf-8)
+    # The GPU thread's hot path crosses files (methods, physical memory, renderer).
+    set_target_properties(sm2runtime PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
+                                                INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
 
     # Launcher: linked at the XBE base (0x10000) so Windows reserves the game's address range for us.
     # It has no CRT; runtime checks and security cookies would pull one in.
@@ -99,4 +106,27 @@ if(WIN32)
         /SAFESEH:NO /INCREMENTAL:NO
     )
     add_dependencies(sm2 sm2runtime)
+
+    # Tests: ctest --test-dir build/pc-x86 -C Release. They need no game file; disc_real uses SM2_TEST_DISC if set.
+    include(CTest)
+    if(BUILD_TESTING)
+        function(sm2_test name)
+            add_executable(${name} tests/${name}.cpp ${ARGN})
+            target_link_libraries(${name} PRIVATE sm2core)
+            target_include_directories(${name} PRIVATE tests)
+            target_compile_definitions(${name} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+            target_compile_options(${name} PRIVATE /utf-8)
+            set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+            add_test(NAME ${name} COMMAND ${name})
+        endfunction()
+        sm2_test(test_core)
+        sm2_test(test_log src/pc/log.cpp)
+        sm2_test(test_point_quads)
+        sm2_test(test_crash_report src/pc/crash_report.cpp)
+        sm2_test(test_textures src/pc/nv2a_texture.cpp src/pc/texture_upscale.cpp)
+        sm2_test(test_game_disc src/pc/game_disc.cpp)
+        target_link_libraries(test_game_disc PRIVATE bcrypt comdlg32 shell32 user32)
+        add_test(NAME disc_real COMMAND test_game_disc real)
+        set_tests_properties(disc_real PROPERTIES SKIP_RETURN_CODE 77)
+    endif()
 endif()

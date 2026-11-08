@@ -41,9 +41,8 @@ NTSTATUS status_from_last_error() {
 // ahead of its input). Reads there commit a zero page (commit_reserved_page).
 constexpr uint32_t kTailReserve = 64 * 1024;
 
-// Pages the game decommitted stay committed with their contents: XACT reads the next cue from one it has just freed
-// (0x004100A6, after the release at 0x0040FE54), which on the Xbox still holds the old data but here was a zero page
-// and crashed it. They are zeroed when the game commits them again, as it expects new pages to be.
+// Pages the game decommitted stay committed with their contents: code can read from a page it has just freed, which
+// on the Xbox still holds the old data but here would be a zero page. They are zeroed when the game commits them again, as it expects new pages to be.
 std::mutex g_kept_mutex;
 std::set<uint32_t> g_kept_pages;
 
@@ -233,7 +232,7 @@ NTSTATUS __stdcall MmQueryStatistics(XMmStatistics* statistics) {
     statistics->cache_pages_committed = 0;
     statistics->pool_pages_committed = 256;
     statistics->stack_pages_committed = 64;
-    statistics->image_pages_committed = 0x57A280 / 4096;
+    statistics->image_pages_committed = 0x52F9C0 / 4096;
     return kStatusSuccess;
 }
 

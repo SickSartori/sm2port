@@ -28,10 +28,7 @@ const Setting kSettings[] = {
     {"mouse_look", 1, "Mouse look: 1 = the mouse moves the camera (and the left and right buttons are X and the right trigger), 0 = off."},
     {"mouse_sensitivity", 1, "Mouse look speed: 1 is the default, 2 twice as fast, 0.5 half as fast."},
     {"widescreen", 1, "16:9 widescreen: 1 = the game's own widescreen mode (wider view, no black bars), 0 = 4:3 like a classic TV."},
-    {"hud_aspect", 1, "In 16:9, keep the HUD's round shapes round (radar, dials): 1 = yes, 0 = stretched as on the Xbox."},
-    {"sharp_2d", 1, "The HUD's pictures (radar map, icons, letters) enlarged with their edges kept: 1 = sharper at high resolutions, 0 = as the game's."},
-    {"hud_style", 0, "HUD: 0 = the game's, 1 = sm2port's (speedometer, rev counter and gear redrawn, sharp at any resolution)."},
-    {"hud_units", 0, "Speed in sm2port's HUD: 0 = mph, 1 = km/h."},
+    {"sharp_2d", 1, "The HUD's pictures (icons, letters) enlarged with their edges kept: 1 = sharper at high resolutions, 0 = as the game's."},
     {"fullscreen", 0, "Start in full screen: 1 = yes, 0 = in a window (Alt+Enter or F11 switches while playing)."},
     {"volume", 100, "Overall volume, 0 to 100."},
     {"launcher_music", 70, "Volume of the launcher's background music, 0 to 100 (0 = off)."},
@@ -43,13 +40,11 @@ const Setting kSettings[] = {
     {"anisotropy", 16, "Anisotropic texture filtering: 1 = off, up to 16."},
     {"effects", 1, "Modern effects: 1 = on, 0 = original picture (F10 toggles them while playing)."},
     {"sharpen", 0.5f, "Adaptive sharpening: 0 = off, 1 = strongest."},
-    {"bloom", 0.35f, "Glow around lights (headlights, signs, street lamps): 0 = off, 1 = strong."},
+    {"bloom", 0.35f, "Glow around lights: 0 = off, 1 = strong."},
     {"bloom_threshold", 0.7f, "How bright an area must be to glow: 0 = everything, 1 = pure white only."},
     {"saturation", 1.12f, "Colour saturation: 1 = original, higher = more vivid."},
     {"contrast", 1.06f, "Contrast: 1 = original."},
     {"vignette", 0.15f, "Slight darkening of the picture's edges: 0 = off."},
-    {"motion_blur", 0, "The game's speed blur: 0 = off, 1 = as strong as on the Xbox."},
-    {"light_streaks", 0, "The streaks the game draws from lights at speed and in turns: 0 = off, 1 = as on the Xbox."},
     {"effects_advanced", 0, "Effects style Custom, with every effect's value in the settings: 1 = yes, 0 = Original or Enhanced."},
     {"ambient_occlusion", 0.6f, "Ambient occlusion (darker corners and contact areas): 0 = off, 1 = strong."},
     {"ambient_occlusion_radius", 1, "Ambient occlusion size: 0.5 = tight, 2 = wide."},
@@ -124,16 +119,6 @@ void settings_load(const std::filesystem::path& file) {
                 if (key == s.key) g_texts[key] = value;  // whole line: paths may contain '#'
             }
         }
-    }
-    // Before 0.2.5 render_scale was a whole 1 to 4: 2 and 4 become the nearest named resolution (1080p, 2160p).
-    if (const float old_scale = g_values["render_scale"]; old_scale == 2 || old_scale == 4) {
-        setting_save("render_scale", old_scale == 2 ? 2.25f : 4.5f);
-        log_line("settings: render_scale %g is now %g", old_scale, g_values["render_scale"]);
-    }
-    // Before 0.2.5 the speed blur and the light streaks were on at 0.5 by default: an untouched 0.5 becomes off.
-    if (g_values["motion_blur"] == 0.5f) {
-        setting_save("motion_blur", 0);
-        log_line("settings: motion_blur 0.5 (the old default) is now 0");
     }
     for (auto& [key, value] : g_values) {
         char text[32] = {};

@@ -14,8 +14,11 @@ $section = ($lines[($start + 1)..($end - 1)] -join "`n") -replace "`n  +", " "
 $notes = $section.Trim() + @"
 
 
+> sm2port is in early development and may still have problems. If you find one, please [open an issue](https://github.com/SickSartori/sm2port/issues).
+
 ### Download
 
+- **Installer**: ``sm2port-$Version-windows-x86-setup.exe`` (installs for your user, no administrator rights).
 - **Portable**: ``sm2port-$Version-windows-x86.zip`` (extract anywhere and start ``sm2.exe``).
 - Check a download against ``SHA256SUMS``. You need your own disc image of the Italian or the European (French, German, Spanish) Xbox release: see the README.
 "@

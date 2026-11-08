@@ -21,6 +21,10 @@ namespace {
 // code patches (hle_patches.cpp, dsound_hle.cpp, input_hle.cpp) are made for.
 constexpr char kSupportedXbe[] = "2c0032e3b579c2c4b51bd1740b46e37e9a5c77ab9e5788e1d4667e15ed4c2597";  // Italy
 constexpr char kSupportedXbeEurope[] = "0c466591001257abee3d96fc8844635b045cb037d66b0925ccb1a8c6d1b866fb";  // Europe (Fr,De,Es)
+// SHA-256 of all their sections' raw data, in header order: the same with another header or certificate (region-free or
+// re-signed dumps). The code and data the patches check are what count.
+constexpr char kSupportedCode[] = "5f2fc1ea776bf8b34d8e776ca2ab0a7f65f04b192f5fa5c341460bb9e38481bd";  // Italy
+constexpr char kSupportedCodeEurope[] = "4b2daa09e0b9cb27be6aec0c0088cacf3d0cd547fccb43ddbbf07e07d3d265bb";  // Europe (Fr,De,Es)
 constexpr char kSupportedName[] = "Spider-Man 2, Xbox, Italy or Europe (Fr,De,Es)";
 
 // Dialog texts in English, or in Italian on an Italian Windows.
@@ -53,6 +57,15 @@ std::string sha256(const std::vector<uint8_t>& data) {
     return hex;
 }
 
+std::string code_hash(const Xbe& xbe) {
+    std::vector<uint8_t> code;
+    for (const XbeSection& section : xbe.sections()) {  // Xbe::parse checked that each lies inside the file
+        const auto start = xbe.file().begin() + section.raw_address;
+        code.insert(code.end(), start, start + section.raw_size);
+    }
+    return sha256(code);
+}
+
 }  // namespace
 
 std::optional<GameDisc> check_game_disc(const std::filesystem::path& path, std::string& problem) {
@@ -74,7 +87,12 @@ std::optional<GameDisc> check_game_disc(const std::filesystem::path& path, std::
     }
     log_line("disc: %s: '%s', title id %08X, default.xbe SHA-256 %s", utf8(path).c_str(), xbe->title().c_str(),
              xbe->title_id(), hash.c_str());
-    if (hash != kSupportedXbe && hash != kSupportedXbeEurope) {
+    const bool known_file = hash == kSupportedXbe || hash == kSupportedXbeEurope;
+    const std::string code = known_file ? std::string() : code_hash(*xbe);
+    if (!known_file) log_line("disc: code SHA-256 %s", code.c_str());
+    if (!known_file && (code == kSupportedCode || code == kSupportedCodeEurope)) {
+        log_line("disc: its header differs from the known one, its code is the supported one");
+    } else if (!known_file) {
         if (GetEnvironmentVariableW(L"SM2_ANY_VERSION", nullptr, 0)) {
             log_line("disc: not the supported version; SM2_ANY_VERSION is set, trying it anyway");
         } else {
