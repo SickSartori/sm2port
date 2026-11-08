@@ -28,6 +28,7 @@
 #include "pc/log.h"
 #include "pc/paths.h"
 #include "pc/physical_memory.h"
+#include "pc/profile.h"
 #include "pc/settings.h"
 #include "pc/texture_upscale.h"
 
@@ -58,13 +59,11 @@ struct PSInput {
     float4 t3 : TEXCOORD3;
     float fog : FOG;
 };
-// Positions arrive in pixels of the render target times w; scale = (2 / width, 2 / height, the HUD's narrowing
-// across, the pixel column it narrows towards).
+// Positions arrive in pixels of the render target times w; scale = (2 / width, 2 / height, unused, unused).
 cbuffer Surface : register(b0) { float4 scale; };
 PSInput main(VSInput i) {
     PSInput o;
-    const float x = (i.position.x - scale.w * i.position.w) * scale.z + scale.w * i.position.w;
-    o.position = float4(x * scale.x - i.position.w, i.position.w - i.position.y * scale.y, i.position.z, i.position.w);
+    o.position = float4(i.position.x * scale.x - i.position.w, i.position.w - i.position.y * scale.y, i.position.z, i.position.w);
     o.d0 = i.d0;
     o.d1 = i.d1;
     o.t0 = i.t0;
@@ -151,8 +150,7 @@ float4 clip_position(float4 screen, float clip_max) {
     float w = screen.w;
     if (!is_finite(w) || abs(w) < 5.42101e-20) w = w < 0 ? -5.42101e-20 : 5.42101e-20;
     const float z = clip_max != 0 ? screen.z / clip_max : screen.z;
-    const float x = (screen.x - scale.w) * scale.z + scale.w;
-    return float4(x * w * scale.x - w, w - screen.y * w * scale.y, z * w, w);
+    return float4(screen.x * w * scale.x - w, w - screen.y * w * scale.y, z * w, w);
 }
 )";
 
@@ -393,7 +391,7 @@ struct CachedTexture {
 using TextureKey = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, bool>;
 
 // sharp_2d: textures are enlarged on a thread of their own (texture_upscale.cpp), the original showing meanwhile:
-// enlarging the radar's map at the start of a race all at once held the game up for a third of a second.
+// enlarging a large picture all at once held the game up for a third of a second.
 class Enlarger {
 public:
     void request(const TextureKey& key, uint64_t hash, const TextureImage& image) {
@@ -488,8 +486,7 @@ ID3D11RasterizerState* rasterizer_for(const DrawState& state) {
     return cached.Get();
 }
 ComPtr<ID3D11Buffer> g_surface_constants;  // vertex shader: pixel-to-clip scale of the current target
-uint32_t g_surface_scale_width = 0, g_surface_scale_height = 0;
-float g_surface_scale_narrow = 1, g_surface_scale_anchor = 0;  // hud_narrowing
+uint32_t g_surface_scale_width = 0, g_surface_scale_height = 0, g_surface_scale_pixels_x = 0, g_surface_scale_pixels_y = 0;
 ComPtr<ID3D11VertexShader> g_clear_vertex_shader;
 ComPtr<ID3D11PixelShader> g_clear_pixel_shader;
 ComPtr<ID3D11Buffer> g_clear_constants;
@@ -590,6 +587,7 @@ uint64_t change_hash(const uint8_t* data, size_t size) {
 
 ComPtr<ID3DBlob> compile(const char* source, size_t size, const char* profile, const char* name) {
     ComPtr<ID3DBlob> code, errors;
+    ProfileScope scope(ProfileTime::shader_compile);
     const HRESULT hr = D3DCompile(source, size, name, nullptr, nullptr, "main", profile, D3DCOMPILE_OPTIMIZATION_LEVEL1,
                                   0, &code, &errors);
     if (FAILED(hr)) {
@@ -611,6 +609,43 @@ float g_scale = 1;
 LONG scaled(uint32_t pixels) { return std::lround(static_cast<float>(pixels) * g_scale); }
 uint32_t scaled_size(uint32_t pixels) { return static_cast<uint32_t>(scaled(pixels)); }
 float scaled_float(uint32_t pixels) { return static_cast<float>(pixels) * g_scale; }
+
+// The graphics card stopped answering (a driver crash or update, a GPU overloaded): nothing drawn from here on would
+// show. sm2port says so and starts again, once: a second loss in a row is not one a restart mends.
+[[noreturn]] void device_lost(HRESULT hr) {
+    constexpr wchar_t kRestarted[] = L"SM2_RESTARTED_AFTER_GPU_LOSS";
+    const HRESULT reason = g_device ? g_device->GetDeviceRemovedReason() : hr;
+    log_line("renderer: the graphics card stopped responding: %08lX, reason %08lX", hr, reason);
+    const bool restart = !GetEnvironmentVariableW(kRestarted, nullptr, 0);
+    if (!GetEnvironmentVariableW(L"SM2_NO_DIALOG", nullptr, 0)) {
+        MessageBoxA(nullptr,
+                    restart ? "The graphics card stopped responding, so the game has to start again. Progress since "
+                              "your last save is lost.\n\nIf it happens again, update the graphics driver or lower "
+                              "the resolution in the settings."
+                            : "The graphics card stopped responding again. Update the graphics driver or lower the "
+                              "resolution in the settings, then start sm2port again.",
+                    "sm2port", MB_ICONERROR | MB_OK);
+    }
+    if (restart) {
+        wchar_t path[MAX_PATH] = {};
+        if (GetModuleFileNameW(nullptr, path, MAX_PATH)) {
+            SetEnvironmentVariableW(kRestarted, L"1");
+            // The new process waits for this one before it touches the log, which says why it restarted.
+            SetEnvironmentVariableW(L"SM2_RESTART_FROM", std::to_wstring(GetCurrentProcessId()).c_str());
+            STARTUPINFOW startup{};
+            startup.cb = sizeof(startup);
+            PROCESS_INFORMATION process{};
+            std::wstring command = GetCommandLineW();
+            if (CreateProcessW(path, command.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &startup, &process)) {
+                CloseHandle(process.hThread);
+                CloseHandle(process.hProcess);
+            } else {
+                log_line("renderer: could not start again: error %lu", GetLastError());
+            }
+        }
+    }
+    end_process(1);
+}
 
 // A failed creation used to pass silently and leave a hole in the picture; the log now says what was asked for,
 // since a driver may refuse a format or a size that others accept. A few lines are enough: the first ones tell.
@@ -826,80 +861,7 @@ struct SceneState {
 std::unordered_map<uint32_t, SceneState> g_scenes;
 uint32_t g_occlusion_scenes = 0, g_full_depth_clears = 0;  // for the log: every scene should get its pass
 
-// Setting hud_aspect. In 16:9 SM2 draws its HUD with the pixel sizes of 4:3 on a picture 720 pixels wide that is shown
-// 16:9 wide, so round things (radar, dials) come out oval. A flat draw (nv2a_kelvin.cpp) over the 3D scene on a shown
-// frame that lies within the HUD is narrowed by (720 / 480) / (16 / 9) towards its side: the radar's box (the scissor
-// rectangle its map is cut to, with room for the icons on its edge) towards the left, the dials hud.cpp read (each
-// face, the gear, the special ability's arc, the red bar) towards the right. Nothing else: texts come in pieces, and
-// narrowing the pieces near a side tore them apart (over the tutorials' films and the loading screens too, where the
-// last 3D scene still counted). The scissor rectangle follows the draw; the radar's clear of the alpha does not: its
-// mask then covered less than the original box, and the frame showed the previous one through the rest.
-uint32_t g_picture_width = 0, g_picture_height = 0;  // the last frame shown
-HudPicture g_hud_picture{};                           // and where it is in the window
-constexpr uint32_t kOverscan = 48;                    // 1 / kOverscan of each side is not shown
-int g_debug_hud = -1;                                 // SM2_DEBUG_HUD=<n>: the first n decisions in the log
-HudBox g_radar_box{};                                 // the radar's scissor rectangle...
-ULONGLONG g_radar_seen = 0;                           // ...last seen then
-
-struct Narrowing {
-    float factor = 1, anchor = 0;
-    float apply(float x) const { return anchor + (x - anchor) * factor; }
-};
-
-bool inside(float left, float top, float right, float bottom, const HudBox& box, float margin) {
-    return left >= box.left - margin && right <= box.right + margin && top >= box.top - margin &&
-           bottom <= box.bottom + margin;
-}
-
-// The narrowing for something from `left` to `right` and `top` to `bottom` (pixels) on `surface`; none when it is
-// not HUD.
-Narrowing hud_narrowing(const SurfaceState& surface, float left, float right, float top, float bottom,
-                        uint32_t texture) {
-    Narrowing n;
-    static const bool on = setting_at_start("hud_aspect") != 0;  // flat draws are also measured for others
-    if (!on || left > right || !g_picture_width || !g_picture_height) return n;
-    const float width = static_cast<float>(g_picture_width), height = static_cast<float>(g_picture_height);
-    const ULONGLONG now = GetTickCount64();
-    // The radar's map: a small scissor rectangle in the lower left.
-    if (surface.clip_width <= 200 && surface.clip_height <= 200 && surface.clip_x + surface.clip_width <= width / 2 &&
-        surface.clip_y >= height / 2) {
-        g_radar_box = {static_cast<float>(surface.clip_x), static_cast<float>(surface.clip_y),
-                       static_cast<float>(surface.clip_x + surface.clip_width),
-                       static_cast<float>(surface.clip_y + surface.clip_height)};
-        g_radar_seen = now;
-    }
-    // What can show: the part inside the scissor rectangle (the radar's map is turning tiles, cut to its box).
-    left = std::max(left, static_cast<float>(surface.clip_x));
-    right = std::min(right, static_cast<float>(surface.clip_x + surface.clip_width));
-    top = std::max(top, static_cast<float>(surface.clip_y));
-    bottom = std::min(bottom, static_cast<float>(surface.clip_y + surface.clip_height));
-    if (left > right || top > bottom) return n;
-    const float narrow = width / height / renderer_aspect();
-    const auto scene = g_scenes.find(surface.zeta_address);
-    const bool over_scene = scene != g_scenes.end() && scene->second.drawn;
-    const bool shown = g_shown_surfaces.count(surface.color_address) != 0;
-    const bool radar = now - g_radar_seen < 1000 &&
-                       inside(left, top, right, bottom, g_radar_box, 0.35f * (g_radar_box.right - g_radar_box.left));
-    const std::vector<HudBox>& dials = hud_boxes();
-    const bool dial = std::any_of(dials.begin(), dials.end(),
-                                  [&](const HudBox& box) { return inside(left, top, right, bottom, box, 6); });
-    if (narrow < 0.99f && over_scene && shown && (radar || dial)) {
-        n.anchor = radar ? 0 : width;
-        n.factor = narrow;
-    }
-    if (g_debug_hud < 0) {
-        char value[16] = {};
-        g_debug_hud = GetEnvironmentVariableA("SM2_DEBUG_HUD", value, sizeof(value)) ? std::atoi(value) : 0;
-    }
-    if (g_debug_hud > 0) {
-        --g_debug_hud;
-        log_line("hud: %.0f..%.0f x %.0f..%.0f on %08X (clip %u,%u %ux%u), texture %08X: %s%s%s%s-> %.3f towards %.0f",
-                 left, right, top, bottom, surface.color_address, surface.clip_x, surface.clip_y, surface.clip_width,
-                 surface.clip_height, texture, over_scene ? "" : "no scene ", shown ? "" : "not shown ",
-                 radar ? "radar " : "", dial ? "dial " : "", n.factor, n.anchor);
-    }
-    return n;
-}
+constexpr uint32_t kOverscan = 48;  // 1 / kOverscan of each side is not shown
 
 void apply_occlusion(Target& target, DepthTarget& depth) {
     const ForgetBound forget;
@@ -1248,6 +1210,7 @@ ID3D11ShaderResourceView* texture_view(const TextureStage& stage, bool flat) {
     }
 
     const uint64_t upload_start = ticks();
+    ProfileScope upload_scope(ProfileTime::texture_upload);
     struct Account {
         uint64_t start;
         ~Account() {
@@ -1909,9 +1872,7 @@ void renderer_clear(const SurfaceState& surface, uint32_t flags, uint32_t color,
     Target* target = get_target(surface.color_address, surface.width, surface.height);
     if (!target) return;
     // One more column and row than the rectangle's inclusive maximum: the game's rectangles end a pixel short of the
-    // quads it draws over them. The HUD radar clears alpha on 38..165 x 323..450 and draws its background and map,
-    // masked by destination alpha, on 39..166 x 324..451; the uncleared edge kept the scene's alpha (sun glare adds
-    // up there) and showed a dark line to the right of and under the radar.
+    // quads it draws over them, and an uncleared edge shows as a dark line beside a mask drawn with destination alpha.
     x1 += 1, y1 += 1;
     // NV097_CLEAR_SURFACE: R 0x10, G 0x20, B 0x40, A 0x80 map onto D3D11's write-mask bits.
     const uint32_t channels = (flags >> 4) & 0xF;
@@ -2040,17 +2001,14 @@ ID3D11ShaderResourceView* target_copy(const Target& target) {
 // Render target, viewport, scissor, raster, blend, depth state, combiner constants, textures and samplers.
 void bind_draw_state(const SurfaceState& surface, const DrawState& state, const PreparedDraw& draw) {
     Target* target = draw.target;
-    const uint32_t texture = state.textures[0].enabled ? state.textures[0].descriptor.address : 0;
-    const Narrowing hud =
-        hud_narrowing(surface, state.screen_left, state.screen_right, state.screen_top, state.screen_bottom, texture);
     if (g_surface_scale_width != target->width || g_surface_scale_height != target->height ||
-        g_surface_scale_narrow != hud.factor || g_surface_scale_anchor != hud.anchor) {
-        const float scale[4] = {2.0f / target->width, 2.0f / target->height, hud.factor, hud.anchor};
+        g_surface_scale_pixels_x != surface.pixels_x || g_surface_scale_pixels_y != surface.pixels_y) {
+        const float scale[4] = {2.0f * surface.pixels_x / target->width, 2.0f * surface.pixels_y / target->height, 0, 0};
         g_context->UpdateSubresource(g_surface_constants.Get(), 0, nullptr, scale, 0, 0);
         g_surface_scale_width = target->width;
         g_surface_scale_height = target->height;
-        g_surface_scale_narrow = hud.factor;
-        g_surface_scale_anchor = hud.anchor;
+        g_surface_scale_pixels_x = surface.pixels_x;
+        g_surface_scale_pixels_y = surface.pixels_y;
     }
     BoundState& bound = g_bound;
     if (!bound.valid) {
@@ -2076,10 +2034,7 @@ void bind_draw_state(const SurfaceState& surface, const DrawState& state, const 
         g_context->RSSetViewports(1, &viewport);
         bound.viewport = viewport;
     }
-    const auto clip_x0 = static_cast<uint32_t>(std::lround(hud.apply(static_cast<float>(surface.clip_x))));
-    const auto clip_x1 =
-        static_cast<uint32_t>(std::lround(hud.apply(static_cast<float>(surface.clip_x + surface.clip_width))));
-    const D3D11_RECT scissor{scaled(clip_x0), scaled(surface.clip_y), scaled(clip_x1),
+    const D3D11_RECT scissor{scaled(surface.clip_x), scaled(surface.clip_y), scaled(surface.clip_x + surface.clip_width),
                              scaled(surface.clip_y + surface.clip_height)};
     if (!bound.valid || std::memcmp(&scissor, &bound.scissor, sizeof(scissor)) != 0) {
         g_context->RSSetScissorRects(1, &scissor);
@@ -2089,11 +2044,19 @@ void bind_draw_state(const SurfaceState& surface, const DrawState& state, const 
         g_context->RSSetState(rasterizer);
         bound.rasterizer = rasterizer;
     }
+    // Direct3D has one blend factor for colour and alpha: CONSTANT_ALPHA (the weights the game adds its clouds' layers
+    // with) is that factor with the alpha in every channel. A draw mixing it with CONSTANT_COLOR cannot be expressed.
+    const auto constant_alpha = [](uint32_t gl) { return gl == 0x8003 || gl == 0x8004; };
+    float blend_color[4];
+    std::memcpy(blend_color, state.blend_color, sizeof(blend_color));
+    if (constant_alpha(state.blend_source) || constant_alpha(state.blend_destination)) {
+        blend_color[0] = blend_color[1] = blend_color[2] = blend_color[3];
+    }
     if (ID3D11BlendState* blend = blend_state(state);
-        !bound.valid || blend != bound.blend || std::memcmp(state.blend_color, bound.blend_color, sizeof(bound.blend_color)) != 0) {
-        g_context->OMSetBlendState(blend, state.blend_color, 0xFFFFFFFF);
+        !bound.valid || blend != bound.blend || std::memcmp(blend_color, bound.blend_color, sizeof(bound.blend_color)) != 0) {
+        g_context->OMSetBlendState(blend, blend_color, 0xFFFFFFFF);
         bound.blend = blend;
-        std::memcpy(bound.blend_color, state.blend_color, sizeof(bound.blend_color));
+        std::memcpy(bound.blend_color, blend_color, sizeof(bound.blend_color));
     }
     if (ID3D11DepthStencilState* depth = depth_state(state);
         !bound.valid || depth != bound.depth || state.stencil_reference != bound.stencil_reference) {
@@ -2500,8 +2463,6 @@ void renderer_blit(const BlitRequest& b) {
 
 float renderer_aspect() { return setting_at_start("widescreen") != 0 ? 16.0f / 9.0f : 4.0f / 3.0f; }
 
-HudPicture renderer_hud_picture() { return g_hud_picture; }
-
 void renderer_toggle_effects() { renderer_set_effects(!g_effects_enabled); }
 
 void renderer_set_effects(bool on) {
@@ -2519,23 +2480,6 @@ void renderer_present(uint32_t address, uint32_t width, uint32_t height, uint32_
     const auto target = g_targets.find(address);
     if (target != g_targets.end()) {
         g_shown_surfaces.insert(address);
-        g_picture_width = width, g_picture_height = height;
-        const float aspect = renderer_aspect();
-        float window_width = static_cast<float>(g_swap_width), window_height = static_cast<float>(g_swap_height);
-        if (window_width > window_height * aspect) {
-            window_width = window_height * aspect;
-        } else {
-            window_height = window_width / aspect;
-        }
-        const float edge_x = static_cast<float>(width / kOverscan), edge_y = static_cast<float>(height / kOverscan);
-        g_hud_picture = {edge_x,
-                         edge_y,
-                         static_cast<float>(width) - 2 * edge_x,
-                         static_cast<float>(height) - 2 * edge_y,
-                         std::floor((static_cast<float>(g_swap_width) - window_width) / 2),
-                         std::floor((static_cast<float>(g_swap_height) - window_height) / 2),
-                         window_width,
-                         window_height};
         frame = target->second.texture.Get();
         frame_view = target->second.srv.Get();
         // Only the picture's part of a wider surface (widescreen: 720 of 768 pixels), copied out once per present.
@@ -2607,7 +2551,6 @@ void renderer_present(uint32_t address, uint32_t width, uint32_t height, uint32_
     if (frame) frame->GetDesc(&frame_desc);
     const uint64_t effects_start = ticks();
     present_frame(frame_view, frame_desc.Width, frame_desc.Height);
-    hud_frame_shown();
     ++g_presented;
     ++g_stats.presents;
     log_statistics();
@@ -2644,7 +2587,8 @@ void renderer_present(uint32_t address, uint32_t width, uint32_t height, uint32_
         if (extra != g_targets.end()) dump_frame(extra->second.texture.Get(), "target");
     }
     const uint64_t swap_start = ticks();
-    g_swap_chain->Present(0, 0);
+    const HRESULT presented = g_swap_chain->Present(0, 0);
+    if (presented == DXGI_ERROR_DEVICE_REMOVED || presented == DXGI_ERROR_DEVICE_RESET) device_lost(presented);
     const uint64_t swap_end = ticks();
     g_stats.swap_ticks += swap_end - swap_start;
     // A present that holds the GPU thread up holds up the game too (it waits for the GPU to take its commands): which

@@ -55,5 +55,5 @@ IF SOMETHING GOES WRONG
 
 Open the launcher's About page and press "Log folder": sm2port.log says
 what happened last. "Report a problem" opens the form on GitHub with your
-version and PC filled in. Known issues: rectangular blocks in the sky in
-some views, and some sound calls (3D positioning) not emulated yet.
+version and PC filled in. Known issue: some sound calls (3D positioning)
+are not emulated yet.

@@ -61,7 +61,7 @@ struct Envelope {
 enum class EnvelopeStage : uint8_t { kOff, kDelay, kAttack, kHold, kDecay, kSustain, kRelease, kDone };
 
 // DSFILTERDESC in DLS2 mode: a resonant low-pass, run like the APU's as a state-variable filter at 48 kHz on each
-// source channel. XACT sets it on sounds that need it (the river water in Tokyo played unfiltered, as noise).
+// source channel. Without it filtered sounds play as noise.
 struct VoiceFilter {
     bool enabled = false;
     float frequency[2] = {1, 1};  // 2 sin(pi fc / 48000)

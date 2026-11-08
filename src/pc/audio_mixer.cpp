@@ -188,8 +188,7 @@ float decibels_to_gain(int32_t hundredths) {
 // Left/right gain of each source channel, from the voice volume and its mix bins: the 5.1 speaker bins folded to
 // stereo (front 1, centre and back 0.5 per side; LFE and effect sends, whose effects are not emulated, left out).
 // Bink and XACT send each channel to all six speaker bins at full level; the plain sum was 2.7 times too loud.
-// The crosstalk bins 6-9 (XTLK front left/right, back left/right) are where XACT routes its positioned voices (the
-// car's engine layers among them); the DSP's crosstalk effect would put them out on the matching speakers, so they
+// The crosstalk bins 6-9 (XTLK front left/right, back left/right) are where XACT routes its positioned voices; the DSP's crosstalk effect would put them out on the matching speakers, so they
 // fold like those. Bin 10 is the I3DL2 reverb send (no reverb here), 11-30 the effect sends, 31 the submix.
 void channel_gains(const Voice& voice, float gains[2][2]) {
     std::memset(gains, 0, sizeof(float) * 4);
@@ -339,7 +338,7 @@ void mix_buffer_voice(Voice& voice, float* out, uint32_t frames) {
 
     for (uint32_t n = 0; n < frames; ++n) {
         // Linear interpolation between this frame and the next one (which wraps to the loop start): picking the
-        // nearest frame aliases badly whenever the pitch is not exactly 1 (engines change it all the time).
+        // nearest frame aliases badly whenever the pitch is not exactly 1.
         const uint32_t frame = static_cast<uint32_t>(voice.position);
         const float fraction = static_cast<float>(voice.position - frame);
         const uint32_t end = voice.looping ? loop_end : region_frames;

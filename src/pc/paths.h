@@ -10,6 +10,7 @@ namespace sm2::pc {
 
 std::filesystem::path program_directory();  // sm2.exe's folder
 std::filesystem::path data_directory();     // created if missing
+inline std::filesystem::path log_directory() { return data_directory() / "logs"; }  // the logs and crash reports
 bool portable_mode();
 
 }  // namespace sm2::pc

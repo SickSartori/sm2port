@@ -1,7 +1,7 @@
 // Xbox controllers replaced at the XPP API boundary.
 //
-// The game talks to its controllers only through a handful of XPP functions (found from its input code at 0x84B40
-// and 0x84C00, from the XBE). XInitDevices is skipped (hle_patches.cpp), so there is no USB stack; these
+// The game talks to its controllers only through a handful of XPP functions (found from its input code in
+// the XBE). XInitDevices is skipped (hle_patches.cpp), so there is no USB stack; these
 // functions are redirected here and served from XInput. A device type ("XPP_DEVICE_TYPE") is three port masks:
 // connected now, ports that changed since the last query, connected at the last query. XGetDevices and
 // XGetDeviceChanges keep the original logic on those masks, refreshing the gamepad masks from the host first.

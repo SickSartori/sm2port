@@ -24,6 +24,7 @@
 
 #include "core/xbe.h"
 #include "core/xdvdfs.h"
+#include "pc/crash_report.h"
 #include "pc/exec_memory.h"
 #include "pc/dsound_hle.h"
 #include "pc/fs_patch.h"
@@ -257,7 +258,7 @@ std::string describe_code_address(uint32_t address) {
 void write_crash_dump(EXCEPTION_POINTERS* info) {
     static volatile long written = 0;
     if (InterlockedExchange(&written, 1)) return;
-    const std::filesystem::path path = data_directory() / "sm2port-crash.dmp";
+    const std::filesystem::path path = log_directory() / "sm2port-crash.dmp";
     HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE) return;
     MINIDUMP_EXCEPTION_INFORMATION exception{GetCurrentThreadId(), info, FALSE};
@@ -568,7 +569,16 @@ extern "C" __declspec(dllexport) __declspec(noreturn) void __cdecl sm2_run(void*
             CloseHandle(old);
         }
     }
-    log_open(data_directory() / "sm2port.log");
+    {  // 0.1.0 kept these in the data folder itself.
+        std::error_code ignored;
+        std::filesystem::create_directories(log_directory(), ignored);
+        for (const char* name : {"sm2port.log", "sm2port-crash.dmp"}) {
+            std::filesystem::rename(data_directory() / name, log_directory() / name, ignored);
+        }
+    }
+    const bool crash_report = make_crash_report();  // before this start moves the log away
+    log_open(log_directory() / "sm2port.log");
+    if (crash_report) log_line("crash report made: %ls", crash_report_path().c_str());
     // Started by RecompLauncher (recomplauncher.json in the release): it installs updates itself, and in its Big
     // Picture mode the player is on a controller in front of a full screen. Set before the settings read SM2_*.
     if (GetEnvironmentVariableW(L"RECOMPLAUNCHER", nullptr, 0)) SetEnvironmentVariableW(L"SM2_CHECK_UPDATES", L"0");

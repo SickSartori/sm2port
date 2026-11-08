@@ -33,8 +33,8 @@
 #include "backends/imgui_impl_win32.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pc/crash_report.h"
 #include "pc/game_pause.h"
-#include "pc/hle_patches.h"
 #include "pc/input_hle.h"
 #include "pc/keyboard_bindings.h"
 #include "pc/launcher_music.h"
@@ -81,10 +81,9 @@ struct Texts {
     const char *fps_counter, *fps_counter_sub, *background_pause, *background_pause_sub, *resume_hint, *tabs_hint, *play_hint;
     const char *pad_keys, *pad_menu_keys, *motion_blur, *pages_hint, *move_hint, *dpad, *enter_hint;
     const char *effects_style, *effects_style_sub, *enhanced, *original_effects, *light_streaks, *custom_effects;
-    const char *skip_intro, *skip_intro_sub, *restart_needed, *restart_lead, *restart_now;
-    const char *hud, *hud_sub, *hud_game, *speed_unit, *sharp_2d, *sharp_2d_sub;
-    const char *cheats, *cheats_lead, *cheat_money, *cheat_money_sub, *add_money, *game_codes, *game_codes_lead;
-    const char *loading_screens, *loading_screens_sub;
+    const char *restart_needed, *restart_lead, *restart_now;
+    const char *sharp_2d, *sharp_2d_sub;
+    const char *crash_heading, *crash_sub, *crash_button, *crash_link;
 };
 
 const Texts kEnglish = {
@@ -126,14 +125,9 @@ const Texts kEnglish = {
     "Move \xC2\xB7 right: into the page",
     "Effects style", "Original: as on the Xbox. Enhanced: modern picture, no blur or streaks", "Enhanced", "Original",
     "Light streaks", "Custom",
-    "Skip the opening films", "The Rockstar logos and the intro, straight to the title screen",
     "Restart needed", "For the changes that apply at start; unsaved progress is lost", "Restart now",
-    "HUD", "sm2port's: the dials drawn again, sharp at any resolution", "The game's", "Speed unit",
     "Sharp HUD pictures", "Icons and letters of the HUD enlarged with clean edges",
-    "CHEATS", "With a career loaded: money, and the game's own codes to type in its Options > Cheat Codes.",
-    "Money", "Added to the career: it stays once the game saves", "+ $10,000", "The game's codes",
-    "Type them in the game's menu, Options > Cheat Codes (as found in the game's own check).",
-    "Loading screens", "At least this long, to read them as on the Xbox (from the disc image loading is instant)",
+    "The game crashed last time", "sm2port-crash-report.zip is ready to attach to a report", "Report", "Report the crash",
 };
 
 const Texts kItalian = {
@@ -180,14 +174,9 @@ const Texts kItalian = {
     "Croce", "Muovi \xC2\xB7 destra: nella pagina",
     "Stile degli effetti", "Originale: come sull'Xbox. Migliorato: immagine moderna, senza sfocatura n\xC3\xA9 scie",
     "Migliorato", "Originale", "Scie delle luci", "Personalizzato",
-    "Salta i video iniziali", "I loghi Rockstar e l'introduzione, dritto alla schermata del titolo",
     "Riavvio necessario", "Per le modifiche che valgono all'avvio; i progressi non salvati si perdono", "Riavvia ora",
-    "HUD", "Quello di sm2port: quadranti ridisegnati, nitidi a ogni risoluzione", "Del gioco", "Unit\xC3\xA0 di velocit\xC3\xA0",
     "Immagini dell'HUD nitide", "Icone e lettere dell'HUD ingrandite con bordi puliti",
-    "CHEAT", "Con una carriera caricata: soldi, e i codici del gioco da scrivere in Opzioni > Codici.",
-    "Soldi", "Si aggiungono alla carriera: restano quando il gioco salva", "+ 10.000 $", "Codici del gioco",
-    "Da scrivere nel menu del gioco, Opzioni > Codici (come li controlla il gioco stesso).",
-    "Schermate di caricamento", "Almeno questa durata, per leggerle come sull'Xbox (dall'immagine del disco si carica subito)",
+    "L'ultima volta il gioco si \xC3\xA8 chiuso per un errore", "sm2port-crash-report.zip \xC3\xA8 pronto da allegare alla segnalazione", "Segnala", "Segnala il crash",
 };
 
 const Texts& T() {
@@ -555,6 +544,7 @@ private:
     void claim_focus() {
         if (!focus_panel_) return;
         ImGui::SetKeyboardFocusHere();
+        ImGui::SetNavCursorVisible(true);  // without it A does nothing until a direction is pressed
         focus_panel_ = false;
     }
     // Keyboard and controller: the menu on the left (handled by side_menu) or the page (ImGui's navigation).
@@ -1253,7 +1243,7 @@ void Launcher::apply_quality(int preset) {
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
-         {"game_language", "frame_rate", "widescreen", "render_scale", "anisotropy", "hud_style", "sharp_2d"}) {
+         {"game_language", "frame_rate", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
         if (setting(key) != setting_at_start(key)) return true;
     }
     return false;
@@ -1303,11 +1293,14 @@ void Launcher::run_disc_dialog() {
 
 // --- pages ---
 
+void report_problem();
+
 void Launcher::page_play() {
     const Texts& t = T();
     title(t.ready);
     lead(t.ready_lead);
     update_row(false);
+    if (crash_report_ready() && status(false, t.crash_heading, t.crash_sub, t.crash_button, "##crash_report")) report_problem();
     if (disc_) {
         if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox \xC2\xB7 PAL", t.change, "##disc")) choose_disc();
     } else if (status(false, t.disc_none, disc_problem_.empty() ? t.disc_none_sub : disc_problem_.c_str(), t.choose_iso, "##disc")) {
@@ -1639,9 +1632,10 @@ bool Launcher::update_available() {
     return updates_.state == 2 && updates_.download != 2;
 }
 
-// sm2port.log selected in Explorer.
+// sm2port.log selected in Explorer, or the report of a crash when there is a new one.
 void show_log() {
-    const std::wstring argument = L"/select,\"" + (data_directory() / "sm2port.log").wstring() + L"\"";
+    const std::filesystem::path file = crash_report_ready() ? crash_report_path() : log_directory() / "sm2port.log";
+    const std::wstring argument = L"/select,\"" + file.wstring() + L"\"";
     ShellExecuteW(nullptr, L"open", L"explorer.exe", argument.c_str(), nullptr, SW_SHOWNORMAL);
 }
 
@@ -1650,7 +1644,7 @@ void show_log() {
 // in on GitHub.
 void report_problem() {
     std::string system;
-    if (std::FILE* file = _wfopen((data_directory() / "sm2port.log").c_str(), L"r")) {
+    if (std::FILE* file = _wfopen((log_directory() / "sm2port.log").c_str(), L"r")) {
         char line[512];
         for (int i = 0; i < 80 && std::fgets(line, sizeof(line), file); ++i) {
             line[std::strcspn(line, "\r\n")] = 0;
@@ -2066,7 +2060,7 @@ void Launcher::bottom_bar(float since) {
             page_since_ = static_cast<float>(ImGui::GetTime());
         }
     }
-    if (link(t.report, kInk)) report_problem();
+    if (crash_report_ready() ? link(t.crash_link, kAmber) : link(t.report, kInk)) report_problem();
     float right = screen.x - px(86);
     const bool pad = pad_connected_;
     const auto hint = [&](const char* key, ImU32 colour, const char* label) {
@@ -2534,8 +2528,7 @@ void Launcher::overlay(ID3D11Device* device, ID3D11DeviceContext* context, ID3D1
     }
     const bool counter_on = setting("fps_counter") != 0;
     const bool hint_on = now < kMenuHintEnd;  // how to open the menu, for the first seconds of the game
-    const bool hud_on = hud_enabled();
-    if (!visible_ && !counter_on && !hint_on && !hud_on) return;
+    if (!visible_ && !counter_on && !hint_on) return;
 
     width_ = width;
     height_ = height;
@@ -2548,7 +2541,6 @@ void Launcher::overlay(ID3D11Device* device, ID3D11DeviceContext* context, ID3D1
         ImGui_ImplWin32_NewFrame();
         poll_gamepads(now);
         ImGui::NewFrame();
-        if (hud_on) hud_draw(ImGui::GetBackgroundDrawList(), HudFonts{heading_, body_bold_});  // under the menu
         if (visible_) {
             frame_in_game(now);
         } else {

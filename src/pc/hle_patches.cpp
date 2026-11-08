@@ -19,7 +19,7 @@ namespace {
 
 // --- time stamp counter ---
 //
-// The game turns the CPU time stamp counter into time assuming the Xbox's 733 MHz: its millisecond clock (0x1A1C00)
+// The game turns the CPU time stamp counter into time assuming the Xbox's 733 MHz: its clock
 // divides rdtsc by 733333 and XAPI's QueryPerformanceFrequency returns 733333333. The PC's counter runs at several
 // GHz, so everything timed that way went 5-6 times too fast (menu key repeat made the controller "too sensitive").
 // These rdtsc sites read a 733 MHz counter made from the host's performance counter instead, without the time the
@@ -61,7 +61,7 @@ __declspec(naked) void rdtsc_low_function() {
     }
 }
 
-// XAPI QueryPerformanceCounter (0x32633B): rdtsc into the LARGE_INTEGER, returns TRUE.
+// XAPI QueryPerformanceCounter: rdtsc into the LARGE_INTEGER, returns TRUE.
 uint32_t __stdcall query_performance_counter(uint64_t* counter) {
     *counter = xbox_time_stamp();
     return 1;
@@ -105,7 +105,7 @@ struct Patch {
     std::vector<uint8_t> replacement;
 };
 
-// XAPI input functions (XPP library, XDK 5849), found from the game's call sequence at 0x84B40:
+// XAPI input functions (XPP library, XDK 5849), found from the game's call sequence:
 //   XInitDevices(0, 0); while (XGetDeviceEnumerationStatus() == BUSY); XGetDevices(XDEVICE_TYPE_GAMEPAD); ...
 // XInitDevices would start the USB host controller driver; instead nothing is enumerated here, and the controllers
 // come from the host through the redirected XGetDevices/XInputOpen/XInputGetState (input_hle.cpp).
@@ -130,13 +130,7 @@ uint32_t find_address(uint32_t address, const std::vector<uint8_t>& original) {
 
 }  // namespace
 
-// On the GPU thread, for each new frame shown (kept for the renderer: Spider-Man 2 runs at the game's own fixed step).
-void time_frame_shown(uint32_t /*vblanks*/) {}
-bool g_game_loaded = false;  // the XBE is in place: its variables can be read
-
-
 void apply_hle_patches(const Xbe& /*xbe*/) {
-    g_game_loaded = true;
     for (const Patch& patch : kPatches) {
         const uint32_t address = find_address(patch.address, patch.original);
         if (!address) {

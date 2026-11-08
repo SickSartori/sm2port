@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-#include "pc/hud.h"
 #include "pc/nv2a_combiner.h"
 #include "pc/nv2a_texture.h"
 
@@ -31,6 +30,8 @@ struct SurfaceState {
     uint32_t zeta_address;   // physical, 0 if none
     uint32_t width;          // the whole surface: what pixel coordinates are relative to
     uint32_t height;
+    // Anti-aliasing: real pixels per coordinate the game gives (positions), across and down.
+    uint32_t pixels_x, pixels_y;
     uint32_t clip_x, clip_y, clip_width, clip_height;  // where draws may write (NV097_SET_SURFACE_CLIP_*)
 };
 
@@ -61,8 +62,8 @@ struct DrawState {
     // and back faces both count and the light fills a solid white ellipse.
     bool cull_enable;
     uint32_t cull_face, front_face;
-    // Setting hud_aspect: a flat draw's extent on the surface in pixels, worked out on the CPU (left > right when
-    // not), so that the renderer can narrow the HUD back to its shape in 16:9 (renderer_d3d11.cpp).
+    // A flat draw's extent on the surface in pixels, worked out on the CPU (left > right when not): sharp_2d enlarges
+    // the textures of such draws (renderer_d3d11.cpp).
     float screen_left, screen_right, screen_top, screen_bottom;
 };
 
@@ -148,8 +149,6 @@ void renderer_present(uint32_t address, uint32_t width, uint32_t height, uint32_
 // The shape the picture is shown in: 16:9 with the widescreen setting (the game then draws for a widescreen TV),
 // otherwise 4:3.
 float renderer_aspect();
-// Where the last frame shown is in the window (for the new HUD, drawn over it).
-HudPicture renderer_hud_picture();
 
 // F10: the modern effects (sm2port.ini) off and on, to compare with the original picture.
 void renderer_toggle_effects();

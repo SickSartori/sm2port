@@ -23,8 +23,7 @@ higher internal resolution, keyboard and mouse, and optional modern effects.
 
 sm2port is a port, not a remaster. It runs the original 2004 game, with its own city, missions and soundtrack. The game's
 x86 code runs natively on your PC; sm2port replaces the Xbox around it: its kernel, the NV2A graphics chip (on
-Direct3D 11), the sound chip (on XAudio2) and the controllers (on XInput, keyboard and mouse). It began as a fork of
-[mc3port](https://github.com/SickSartori/mc3port), the same kind of port for Midnight Club 3.
+Direct3D 11), the sound chip (on XAudio2) and the controllers (on XInput, keyboard and mouse).
 
 Compared with the console:
 
@@ -115,7 +114,6 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 
 ## Known issues
 
-- **Sky**: in some views the sky shows rectangular blocks with other colours. A bug in the graphics emulation, not yet fixed.
 - **Sound**: the game's sounds, music and films play, but some DirectSound calls (3D positioning among them) are not
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
 - **60 fps** is experimental: the game has a 59.94 fps mode and sm2port selects it, but it has had little play-testing.
@@ -150,9 +148,8 @@ and debugging tools are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (in Italia
 
 ## How this was made
 
-sm2port was written with heavy use of AI (Anthropic's Claude), directed and tested by the author on real hardware. It
-started from mc3port. xemu and other open-source Xbox projects were studied as references only; no code was copied
-from them.
+sm2port was written with heavy use of AI (Anthropic's Claude), directed and tested by the author on real hardware.
+xemu and other open-source Xbox projects were studied as references only; no code was copied from them.
 
 ## Credits
 

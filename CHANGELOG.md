@@ -2,7 +2,7 @@
 
 ## 0.1.0 (first test version)
 
-First public test of sm2port, started from mc3port 0.3.1.
+First public test of sm2port.
 
 ### New
 

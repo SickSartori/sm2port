@@ -1,6 +1,6 @@
 #pragma once
 
-// Setting sharp_2d: the textures of flat draws over the 3D scene (the HUD, the radar's map, icons, letters) made two
+// Setting sharp_2d: the textures of flat draws over the 3D scene (the HUD's icons and letters) made two
 // or four times larger with their edges kept, so that they stay sharp at a high resolution. The game's pictures are
 // small and were shown at 480 lines; enlarged by the graphics card they turn soft and show the 4x4 blocks of their
 // compression. Nothing is added that is not there: edges come out clean, details stay as they were.
