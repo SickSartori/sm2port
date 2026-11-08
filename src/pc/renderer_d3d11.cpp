@@ -1030,6 +1030,23 @@ ID3D11SamplerState* sampler(const TextureStage& stage) {
     desc.AddressV = address_mode((stage.address_mode >> 8) & 0xF);
     desc.AddressW = address_mode((stage.address_mode >> 16) & 0xF);
     desc.MaxLOD = mipmaps ? D3D11_FLOAT32_MAX : 0;  // without mipmap filtering only the top level is used
+    // The filter's LOD bias, bits 0-12: signed, 8 fractional bits. The game asks for 0x1F01 (-255/256, about one level
+    // sharper) on many textures; without it they came out a level too blurred.
+    if (mipmaps) {
+        const int32_t raw = static_cast<int32_t>(stage.filter & 0x1FFF);
+        desc.MipLODBias = static_cast<float>(raw >= 0x1000 ? raw - 0x2000 : raw) / 256.0f;
+    }
+    // Debugging the textures: SM2_TEX_MAXLOD=<n> reads no level above n, SM2_TEX_LODBIAS=<f> replaces the bias,
+    // SM2_TEX_LOG=1 logs each filter and address mode once.
+    static const char* max_lod = std::getenv("SM2_TEX_MAXLOD");
+    static const char* lod_bias = std::getenv("SM2_TEX_LODBIAS");
+    static const bool log_samplers = std::getenv("SM2_TEX_LOG") != nullptr;
+    if (max_lod) desc.MaxLOD = std::min(desc.MaxLOD, static_cast<float>(std::atof(max_lod)));
+    if (lod_bias) desc.MipLODBias = static_cast<float>(std::atof(lod_bias));
+    if (log_samplers) {
+        log_line("renderer: sampler filter %08X (bias bits %04X, min %u, mag %u) address %08X", stage.filter, stage.filter & 0x1FFF,
+                 min, (stage.filter >> 24) & 0xF, stage.address_mode);
+    }
     g_device->CreateSamplerState(&desc, &cached);
     return cached.Get();
 }

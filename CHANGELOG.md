@@ -2,8 +2,21 @@
 
 ## 0.1.2
 
+### New
+
+- **Your files are easy to find**: saves, settings, logs and mods now go in `Documents\sm2port`. If you played an earlier version,
+  your files stay where they were, in `%LOCALAPPDATA%\sm2port`, until the launcher's first page moves them on request;
+  nothing is overwritten.
+
+### Removed
+
+- The 60 fps option: it did not run right yet, so the game runs at 30 fps, like the Xbox. The setting in
+  `sm2port.ini` and the launcher rows are gone; an old `frame_rate` line is ignored.
+
 ### Fixed
 
+- Textures are sharper: the game asks for slightly sharper texture detail on many surfaces (the filter's level-of-detail
+  bias), and it was not applied, so they came out a level too blurred.
 - Started by RecompLauncher, the game keeps its saves, settings and logs in its install folder from the first start, so
   they no longer seem to vanish when RecompLauncher writes its settings file.
 

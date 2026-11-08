@@ -24,7 +24,6 @@ struct Setting {
 
 const Setting kSettings[] = {
     {"game_language", 0, "Game language: 0 = like Windows, 1 = English, 3 = German, 4 = French, 5 = Spanish, 6 = Italian."},
-    {"frame_rate", 30, "Game frames per second: 30 like the Xbox, 60 smoother (needs a PC that handles twice the work)."},
     {"mouse_look", 1, "Mouse look: 1 = the mouse moves the camera (and the left and right buttons are X and the right trigger), 0 = off."},
     {"mouse_sensitivity", 1, "Mouse look speed: 1 is the default, 2 twice as fast, 0.5 half as fast."},
     {"widescreen", 1, "16:9 widescreen: 1 = the game's own widescreen mode (wider view, no black bars), 0 = 4:3 like a classic TV."},

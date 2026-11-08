@@ -587,6 +587,7 @@ extern "C" __declspec(dllexport) __declspec(noreturn) void __cdecl sm2_run(void*
         SetEnvironmentVariableW(L"SM2_FULLSCREEN", L"1");
     }
     settings_load(data_directory() / "sm2port.ini");
+    if (!data_folder_note().empty()) log_line("files: %s", data_folder_note().c_str());
     log_line("files: program in %s, data in %s%s", reinterpret_cast<const char*>(exe_directory.u8string().c_str()),
              reinterpret_cast<const char*>(data_directory().u8string().c_str()), portable_mode() ? " (portable)" : "");
     log_host();
