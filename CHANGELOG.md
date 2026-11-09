@@ -7,6 +7,10 @@
 - **PlayStation, Switch and other controllers** work directly, through SDL3, with the buttons in the Xbox positions:
   no more Steam Input or DS4Windows. Xbox controllers work as before.
 
+### Improved
+
+- The emulated graphics card takes a draw's indices and inline vertices as one block instead of word by word.
+
 ### Fixed
 
 - **Frame limiters and overlays** (RivaTuner Statistics Server, MSI Afterburner) made the game judder: they wait inside
