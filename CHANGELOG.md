@@ -9,6 +9,8 @@
 
 ### Improved
 
+- Sound effects played at a pitch other than their own (engines, most loops) are cleaner: the mixer resamples them over
+  four frames (Catmull-Rom) instead of two, which left copies of the sound in the top octave. Music is unchanged.
 - The emulated graphics card takes a draw's indices and inline vertices as one block instead of word by word.
 
 ### Fixed

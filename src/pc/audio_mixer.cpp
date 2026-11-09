@@ -337,16 +337,25 @@ void mix_buffer_voice(Voice& voice, float* out, uint32_t frames) {
     const double step = step_for(voice);
 
     for (uint32_t n = 0; n < frames; ++n) {
-        // Linear interpolation between this frame and the next one (which wraps to the loop start): picking the
-        // nearest frame aliases badly whenever the pitch is not exactly 1.
+        // Catmull-Rom over four frames (wrapping to the loop start). Effects are mostly loops at a lower rate than
+        // the output's: linear interpolation left copies of their sound in the top octave (2-4 dB more there,
+        // measured in mc3port). Streams stay linear: they are music at about the output rate.
         const uint32_t frame = static_cast<uint32_t>(voice.position);
         const float fraction = static_cast<float>(voice.position - frame);
         const uint32_t end = voice.looping ? loop_end : region_frames;
-        const uint32_t next = frame + 1 < end ? frame + 1 : (voice.looping ? loop_start : frame);
+        const auto after = [&](uint32_t f) { return f + 1 < end ? f + 1 : (voice.looping ? loop_start : f); };
+        const uint32_t before = voice.looping && frame == loop_start ? loop_end - 1 : (frame > 0 ? frame - 1 : 0);
+        const uint32_t next = after(frame), last = after(next);
         for (uint32_t channel = 0; channel < channels; ++channel) {
-            const float a = voice_sample(voice, region, region_bytes, frame, channel);
-            const float b = fraction > 0 ? voice_sample(voice, region, region_bytes, next, channel) : a;
-            const float sample = filtered(voice, channel, a + (b - a) * fraction);
+            float value = voice_sample(voice, region, region_bytes, frame, channel);
+            if (fraction > 0) {
+                const float p0 = voice_sample(voice, region, region_bytes, before, channel), p1 = value;
+                const float p2 = voice_sample(voice, region, region_bytes, next, channel);
+                const float p3 = voice_sample(voice, region, region_bytes, last, channel);
+                const float t = fraction;
+                value = p1 + 0.5f * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)));
+            }
+            const float sample = filtered(voice, channel, value);
             out[n * 2] += sample * gains.at(channel, 0, n);
             out[n * 2 + 1] += sample * gains.at(channel, 1, n);
         }
