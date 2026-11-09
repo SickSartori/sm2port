@@ -4,7 +4,7 @@
 #include <d3d11_4.h>
 #include <d3dcompiler.h>
 #include <wincodec.h>
-#include <dxgi1_2.h>
+#include <dxgi1_6.h>
 #include <wrl/client.h>
 
 #include <algorithm>
@@ -1732,11 +1732,24 @@ bool renderer_start(HWND window) {
     g_scale = std::clamp(scale, 1.0f, 4.5f);
     log_line("renderer: internal resolution %.0f lines (%.3gx)%s", 480.0f * g_scale, g_scale,
              requested <= 0 ? ", automatic" : "");
+    // On laptops with two GPUs Windows' default adapter is the integrated one: ask DXGI 1.6 for the fast one instead
+    // (the player's choice for sm2.exe in Windows' graphics settings still wins).
+    ComPtr<IDXGIAdapter> preferred;
+    ComPtr<IDXGIFactory6> factory6;
+    if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory6)))) {
+        factory6->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&preferred));
+    }
     const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_0};
-    if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels, 1,
-                                 D3D11_SDK_VERSION, &g_device, nullptr, &g_context))) {
+    if (FAILED(D3D11CreateDevice(preferred.Get(), preferred ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE,
+                                 nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels, 1, D3D11_SDK_VERSION, &g_device,
+                                 nullptr, &g_context))) {
         log_line("renderer: no Direct3D 11 device");
         return false;
+    }
+    if (preferred) {
+        DXGI_ADAPTER_DESC desc{};
+        preferred->GetDesc(&desc);
+        log_line("renderer: on %ls", desc.Description);
     }
     g_context.As(&g_context1);
     // The present thread uses the immediate context too (one copy per frame): D3D11 then serializes the calls.

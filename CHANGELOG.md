@@ -14,6 +14,8 @@
 
 ### Improved
 
+- On laptops with two graphics cards the game runs on the fast one, not on Windows' default (the integrated one), unless
+  Windows' graphics settings say otherwise for `sm2.exe`.
 - A disc of another release is refused with its region named (North America, Japan, Europe), in the message and in the
   log, so a report says which version the player has.
 
