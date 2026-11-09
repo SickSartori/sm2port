@@ -460,29 +460,37 @@ uint32_t g_vertex_capacity = 0;
 uint32_t g_vertex_used = 0;  // bytes of the ring buffer written since the last DISCARD
 ComPtr<ID3D11Buffer> g_constants;
 ComPtr<ID3D11RasterizerState> g_rasterizer;  // no culling (clears, copies)
-std::map<std::pair<D3D11_CULL_MODE, bool>, ComPtr<ID3D11RasterizerState>> g_cull_rasterizers;
+std::map<std::tuple<D3D11_CULL_MODE, bool, int, float>, ComPtr<ID3D11RasterizerState>> g_cull_rasterizers;  // + depth bias, slope
 
 // SM2_FLIP_WINDING=1 inverts how NV2A's front-face winding maps onto D3D11 (for checking the convention).
 const bool g_flip_winding = GetEnvironmentVariableW(L"SM2_FLIP_WINDING", nullptr, 0) != 0;
 
 ID3D11RasterizerState* rasterizer_for(const DrawState& state) {
-    if (!state.cull_enable) return g_rasterizer.Get();
+    // Polygon offset (NV2A: scale * slope + bias * smallest depth step; D3D11's D24 DepthBias counts the same steps).
+    static const bool off = std::getenv("SM2_NO_POLY_OFFSET") != nullptr;  // debugging: ignore the game's offset
+    const int bias = state.offset_fill && !off ? static_cast<int>(std::lround(state.offset_bias)) : 0;
+    const float slope = state.offset_fill && !off ? state.offset_scale : 0.0f;
+    if (!state.cull_enable && !bias && slope == 0.0f) return g_rasterizer.Get();
     constexpr uint32_t kCullFront = 0x404, kCullBack = 0x405, kFrontCcw = 0x901;
-    const D3D11_CULL_MODE mode = state.cull_face == kCullFront  ? D3D11_CULL_FRONT
+    const D3D11_CULL_MODE mode = !state.cull_enable            ? D3D11_CULL_NONE
+                                 : state.cull_face == kCullFront  ? D3D11_CULL_FRONT
                                  : state.cull_face == kCullBack ? D3D11_CULL_BACK
                                                                 : D3D11_CULL_NONE;  // FRONT_AND_BACK: see below
     // Positions keep NV2A's screen orientation (y down) through clip space and the viewport, so the winding the
     // game states is the winding D3D11 sees.
     const bool front_ccw = (state.front_face == kFrontCcw) != g_flip_winding;
-    ComPtr<ID3D11RasterizerState>& cached = g_cull_rasterizers[{mode, front_ccw}];
+    ComPtr<ID3D11RasterizerState>& cached = g_cull_rasterizers[{mode, front_ccw, bias, slope}];
     if (!cached) {
         D3D11_RASTERIZER_DESC desc{};
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = mode;
         desc.FrontCounterClockwise = front_ccw;
+        desc.DepthBias = bias;
+        desc.SlopeScaledDepthBias = slope;
         desc.DepthClipEnable = TRUE;
         desc.ScissorEnable = TRUE;
         g_device->CreateRasterizerState(&desc, &cached);
+        log_line("renderer: rasterizer cull %d ccw %d depth bias %d slope %g", static_cast<int>(mode), front_ccw, bias, slope);
     }
     return cached.Get();
 }

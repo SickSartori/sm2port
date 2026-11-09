@@ -1328,6 +1328,9 @@ bool kelvin_method(uint32_t method, uint32_t argument) {
         case 0x0390: return true;
         case 0x043C: g_k.point_size = static_cast<float>(argument) / 8; return true;
         case 0x0308: d.cull_enable = argument != 0; return true;
+        case 0x0380: d.offset_fill = argument != 0; return true;
+        case 0x0384: d.offset_scale = as_float(argument); return true;
+        case 0x0388: d.offset_bias = as_float(argument); return true;
         case 0x039C: d.cull_face = argument; return true;
         case 0x03A0: d.front_face = argument; return true;
         case 0x032C: d.stencil_test = argument != 0; return true;

@@ -62,6 +62,9 @@ struct DrawState {
     // and back faces both count and the light fills a solid white ellipse.
     bool cull_enable;
     uint32_t cull_face, front_face;
+    // NV097_SET_POLYGON_OFFSET_FILL_ENABLE / _SCALE_FACTOR / _BIAS: decals drawn over coplanar surfaces rely on it.
+    bool offset_fill = false;
+    float offset_scale = 0, offset_bias = 0;
     // A flat draw's extent on the surface in pixels, worked out on the CPU (left > right when not): sharp_2d enlarges
     // the textures of such draws (renderer_d3d11.cpp).
     float screen_left, screen_right, screen_top, screen_bottom;
