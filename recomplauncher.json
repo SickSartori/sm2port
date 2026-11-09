@@ -30,6 +30,16 @@
   ],
   "settings": [
     {
+      "id": "frame_rate",
+      "label": "Frame rate",
+      "help": "30 is the Xbox's own; 60 is smoother and needs a PC that handles twice the work.",
+      "choices": [
+        { "label": "30 fps", "set": { "frame_rate": "30" } },
+        { "label": "60 fps", "set": { "frame_rate": "60" } }
+      ],
+      "defaults": { "frame_rate": "30" }
+    },
+    {
       "id": "resolution",
       "label": "Resolution",
       "help": "What the game draws at: higher is smoother and costs more.",

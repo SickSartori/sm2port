@@ -27,6 +27,7 @@ const Setting kSettings[] = {
     {"mouse_look", 1, "Mouse look: 1 = the mouse moves the camera (and the left and right buttons are X and the right trigger), 0 = off."},
     {"mouse_sensitivity", 1, "Mouse look speed: 1 is the default, 2 twice as fast, 0.5 half as fast."},
     {"widescreen", 1, "16:9 widescreen: 1 = the game's own widescreen mode (wider view, no black bars), 0 = 4:3 like a classic TV."},
+    {"frame_rate", 30, "Frames per second: 30 like the Xbox, or 60 (the game's own 59.94 fps mode)."},
     {"sharp_2d", 1, "The HUD's pictures (icons, letters) enlarged with their edges kept: 1 = sharper at high resolutions, 0 = as the game's."},
     {"fullscreen", 0, "Start in full screen: 1 = yes, 0 = in a window (Alt+Enter or F11 switches while playing)."},
     {"volume", 100, "Overall volume, 0 to 100."},

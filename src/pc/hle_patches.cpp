@@ -68,8 +68,8 @@ uint32_t __stdcall query_performance_counter(uint64_t* counter) {
 }
 
 // The game's own clock (0x34E96A): where it has no fixed frame rate it reads the time stamp counter and divides by the
-// Xbox's 733 MHz. It is patched to read the same 733 MHz counter as the rest (the frame rate it runs at, 29.97,
-// needs none of this). Replaces "rdtsc; mov [esp+0Ch],eax" (6 bytes) by a call to this and a nop.
+// Xbox's 733 MHz. It is patched to read the same 733 MHz counter as the rest (the frame rates it runs at, 29.97 or
+// 59.94, need none of this). Replaces "rdtsc; mov [esp+0Ch],eax" (6 bytes) by a call to this and a nop.
 __declspec(naked) void game_clock_read() {
     __asm {
         push ecx
@@ -131,13 +131,24 @@ uint32_t build_address(const Xbe& xbe, uint32_t italy_address) {
     switch (xbe.entry_point()) {
         case 0x00390610: return italy_address;         // Italy
         case 0x003905D0: return italy_address - 0x40;  // Europe (Fr,De,Es)
-        case 0x00390910:                               // World: .text ends at 0x3BE59C, D3D starts at 0x3BE5C0
-            return italy_address + (italy_address < 0x003BE5C0 ? 0x300 : 0x2E0);
+        case 0x00390910:  // World: .text (to 0x3BE59C), then the XDK libraries and .rdata, then .data (from 0x4AF200)
+            return italy_address + (italy_address < 0x003BE5C0 ? 0x300 : italy_address < 0x004AF200 ? 0x2E0 : 0x2A0);
         default: return 0;
     }
 }
 
 void apply_hle_patches(const Xbe& xbe) {
+    // The game's frame rate mode (0x4BF698, never written: 1 = 29.97 fps, a frame every second blank; 0 = 59.94 fps,
+    // one every blank). The blanks stay at 60 Hz, so at 0 the game draws and steps 60 times a second; when a frame
+    // misses blanks, the game's swap callback counts them and the step grows, as on the Xbox.
+    if (setting_at_start("frame_rate") >= 60) {
+        if (const uint32_t address = find_address(xbe, 0x004BF698, {1, 0, 0, 0})) {
+            *reinterpret_cast<uint32_t*>(static_cast<uintptr_t>(address)) = 0;
+            log_line("HLE: frame rate mode at %08X set to 59.94 fps", address);
+        } else {
+            log_line("HLE: frame rate mode not found, the game stays at 29.97 fps");
+        }
+    }
     for (const Patch& patch : kPatches) {
         const uint32_t address = find_address(xbe, patch.address, patch.original);
         if (!address) {

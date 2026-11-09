@@ -66,7 +66,7 @@ struct Texts {
     const char *ready, *ready_lead, *disc_ok, *disc_none, *disc_none_sub, *change, *choose_iso;
     const char *pad_on, *pad_on_sub, *pad_off, *pad_off_sub, *edit;
     const char *tab_game, *tab_display, *tab_graphics, *tab_effects;
-    const char *game_language, *game_language_sub, *like_windows, *volume, *music_volume, *music_volume_sub;
+    const char *game_language, *game_language_sub, *like_windows, *fps, *fps_sub, *volume, *music_volume, *music_volume_sub;
     const char *aspect, *aspect_sub, *window_mode, *window_mode_sub, *windowed, *fullscreen;
     const char *quality, *quality_sub, *original, *balanced, *high, *custom, *scale, *scale_sub;
     const char *anisotropy, *gpu_vertices, *gpu_vertices_sub, *effects, *effects_sub, *on, *off;
@@ -95,7 +95,8 @@ const Texts kEnglish = {
     "No disc chosen", "Choose the disc image (ISO) of your Xbox copy (Italy, Europe or World).", "Change", "Choose the ISO",
     "Controller connected", "Xbox, PlayStation and other pads", "No controller", "The keyboard works too", "Edit",
     "Game", "Display", "Graphics", "Effects",
-    "Game language", "The game's text and speech", "Like Windows", "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
+    "Game language", "The game's text and speech", "Like Windows", "Frames per second", "60 is smoother; 30 like the Xbox",
+    "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
     "Aspect ratio", "16:9 uses the game's own widescreen mode", "Window mode", "Alt+Enter or F11 while playing",
     "Window", "Full screen",
     "Quality", "Sets filtering and effects together", "Original", "Balanced", "High", "Custom",
@@ -141,7 +142,8 @@ const Texts kItalian = {
     "Nessun disco scelto", "Scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa o World).", "Cambia", "Scegli l'ISO",
     "Controller collegato", "Controller Xbox, PlayStation e altri", "Nessun controller", "Anche la tastiera funziona", "Modifica",
     "Gioco", "Schermo", "Grafica", "Effetti",
-    "Lingua del gioco", "Testi e voci del gioco", "Come Windows", "Volume del gioco", "Musica del launcher",
+    "Lingua del gioco", "Testi e voci del gioco", "Come Windows", "Fotogrammi al secondo",
+    "60 \xC3\xA8 pi\xC3\xB9 fluido; 30 come l'Xbox", "Volume del gioco", "Musica del launcher",
     "La musica di sottofondo di questa schermata; 0 la spegne",
     "Formato", "16:9 usa la modalit\xC3\xA0 panoramica del gioco", "Modalit\xC3\xA0 finestra",
     "Alt+Invio o F11 durante il gioco", "Finestra", "Schermo intero",
@@ -1243,7 +1245,7 @@ void Launcher::apply_quality(int preset) {
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
-         {"game_language", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
+         {"game_language", "frame_rate", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
         if (setting(key) != setting_at_start(key)) return true;
     }
     return false;
@@ -1353,8 +1355,8 @@ void Launcher::page_play() {
     char summary[160];
     const int preset = quality_preset();
     const char* quality = preset == 0 ? t.original : preset == 1 ? t.balanced : preset == 2 ? t.high : t.custom;
-    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 30 fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
-                  t.quality, quality);
+    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 %.0f fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
+                  setting("frame_rate") >= 60 ? 60.0f : 30.0f, t.quality, quality);
     if (status(true, summary, setting("effects") != 0 ? t.effects_sub : t.effects, t.edit, "##edit")) {
         page_ = Page::kSettings;
         page_since_ = static_cast<float>(ImGui::GetTime());
@@ -1413,6 +1415,10 @@ void Launcher::page_settings() {
         ImGui::PopItemWidth();
         cursor_ += px(58) + row_extra_;
         row_extra_ = 0;
+        row(t.fps, t.fps_sub, true);
+        const char* rates[] = {"30", "60"};
+        int rate = setting("frame_rate") >= 60 ? 1 : 0;
+        if (segmented("##fps", rates, 2, &rate)) set_setting("frame_rate", rate ? 60.0f : 30.0f);
         row(t.volume, nullptr);
         float volume = setting("volume");
         if (slider("##volume", &volume, 0, 100, "%.0f")) set_setting("volume", std::round(volume));
@@ -1521,7 +1527,7 @@ void Launcher::page_settings() {
     cursor_ += px(8);
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
-        for (const char* key : {"game_language", "volume", "launcher_music", "pause_in_background",
+        for (const char* key : {"game_language", "frame_rate", "volume", "launcher_music", "pause_in_background",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
                                 "anisotropy", "gpu_vertices", "sharp_2d", "effects", "sharpen", "bloom",
                                 "bloom_threshold", "saturation", "contrast", "vignette",
@@ -1756,6 +1762,10 @@ void Launcher::page_wizard() {
         const char* aspects[] = {"4:3", "16:9"};
         int aspect = setting("widescreen") != 0 ? 1 : 0;
         if (segmented("##aspect", aspects, 2, &aspect)) set_setting("widescreen", static_cast<float>(aspect));
+        row(t.fps, t.fps_sub, true);
+        const char* rates[] = {"30", "60"};
+        int rate = setting("frame_rate") >= 60 ? 1 : 0;
+        if (segmented("##fps", rates, 2, &rate)) set_setting("frame_rate", rate ? 60.0f : 30.0f);
         if (big_button(t.next, "##next", false)) {
             wizard_step_ = 2;
             page_since_ = static_cast<float>(ImGui::GetTime());
@@ -2372,8 +2382,8 @@ void Launcher::page_paused() {
     char summary[160];
     const int preset = quality_preset();
     const char* quality = preset == 0 ? t.original : preset == 1 ? t.balanced : preset == 2 ? t.high : t.custom;
-    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 30 fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
-                  t.quality, quality);
+    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 %.0f fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
+                  setting("frame_rate") >= 60 ? 60.0f : 30.0f, t.quality, quality);
     if (status(true, summary, setting("effects") != 0 ? t.effects_sub : t.effects, t.edit, "##edit")) {
         page_ = Page::kSettings;
         page_since_ = now_;

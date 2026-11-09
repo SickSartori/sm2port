@@ -7,7 +7,7 @@
 namespace sm2::pc {
 
 // Where an address of the Italian build is in this build's XBE: the Europe (Fr,De,Es) build has everything 0x40
-// lower, the World one has the game's code 0x300 higher and the XDK libraries 0x2E0 higher. 0 for an unknown build.
+// lower, the World one has the game's code 0x300 higher, the XDK libraries 0x2E0 and .data 0x2A0. 0 for an unknown build.
 uint32_t build_address(const Xbe& xbe, uint32_t italy_address);
 
 // Replaces XDK library functions that drive hardware the port does not emulate (the USB host controller behind

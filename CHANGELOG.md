@@ -4,6 +4,9 @@
 
 ### New
 
+- **60 fps is back**, at the right speed: the game's own 59.94 fps mode, with the vertical blanks left at 60 Hz. The
+  earlier attempt (0.1.1) also doubled the blanks to 120 Hz, so the game drew 120 frames a second with a 1/60 s step
+  and ran at double speed.
 - **The World release** of the game (`default.xbe` SHA-256 `e8353bf6...4313af`) is supported: its code is the Italian
   build's, placed a few hundred bytes further on, so every patch and redirected function moves with it.
 - **PlayStation, Switch and other controllers** work directly, through SDL3, with the buttons in the Xbox positions:

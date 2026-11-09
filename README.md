@@ -3,8 +3,8 @@
 # sm2port
 
 An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian, the European
-French/German/Spanish and the World releases). It runs the game from **your own disc image**, with 16:9 widescreen, a
-higher internal resolution, keyboard and mouse, and optional modern effects.
+French/German/Spanish and the World releases). It runs the game from **your own disc image**, with 16:9 widescreen, up to
+60 fps, a higher internal resolution, keyboard and mouse, and optional modern effects.
 
 > [!IMPORTANT]
 > sm2port is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by or sponsored by Marvel,
@@ -29,7 +29,7 @@ Compared with the console:
 
 - **True 16:9**: the game's own widescreen mode, with a wider view and no black bars. The full picture of the PAL game is
   shown (576 lines).
-- **30 fps, like the Xbox** (60 fps is not available yet).
+- **30 fps like the Xbox, or 60 fps** (in the launcher's settings; 60 needs a PC that handles twice the work).
 - **Higher internal resolution** (up to 4K, or as many lines as your screen) with anisotropic filtering.
 - **Modern effects**, all optional: light glow, sharpening, colour, vignette and ambient occlusion (F10 switches them on
   and off to compare).
@@ -113,6 +113,7 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 | Setting | What it does |
 |---|---|
 | Game language | the game's own languages for your release, by default like Windows |
+| Frames per second | 30 like the Xbox, or 60 |
 | Aspect ratio | 16:9 (the game's widescreen mode) or 4:3 |
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
