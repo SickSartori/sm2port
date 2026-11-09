@@ -27,6 +27,8 @@
 
 ### Fixed
 
+- **The mouse was held at the middle of the window** while the game ran: mouse look now reads the mouse's movement
+  directly (raw input), so the cursor goes where you move it, and hides only after 3 s without moving.
 - **Frame limiters and overlays** (RivaTuner Statistics Server, MSI Afterburner) made the game judder: they wait inside
   the call that shows a frame, which also ran the emulated graphics card. That call now has a thread of its own.
 

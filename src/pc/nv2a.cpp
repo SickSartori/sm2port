@@ -754,12 +754,27 @@ std::atomic<WindowHook> g_window_hook{nullptr};  // nv2a_set_window_hook
 constexpr UINT kSetFullScreenMessage = WM_APP + 1;
 
 std::atomic<bool> g_cursor_hidden{false};
+std::atomic<int> g_mouse_dx{0}, g_mouse_dy{0};  // raw mouse movement not taken yet (nv2a_take_mouse_motion)
+std::atomic<uint64_t> g_mouse_moved_at{0};
 
 LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
     if (message == WM_SETCURSOR && g_cursor_hidden && LOWORD(lparam) == HTCLIENT) {
         SetCursor(nullptr);
         return TRUE;
     }
+    if (message == WM_INPUT) {  // the mouse's movement, without moving the cursor (mouse look, input_hle.cpp)
+        RAWINPUT input{};
+        UINT size = sizeof(input);
+        if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lparam), RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER)) !=
+                static_cast<UINT>(-1) &&
+            input.header.dwType == RIM_TYPEMOUSE && !(input.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) &&
+            (input.data.mouse.lLastX || input.data.mouse.lLastY)) {
+            g_mouse_dx += input.data.mouse.lLastX;
+            g_mouse_dy += input.data.mouse.lLastY;
+            g_mouse_moved_at = GetTickCount64();
+        }
+    }
+    if (message == WM_MOUSEMOVE) g_mouse_moved_at = GetTickCount64();
     if (message == kSetFullScreenMessage) {
         if ((wparam != 0) != g_full_screen) toggle_full_screen(window);
         return 0;
@@ -819,6 +834,9 @@ void window_thread(HANDLE ready) {
     DwmSetWindowAttribute(g_window, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
     const COLORREF black = RGB(0, 0, 0);
     DwmSetWindowAttribute(g_window, DWMWA_CAPTION_COLOR, &black, sizeof(black));
+    const RAWINPUTDEVICE mouse{0x01, 0x02, 0, g_window};  // generic desktop, mouse: WM_INPUT while in front
+    RegisterRawInputDevices(&mouse, 1, sizeof(mouse));
+    g_mouse_moved_at = GetTickCount64();
     ShowWindow(g_window, SW_SHOW);
     if (setting("fullscreen") != 0) toggle_full_screen(g_window);
     SetEvent(ready);
@@ -996,8 +1014,15 @@ uint32_t nv2a_frames_shown() { return g_frames_shown; }
 
 void nv2a_hide_cursor(bool hidden) {
     g_cursor_hidden = hidden;
-    if (!hidden) PostMessageW(g_window, WM_SETCURSOR, reinterpret_cast<WPARAM>(g_window), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+    PostMessageW(g_window, WM_SETCURSOR, reinterpret_cast<WPARAM>(g_window), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
 }
+
+void nv2a_take_mouse_motion(int& dx, int& dy) {
+    dx = g_mouse_dx.exchange(0);
+    dy = g_mouse_dy.exchange(0);
+}
+
+uint64_t nv2a_mouse_idle_ms() { return GetTickCount64() - g_mouse_moved_at; }
 
 int nv2a_vblank_hz() { return 60; }
 

@@ -236,35 +236,23 @@ void apply_script(XboxGamepad& pad, uint32_t port) {
     }
 }
 
-// Mouse look: the mouse moves the camera (right stick) while the game window is in front and the game runs. The
-// cursor is hidden and put back at the middle of the window after every poll, so what it moved since is the push.
+// Mouse look: the mouse moves the camera (right stick) while the game window is in front and the game runs. Its
+// movement comes from raw input (nv2a.cpp), so the cursor is free to go anywhere; while the game runs it is hidden
+// after 3 s without moving, and shown again as soon as the mouse moves.
 void mouse_look(XboxGamepad& pad) {
-    static bool active = false;
-    const bool wanted = setting("mouse_look") != 0 && game_has_focus() && !game_paused();
-    if (!wanted) {
-        if (active) nv2a_hide_cursor(false);
-        active = false;
-        return;
-    }
-    HWND window = GetForegroundWindow();
-    RECT client;
-    POINT middle, cursor;
-    if (!GetClientRect(window, &client)) return;
-    middle = {client.right / 2, client.bottom / 2};
-    ClientToScreen(window, &middle);
-    GetCursorPos(&cursor);
-    SetCursorPos(middle.x, middle.y);
-    if (!active) {  // the first poll only takes the mouse
-        nv2a_hide_cursor(true);
-        active = true;
-        return;
-    }
-    const float gain = 1500.0f * setting("mouse_sensitivity");  // stick units per pixel moved between two polls
+    static bool hidden = false;
+    const bool running = game_has_focus() && !game_paused();
+    const bool hide = running && nv2a_mouse_idle_ms() > 3000;
+    if (hide != hidden) nv2a_hide_cursor(hidden = hide);
+    int dx = 0, dy = 0;
+    nv2a_take_mouse_motion(dx, dy);
+    if (!running || setting("mouse_look") == 0) return;
+    const float gain = 1500.0f * setting("mouse_sensitivity");  // stick units per mickey moved between two polls
     const auto push = [](int16_t stick, float movement) {
         return static_cast<int16_t>(std::clamp(stick + movement, -32768.0f, 32767.0f));
     };
-    pad.thumb_rx = push(pad.thumb_rx, (cursor.x - middle.x) * gain);
-    pad.thumb_ry = push(pad.thumb_ry, -(cursor.y - middle.y) * gain);
+    pad.thumb_rx = push(pad.thumb_rx, dx * gain);
+    pad.thumb_ry = push(pad.thumb_ry, -dy * gain);
 }
 
 // Controller 1 without a pad: the keyboard and mouse (only while the game window is in front) and the test script.

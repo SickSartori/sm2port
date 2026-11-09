@@ -102,7 +102,8 @@ changed in the launcher's **Controls** page.
 | F11 or Alt+Enter | full screen on and off |
 | F10 | modern effects on and off |
 
-The mouse moves the camera while the game window is in front and the game runs (the cursor is hidden). Settings
+The mouse moves the camera while the game window is in front and the game runs (the cursor hides after a few seconds
+without moving). Settings
 `mouse_look` and `mouse_sensitivity` in `sm2port.ini` turn it off or change its speed.
 
 ## Settings
