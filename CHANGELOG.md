@@ -4,6 +4,8 @@
 
 ### New
 
+- **The World release** of the game (`default.xbe` SHA-256 `e8353bf6...4313af`) is supported: its code is the Italian
+  build's, placed a few hundred bytes further on, so every patch and redirected function moves with it.
 - **PlayStation, Switch and other controllers** work directly, through SDL3, with the buttons in the Xbox positions:
   no more Steam Input or DS4Windows. Xbox controllers work as before.
 

@@ -19,6 +19,7 @@
 
 #include "pc/exec_memory.h"
 #include "pc/gamepad.h"
+#include "pc/hle_patches.h"
 #include "pc/keyboard_bindings.h"
 #include "pc/nv2a.h"
 #include "pc/game_pause.h"
@@ -30,9 +31,7 @@ namespace sm2::pc {
 namespace {
 
 constexpr uint32_t kPorts = 4;
-constexpr uint32_t kGamepadTypeItaly = 0x00444214;  // XDEVICE_TYPE_GAMEPAD
-// The Europe (Fr,De,Es) build is the Italian one with everything from here on moved down by 0x40 bytes.
-constexpr uint32_t kEuropeShift = 0x40;
+constexpr uint32_t kGamepadTypeItaly = 0x00444214;  // XDEVICE_TYPE_GAMEPAD (the other builds: build_address)
 uint32_t g_gamepad_type = kGamepadTypeItaly;
 
 constexpr uint32_t kErrorSuccess = 0;
@@ -556,19 +555,16 @@ void input_note_file_opened(const std::string& path) {
 
 void install_input_hle(const Xbe& xbe) {
     constexpr uint32_t kTitleId = 0x4156002B;
-    constexpr uint32_t kEntryItaly = 0x00390610;
-    constexpr uint32_t kEntryEurope = 0x003905D0;
-    if (xbe.title_id() != kTitleId || (xbe.entry_point() != kEntryItaly && xbe.entry_point() != kEntryEurope)) {
+    if (xbe.title_id() != kTitleId || !build_address(xbe, kGamepadTypeItaly)) {
         log_line("input: not the XBE these addresses were taken from; controllers are not connected");
         return;
     }
-    const uint32_t shift = xbe.entry_point() == kEntryEurope ? kEuropeShift : 0;
-    g_gamepad_type = kGamepadTypeItaly - shift;
+    g_gamepad_type = build_address(xbe, kGamepadTypeItaly);
     load_xinput();
     load_script();
     g_start_ms = GetTickCount64();
     for (const Redirect& redirect : kRedirects) {
-        const uint32_t address = redirect.address - shift;
+        const uint32_t address = build_address(xbe, redirect.address);
         auto* code = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(address));
         code[0] = 0xE9;  // jmp rel32
         const uint32_t relative = address_of(redirect.function) - (address + 5);

@@ -87,7 +87,7 @@ struct JumpPatch {
     const void* target;
 };
 
-// Addresses of the Italian build; the Europe (Fr,De,Es) one has them 0x40 lower (the bytes are checked either way).
+// Addresses of the Italian build (build_address moves them to the others; the bytes are checked either way).
 const JumpPatch kJumpPatches[] = {
     {"XAPI QueryPerformanceCounter", 0x003907CC, {0x8B, 0x4C, 0x24, 0x04, 0x0F},
      reinterpret_cast<const void*>(&query_performance_counter)},
@@ -116,23 +116,30 @@ const Patch kPatches[] = {
     {"D3D LockRect tiled alias", 0x003C5338, {0x81, 0xC9, 0x00, 0x00, 0x00, 0xF0}, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
 };
 
-constexpr uint32_t kEuropeShift = 0x40;
-
-// The address where the patch's original bytes are: the Italian one, or the Europe one 0x40 lower; 0 if neither.
-uint32_t find_address(uint32_t address, const std::vector<uint8_t>& original) {
-    for (const uint32_t candidate : {address, address - kEuropeShift}) {
-        if (std::memcmp(reinterpret_cast<const void*>(static_cast<uintptr_t>(candidate)), original.data(),
-                        original.size()) == 0)
-            return candidate;
-    }
+// The address where the patch's original bytes are in this build; 0 if they are not there.
+uint32_t find_address(const Xbe& xbe, uint32_t address, const std::vector<uint8_t>& original) {
+    const uint32_t candidate = build_address(xbe, address);
+    if (candidate && std::memcmp(reinterpret_cast<const void*>(static_cast<uintptr_t>(candidate)), original.data(),
+                                 original.size()) == 0)
+        return candidate;
     return 0;
 }
 
 }  // namespace
 
-void apply_hle_patches(const Xbe& /*xbe*/) {
+uint32_t build_address(const Xbe& xbe, uint32_t italy_address) {
+    switch (xbe.entry_point()) {
+        case 0x00390610: return italy_address;         // Italy
+        case 0x003905D0: return italy_address - 0x40;  // Europe (Fr,De,Es)
+        case 0x00390910:                               // World: .text ends at 0x3BE59C, D3D starts at 0x3BE5C0
+            return italy_address + (italy_address < 0x003BE5C0 ? 0x300 : 0x2E0);
+        default: return 0;
+    }
+}
+
+void apply_hle_patches(const Xbe& xbe) {
     for (const Patch& patch : kPatches) {
-        const uint32_t address = find_address(patch.address, patch.original);
+        const uint32_t address = find_address(xbe, patch.address, patch.original);
         if (!address) {
             log_line("HLE: %s at %08X does not match this XBE, not patched", patch.name, patch.address);
             continue;
@@ -142,7 +149,7 @@ void apply_hle_patches(const Xbe& /*xbe*/) {
         log_line("HLE: %s at %08X replaced", patch.name, address);
     }
     for (const JumpPatch& patch : kCallPatches) {
-        const uint32_t address = find_address(patch.address, patch.original);
+        const uint32_t address = find_address(xbe, patch.address, patch.original);
         if (!address) {
             log_line("HLE: %s at %08X does not match this XBE, not patched", patch.name, patch.address);
             continue;
@@ -155,7 +162,7 @@ void apply_hle_patches(const Xbe& /*xbe*/) {
         log_line("HLE: %s at %08X called", patch.name, address);
     }
     for (const JumpPatch& patch : kJumpPatches) {
-        const uint32_t address = find_address(patch.address, patch.original);
+        const uint32_t address = find_address(xbe, patch.address, patch.original);
         if (!address) {
             log_line("HLE: %s at %08X does not match this XBE, not patched", patch.name, patch.address);
             continue;

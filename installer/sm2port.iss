@@ -22,7 +22,7 @@ AppPublisher=SickSartori
 AppPublisherURL=https://github.com/SickSartori/sm2port
 AppSupportURL=https://github.com/SickSartori/sm2port/issues
 AppUpdatesURL=https://github.com/SickSartori/sm2port/releases
-AppComments=Unofficial native Windows port of Spider-Man 2 (Xbox, PAL: Italy or Europe). No game files included.
+AppComments=Unofficial native Windows port of Spider-Man 2 (Xbox: Italy, Europe or World). No game files included.
 VersionInfoVersion={#AppVersion}
 VersionInfoDescription=sm2port setup
 DefaultDirName={autopf}\sm2port
@@ -50,8 +50,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 
 [Messages]
-english.WelcomeLabel2=This will install [name/ver], an unofficial native Windows port of Spider-Man 2.%n%nNo game files are included: on the first start you choose the disc image (ISO) of your own Xbox copy (Italy, or Europe in French, German or Spanish).%n%nYour settings and saves are kept in your user folder and stay when you update or uninstall.
-italian.WelcomeLabel2=Verrà installato [name/ver], un port nativo non ufficiale per Windows di Spider-Man 2.%n%nNessun file del gioco è incluso: al primo avvio scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, oppure Europa in francese, tedesco o spagnolo).%n%nImpostazioni e salvataggi restano nella tua cartella utente e non si perdono con aggiornamenti o disinstallazione.
+english.WelcomeLabel2=This will install [name/ver], an unofficial native Windows port of Spider-Man 2.%n%nNo game files are included: on the first start you choose the disc image (ISO) of your own Xbox copy (Italy, Europe in French, German or Spanish, or World).%n%nYour settings and saves are kept in your user folder and stay when you update or uninstall.
+italian.WelcomeLabel2=Verrà installato [name/ver], un port nativo non ufficiale per Windows di Spider-Man 2.%n%nNessun file del gioco è incluso: al primo avvio scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa in francese, tedesco o spagnolo, oppure World).%n%nImpostazioni e salvataggi restano nella tua cartella utente e non si perdono con aggiornamenti o disinstallazione.
 
 [CustomMessages]
 english.DesktopShortcut=Create a desktop shortcut

@@ -19,6 +19,7 @@
 
 #include "pc/audio_mixer.h"
 #include "pc/exec_memory.h"
+#include "pc/hle_patches.h"
 #include "pc/log.h"
 #include "pc/profile.h"
 #include "pc/xbox_thread.h"
@@ -792,7 +793,7 @@ HRESULT32 __stdcall DirectSoundCreateBuffer(const XDsBufferDesc* desc, uint32_t*
 }
 
 struct Redirect {
-    uint32_t address;  // Italy; the Europe (Fr,De,Es) build has it 0x40 lower
+    uint32_t address;  // Italy; build_address moves it to the other builds
     const void* function;
     const char* name;
 };
@@ -855,19 +856,15 @@ const Redirect kRedirects[] = {
 
 void install_dsound_hle(const Xbe& xbe) {
     constexpr uint32_t kTitleId = 0x4156002B;
-    constexpr uint32_t kEntryItaly = 0x00390610;
-    constexpr uint32_t kEntryEurope = 0x003905D0;
     const bool dsound_5849 = std::any_of(xbe.libraries().begin(), xbe.libraries().end(), [](const XbeLibrary& library) {
         return library.name == "DSOUND" && library.build == 5849;
     });
-    if (xbe.title_id() != kTitleId || !dsound_5849 ||
-        (xbe.entry_point() != kEntryItaly && xbe.entry_point() != kEntryEurope)) {
+    if (xbe.title_id() != kTitleId || !dsound_5849 || !build_address(xbe, kRedirects[0].address)) {
         log_line("dsound: not the XBE these addresses were taken from; DirectSound is not replaced");
         return;
     }
-    const uint32_t shift = xbe.entry_point() == kEntryEurope ? 0x40 : 0;
     for (const Redirect& redirect : kRedirects) {
-        const uint32_t address = redirect.address - shift;
+        const uint32_t address = build_address(xbe, redirect.address);
         auto* code = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(address));
         code[0] = 0xE9;  // jmp rel32
         const uint32_t relative = address_of(redirect.function) - (address + 5);

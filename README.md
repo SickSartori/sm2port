@@ -2,8 +2,8 @@
 
 # sm2port
 
-An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian and the European
-French/German/Spanish releases). It runs the game from **your own disc image**, with 16:9 widescreen, a
+An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian, the European
+French/German/Spanish and the World releases). It runs the game from **your own disc image**, with 16:9 widescreen, a
 higher internal resolution, keyboard and mouse, and optional modern effects.
 
 > [!IMPORTANT]
@@ -49,6 +49,7 @@ Compared with the console:
   |---|---|
   | Italy | `2c0032e3b579c2c4b51bd1740b46e37e9a5c77ab9e5788e1d4667e15ed4c2597` |
   | Europe (French, German, Spanish) | `0c466591001257abee3d96fc8844635b045cb037d66b0925ccb1a8c6d1b866fb` |
+  | World | `e8353bf6d975b281a77c5f41f49bb9a05e9e82db93bfa8ba73af0c424a4313af` |
 
   XISO and full Redump dumps both work, in one file or split in parts, and so does the compressed CCI format. Other
   releases are not supported: sm2port checks the executable and tells you if the disc is a different version.
@@ -123,7 +124,7 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 - **Textures**: some textures look wrong in places (blurred or stretched surfaces, odd stripes on some buildings).
 - **Sound**: the game's sounds, music and films play, but some DirectSound calls (3D positioning among them) are not
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
-- Online play (Xbox Live) is not available. Only the Italian and the European (French, German, Spanish) releases are supported.
+- Online play (Xbox Live) is not available. Only the Italian, the European (French, German, Spanish) and the World releases are supported.
 - On monitors wider than 16:9 there are thin black bars at the sides.
 - Linux (Wine, Proton) has not been tried with this game.
 

@@ -92,7 +92,7 @@ struct Texts {
 const Texts kEnglish = {
     "PLAY", "SETTINGS", "CONTROLS", "ABOUT", "QUIT",
     "READY TO SWING", "New York is waiting.", "Disc verified",
-    "No disc chosen", "Choose the disc image (ISO) of your Xbox copy (Italy or Europe).", "Change", "Choose the ISO",
+    "No disc chosen", "Choose the disc image (ISO) of your Xbox copy (Italy, Europe or World).", "Change", "Choose the ISO",
     "Controller connected", "Xbox, PlayStation and other pads", "No controller", "The keyboard works too", "Edit",
     "Game", "Display", "Graphics", "Effects",
     "Game language", "The game's text and speech", "Like Windows", "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
@@ -115,10 +115,10 @@ const Texts kEnglish = {
     "MIT licence \xC2\xB7 Dear ImGui (MIT) \xC2\xB7 Barlow Semi Condensed (OFL)",
     "Update", "Downloads and checks the installer, then shows it to you to start", "Downloading the update...",
     "The update could not be downloaded or checked",
-    "WELCOME", "You need your own copy: a disc image (ISO) of the Xbox Spider-Man 2 (Italy, or Europe in French, German or Spanish).",
+    "WELCOME", "You need your own copy: a disc image (ISO) of the Xbox Spider-Man 2 (Italy, Europe in French, German or Spanish, or World).",
     "NEXT", "QUALITY", "You can change it any time in the settings.", "ALL SET",
     "Disc verified. Connect a controller or use the keyboard.",
-    "Disc", "Xbox \xC2\xB7 Europe", "none", "Controller", "connected", "not connected", "Version", "Select", "Back",
+    "Disc", "Xbox", "none", "Controller", "connected", "not connected", "Version", "Select", "Back",
     "RESUME", "BACK TO GAME", "PAUSED", "The game is paused. F1 or Esc takes you back.", "EXIT GAME",
     "Progress since the last save will be lost.", "EXIT", "Applies the next time the game starts", "In-game menu",
     "Frame counter", "In a corner while playing", "Pause in the background",
@@ -138,7 +138,7 @@ const Texts kEnglish = {
 const Texts kItalian = {
     "GIOCA", "IMPOSTAZIONI", "CONTROLLI", "INFO", "ESCI",
     "PRONTO ALL'AZIONE", "New York ti aspetta.", "Disco verificato",
-    "Nessun disco scelto", "Scegli l'immagine del disco (ISO) della tua copia Xbox (Italia o Europa).", "Cambia", "Scegli l'ISO",
+    "Nessun disco scelto", "Scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa o World).", "Cambia", "Scegli l'ISO",
     "Controller collegato", "Controller Xbox, PlayStation e altri", "Nessun controller", "Anche la tastiera funziona", "Modifica",
     "Gioco", "Schermo", "Grafica", "Effetti",
     "Lingua del gioco", "Testi e voci del gioco", "Come Windows", "Volume del gioco", "Musica del launcher",
@@ -165,10 +165,10 @@ const Texts kItalian = {
     "Aggiorna", "Scarica e verifica l'installer, poi te lo mostra da avviare", "Scarico l'aggiornamento...",
     "Non \xC3\xA8 stato possibile scaricare o verificare l'aggiornamento",
     "BENVENUTO",
-    "Per giocare serve la tua copia: l'immagine ISO del disco Xbox di Spider-Man 2 (Italia, oppure Europa in francese, tedesco o spagnolo).",
+    "Per giocare serve la tua copia: l'immagine ISO del disco Xbox di Spider-Man 2 (Italia, Europa in francese, tedesco o spagnolo, oppure World).",
     "AVANTI", "QUALIT\xC3\x80", "Potrai cambiarla quando vuoi nelle impostazioni.", "TUTTO PRONTO",
     "Disco verificato. Collega un controller o usa la tastiera.",
-    "Disco", "Xbox \xC2\xB7 Europa", "nessuno", "Controller", "collegato", "non collegato", "Versione", "Seleziona",
+    "Disco", "Xbox", "nessuno", "Controller", "collegato", "non collegato", "Versione", "Seleziona",
     "Indietro",
     "RIPRENDI", "TORNA AL GIOCO", "IN PAUSA", "Il gioco \xC3\xA8 in pausa. F1 o Esc per tornare.", "ESCI DAL GIOCO",
     "I progressi dall'ultimo salvataggio andranno persi.", "ESCI", "Vale dal prossimo avvio del gioco", "Menu in gioco",
@@ -1345,7 +1345,7 @@ void Launcher::page_play() {
     move_data_row();
     if (crash_report_ready() && status(false, t.crash_heading, t.crash_sub, t.crash_button, "##crash_report")) report_problem();
     if (disc_) {
-        if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox \xC2\xB7 PAL", t.change, "##disc")) choose_disc();
+        if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox", t.change, "##disc")) choose_disc();
     } else if (status(false, t.disc_none, disc_problem_.empty() ? t.disc_none_sub : disc_problem_.c_str(), t.choose_iso, "##disc")) {
         choose_disc();
     }
@@ -1732,7 +1732,7 @@ void Launcher::page_wizard() {
         update_row(false);
         move_data_row();
         if (disc_) {
-            if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox \xC2\xB7 PAL", t.change, "##disc")) choose_disc();
+            if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox", t.change, "##disc")) choose_disc();
         } else if (status(false, t.disc_none, disc_problem_.empty() ? t.disc_none_sub : disc_problem_.c_str(), t.choose_iso,
                           "##disc")) {
             choose_disc();

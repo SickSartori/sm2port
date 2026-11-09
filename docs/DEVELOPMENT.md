@@ -121,7 +121,7 @@ Variabili d'ambiente:
 | `SM2_SKIP_LAUNCHER=1` | parte direttamente il gioco |
 | `SM2_LAUNCHER_AUTOPLAY=<s>` | il launcher preme GIOCA dopo `s` secondi (test) |
 | `SM2_LAUNCHER_PAGE=settings\|controls\|about` | il launcher si apre su quella pagina (catture di prova) |
-| `SM2_ANY_VERSION=1` | accetta anche dischi diversi dalla versione PAL supportata |
+| `SM2_ANY_VERSION=1` | accetta anche dischi diversi dalle versioni supportate |
 | `SM2_DUMP_FRAMES=<n>` | salva un frame presentato ogni `n` come `frame-NNNNN.bmp` nella cartella di lavoro |
 | `SM2_DEBUG_DRAWS=<n>` | descrive nel log i primi `n` draw (vertici, combiner, texture, stati); con `SM2_DEBUG_DRAWS_FF=1` solo quelli fixed-function |
 | `SM2_DUMP_TARGET=<indirizzo hex>` | con ogni frame salvato, anche la render target a quell'indirizzo fisico (`target-NNNNN.bmp`) |
