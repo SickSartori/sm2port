@@ -23,7 +23,7 @@ higher internal resolution, keyboard and mouse, and optional modern effects.
 
 sm2port is a port, not a remaster. It runs the original 2004 game, with its own city, missions and soundtrack. The game's
 x86 code runs natively on your PC; sm2port replaces the Xbox around it: its kernel, the NV2A graphics chip (on
-Direct3D 11), the sound chip (on XAudio2) and the controllers (on XInput, keyboard and mouse).
+Direct3D 11), the sound chip (on XAudio2) and the controllers (on SDL3, keyboard and mouse).
 
 Compared with the console:
 
@@ -77,8 +77,8 @@ where it is. Then pick a quality preset and the frame rate and press **PLAY**.
 
 ## Controls
 
-Xbox controllers (Xbox 360, One and Series, or anything XInput) work as on the console. PlayStation and other pads work
-through Steam Input or DS4Windows. Without a controller, the keyboard and the mouse are controller 1; every key can be
+Xbox controllers (360, One and Series) work as on the console. PlayStation, Switch and most other USB or Bluetooth pads
+work too, through SDL3, with the buttons in the Xbox positions (the bottom face button is A). Without a controller, the keyboard and the mouse are controller 1; every key can be
 changed in the launcher's **Controls** page.
 
 | Input | Xbox controller |

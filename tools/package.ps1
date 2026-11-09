@@ -38,6 +38,7 @@ $readme = ((Get-Content tools/package_readme.txt -Raw).Replace("<version>", $ver
 [IO.File]::WriteAllText((Join-Path (Resolve-Path $stage) "README.txt"), $readme, (New-Object Text.UTF8Encoding $false))
 Copy-Item third_party/imgui/LICENSE.txt "$stage\licenses\imgui-LICENSE.txt"
 Copy-Item third_party/fonts/OFL.txt "$stage\licenses\barlow-OFL.txt"
+Copy-Item third_party/sdl3/LICENSE.txt "$stage\licenses\sdl3-LICENSE.txt"
 
 $forbidden = Get-ChildItem $stage -Recurse -File | Where-Object { $_.Extension -in ".iso", ".xbe", ".xiso", ".log", ".ini" }
 if ($forbidden) { throw "not for the package: $($forbidden.Name -join ', ')" }

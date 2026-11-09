@@ -37,8 +37,8 @@ FIRST START
 3. Pick a quality preset and the frame rate, and press PLAY.
 
 Controls: W A S D move, the mouse (or the arrow keys) moves the camera,
-Space jumps, E clings to walls, the left mouse button attacks. Xbox
-controllers work as on the console. F1 opens the in-game menu, F11 toggles
+Space jumps, E clings to walls, the left mouse button attacks. Xbox,
+PlayStation and most other controllers work as on the console. F1 opens the in-game menu, F11 toggles
 full screen, F10 toggles the modern effects. Every key can be changed in
 the launcher's Controls page.
 
