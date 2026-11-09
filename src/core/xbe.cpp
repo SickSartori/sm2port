@@ -29,6 +29,7 @@ constexpr uint32_t kLibraryEntrySize = 16;
 constexpr uint32_t kTlsDirectorySize = 24;
 constexpr uint32_t kCertificateTitleIdOffset = 0x08;
 constexpr uint32_t kCertificateTitleNameOffset = 0x0C;
+constexpr uint32_t kCertificateRegionOffset = 0xA0;
 constexpr uint32_t kTitleNameChars = 40;
 
 // The entry point and kernel thunk are XOR-obfuscated with a key that differs between retail and debug builds.
@@ -124,6 +125,9 @@ std::optional<Xbe> Xbe::parse(std::vector<uint8_t> file, std::string* error) {
             if (ch == 0) break;
             xbe.title_.push_back(ch < 0x80 ? static_cast<char>(ch) : '?');
         }
+    }
+    if (const auto certificate = header_offset(u32(kCertificateOffset), kCertificateRegionOffset + 4)) {
+        xbe.game_region_ = u32(*certificate + kCertificateRegionOffset);
     }
 
     const uint32_t image_end = xbe.base_address_ + xbe.image_size_;
