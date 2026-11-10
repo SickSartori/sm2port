@@ -17,6 +17,11 @@
 - **Overlays no longer break the textures**: RivaTuner Statistics Server, Steam, Discord and MSI Afterburner draw
   inside the call that shows a frame, and since that call has a thread of its own they drew with the game's Direct3D
   device while the game was drawing. The window now presents with a device of its own (as mc3port 0.3.6 does).
+- Two faults in the game's Direct3D library that fast frames can trigger are closed, as in mc3port: a wait for the
+  graphics card that could spin forever, and a frame that waited for the blank counter to come round. The library also
+  reaches the graphics card's queue without a trap each time.
+- Music and other streams are resampled with the same curve as sound effects (clearer top octave), and a stream told
+  to end before its first data no longer stops.
 - Compiled pixel shaders are kept in the shader cache too, so a place seen before no longer stutters while they are
   made again. On integrated graphics the automatic resolution stops at 1080 lines.
 - sm2port now shares its game-independent runtime and its Direct3D 11 renderer with mc3port, so fixes to either reach

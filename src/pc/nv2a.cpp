@@ -998,6 +998,10 @@ bool nv2a_handle_access_violation(CONTEXT* context, uint32_t address) {
     return false;
 }
 
+void nv2a_kick_off(uint32_t put) { write_register(kUserDmaPut, put); }
+
+uint32_t nv2a_dma_get() { return g_push.get; }
+
 HWND nv2a_open_window() {
     if (!g_window) {
         HANDLE ready = CreateEventW(nullptr, TRUE, FALSE, nullptr);
