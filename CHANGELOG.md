@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.3
 
 ### New
 
@@ -42,7 +42,7 @@
 - The update check only follows links into sm2port's own releases.
 - The release workflow uses fixed versions of its tools and checks the tag and the notes before building.
 - Sound effects played at a pitch other than their own (engines, most loops) are cleaner: the mixer resamples them over
-  four frames (Catmull-Rom) instead of two, which left copies of the sound in the top octave. Music is unchanged.
+  four frames (Catmull-Rom) instead of two, which left copies of the sound in the top octave.
 - The emulated graphics card takes a draw's indices and inline vertices as one block instead of word by word.
 
 ### Fixed

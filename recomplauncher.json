@@ -4,7 +4,7 @@
   "name": "sm2port",
   "game": {
     "kind": "iso",
-    "label": "Your disc image (.iso) of Spider-Man 2 for the Xbox: the Italian release, or the European one (French, German, Spanish).",
+    "label": "Your disc image (.iso) of Spider-Man 2 for the Xbox: the Italian release, the European one (French, German, Spanish) or the World one.",
     "check": {
       "xdvdfs": "default.xbe"
     }
@@ -169,6 +169,6 @@
     "logs": "{install}/logs"
   },
   "exit_codes": {
-    "2": "sm2port could not use your disc image. It needs the Italian or the European (French, German, Spanish) release of Spider-Man 2 for the Xbox, as a complete .iso: pick it again on the game's page."
+    "2": "sm2port could not use your disc image. It needs the Italian, the European (French, German, Spanish) or the World release of Spider-Man 2 for the Xbox, as a complete .iso: pick it again on the game's page."
   }
 }

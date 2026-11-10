@@ -21,8 +21,8 @@ WHAT YOU NEED
   only: install the Media Feature Pack (Settings > Apps > Optional
   features), or sm2runtime.dll will not load.
 - A graphics card and driver with Direct3D 11 (feature level 11_0).
-- A disc image (.iso or .cci) of Spider-Man 2 for the Xbox, Italian or
-  European (French, German, Spanish). XISO and Redump dumps both work, in
+- A disc image (.iso or .cci) of Spider-Man 2 for the Xbox, Italian,
+  European (French, German, Spanish) or World. XISO and Redump dumps both work, in
   one file or split in parts, and so does the compressed CCI format. Other
   releases are not supported: the launcher tells you if the disc is a
   different version.
