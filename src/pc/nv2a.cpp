@@ -23,7 +23,7 @@
 #include "pc/profile.h"
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 // --- register map (offsets from 0xFD000000) ---
@@ -104,6 +104,8 @@ constexpr uint32_t kFlipStall = 0x0130;
 constexpr uint32_t kSetContextDmaSemaphore = 0x01A4;
 constexpr uint32_t kSetSemaphoreOffset = 0x1D6C;
 constexpr uint32_t kBackEndWriteSemaphoreRelease = 0x1D70;
+constexpr uint32_t kArrayElement16 = 0x1800;
+constexpr uint32_t kInlineArray = 0x1818;
 
 // Register file. Only the GPU emulation touches it directly; the game goes through the MMIO traps.
 std::vector<uint32_t> g_registers(kNv2aRegisterSize / 4);
@@ -632,6 +634,21 @@ void run_push_buffer(uint32_t put) {
             get = put;
             break;
         }
+        // Two thirds of the words are indices and inline vertices of one method: taken as a block, not word by word.
+        if (s.method_count > 1 && s.non_increasing && (s.method == kInlineArray || s.method == kArrayElement16) &&
+            g_subchannel_class[s.subchannel & 7] == kClassKelvin && !g_collect_statistics && g_trace_budget <= 0 &&
+            put > get) {
+            const uint32_t count = std::min(s.method_count, (put - get) / 4);
+            if (count && physical_pointer(get + count * 4 - 1)) {
+                wait_for_pgraph_access();
+                const auto* words = reinterpret_cast<const uint32_t*>(pointer);
+                if (s.method == kInlineArray) kelvin_inline_data(words, count);
+                else kelvin_array_elements16(words, count);
+                get += count * 4;
+                s.method_count -= count;
+                continue;
+            }
+        }
         const uint32_t word = *reinterpret_cast<const uint32_t*>(pointer);
         get += 4;
 
@@ -737,12 +754,27 @@ std::atomic<WindowHook> g_window_hook{nullptr};  // nv2a_set_window_hook
 constexpr UINT kSetFullScreenMessage = WM_APP + 1;
 
 std::atomic<bool> g_cursor_hidden{false};
+std::atomic<int> g_mouse_dx{0}, g_mouse_dy{0};  // raw mouse movement not taken yet (nv2a_take_mouse_motion)
+std::atomic<uint64_t> g_mouse_moved_at{0};
 
 LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
     if (message == WM_SETCURSOR && g_cursor_hidden && LOWORD(lparam) == HTCLIENT) {
         SetCursor(nullptr);
         return TRUE;
     }
+    if (message == WM_INPUT) {  // the mouse's movement, without moving the cursor (mouse look, input_hle.cpp)
+        RAWINPUT input{};
+        UINT size = sizeof(input);
+        if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lparam), RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER)) !=
+                static_cast<UINT>(-1) &&
+            input.header.dwType == RIM_TYPEMOUSE && !(input.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) &&
+            (input.data.mouse.lLastX || input.data.mouse.lLastY)) {
+            g_mouse_dx += input.data.mouse.lLastX;
+            g_mouse_dy += input.data.mouse.lLastY;
+            g_mouse_moved_at = GetTickCount64();
+        }
+    }
+    if (message == WM_MOUSEMOVE) g_mouse_moved_at = GetTickCount64();
     if (message == kSetFullScreenMessage) {
         if ((wparam != 0) != g_full_screen) toggle_full_screen(window);
         return 0;
@@ -802,6 +834,9 @@ void window_thread(HANDLE ready) {
     DwmSetWindowAttribute(g_window, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
     const COLORREF black = RGB(0, 0, 0);
     DwmSetWindowAttribute(g_window, DWMWA_CAPTION_COLOR, &black, sizeof(black));
+    const RAWINPUTDEVICE mouse{0x01, 0x02, 0, g_window};  // generic desktop, mouse: WM_INPUT while in front
+    RegisterRawInputDevices(&mouse, 1, sizeof(mouse));
+    g_mouse_moved_at = GetTickCount64();
     ShowWindow(g_window, SW_SHOW);
     if (setting("fullscreen") != 0) toggle_full_screen(g_window);
     SetEvent(ready);
@@ -963,6 +998,10 @@ bool nv2a_handle_access_violation(CONTEXT* context, uint32_t address) {
     return false;
 }
 
+void nv2a_kick_off(uint32_t put) { write_register(kUserDmaPut, put); }
+
+uint32_t nv2a_dma_get() { return g_push.get; }
+
 HWND nv2a_open_window() {
     if (!g_window) {
         HANDLE ready = CreateEventW(nullptr, TRUE, FALSE, nullptr);
@@ -979,8 +1018,15 @@ uint32_t nv2a_frames_shown() { return g_frames_shown; }
 
 void nv2a_hide_cursor(bool hidden) {
     g_cursor_hidden = hidden;
-    if (!hidden) PostMessageW(g_window, WM_SETCURSOR, reinterpret_cast<WPARAM>(g_window), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+    PostMessageW(g_window, WM_SETCURSOR, reinterpret_cast<WPARAM>(g_window), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
 }
+
+void nv2a_take_mouse_motion(int& dx, int& dy) {
+    dx = g_mouse_dx.exchange(0);
+    dy = g_mouse_dy.exchange(0);
+}
+
+uint64_t nv2a_mouse_idle_ms() { return GetTickCount64() - g_mouse_moved_at; }
 
 int nv2a_vblank_hz() { return 60; }
 
@@ -1006,4 +1052,4 @@ void nv2a_set_display_mode(uint32_t mode, uint32_t format, uint32_t pitch, uint3
     g_display = DisplayMode{mode, format, pitch, frame_buffer};
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

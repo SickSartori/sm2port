@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.1.3
+
+### New
+
+- **60 fps is back**, at the right speed: the game's own 59.94 fps mode, with the vertical blanks left at 60 Hz. The
+  earlier attempt (0.1.1) also doubled the blanks to 120 Hz, so the game drew 120 frames a second with a 1/60 s step
+  and ran at double speed.
+- **The World release** of the game (`default.xbe` SHA-256 `e8353bf6...4313af`) is supported: its code is the Italian
+  build's, placed a few hundred bytes further on, so every patch and redirected function moves with it.
+- **PlayStation, Switch and other controllers** work directly, through SDL3, with the buttons in the Xbox positions:
+  no more Steam Input or DS4Windows. Xbox controllers work as before.
+
+### Improved
+
+- **Overlays no longer break the textures**: RivaTuner Statistics Server, Steam, Discord and MSI Afterburner draw
+  inside the call that shows a frame, and since that call has a thread of its own they drew with the game's Direct3D
+  device while the game was drawing. The window now presents with a device of its own (as mc3port 0.3.6 does).
+- Two faults in the game's Direct3D library that fast frames can trigger are closed, as in mc3port: a wait for the
+  graphics card that could spin forever, and a frame that waited for the blank counter to come round. The library also
+  reaches the graphics card's queue without a trap each time.
+- Music and other streams are resampled with the same curve as sound effects (clearer top octave), and a stream told
+  to end before its first data no longer stops.
+- Compiled pixel shaders are kept in the shader cache too, so a place seen before no longer stutters while they are
+  made again. On integrated graphics the automatic resolution stops at 1080 lines.
+- sm2port now shares its game-independent runtime and its Direct3D 11 renderer with mc3port, so fixes to either reach
+  both.
+- On laptops with two graphics cards the game runs on the fast one, not on Windows' default (the integrated one), unless
+  Windows' graphics settings say otherwise for `sm2.exe`.
+- A disc of another release is refused with its region named (North America, Japan, Europe), in the message and in the
+  log, so a report says which version the player has.
+- Textures no draw has used for a minute are let go, so integrated graphics no longer run out of memory after a long
+  session (on mc3port, new textures then came out black). The log's renderer line says how many are kept.
+- A large texture that is written in one place (another texture or vertices sharing its memory) is checked page by
+  page, not whole.
+- The game no longer waits for the display after a slow frame (a laptop whose fast GPU draws into a display wired to
+  the integrated one sat at 30 fps).
+- Things drawn with the lights on but without lighting normals keep their own colour, as Direct3D does, instead of
+  coming out almost black.
+- Settings are written to a temporary file and renamed, so a crash while saving never leaves an empty `sm2port.ini`.
+- The update check only follows links into sm2port's own releases.
+- The release workflow uses fixed versions of its tools and checks the tag and the notes before building.
+- Sound effects played at a pitch other than their own (engines, most loops) are cleaner: the mixer resamples them over
+  four frames (Catmull-Rom) instead of two, which left copies of the sound in the top octave.
+- The emulated graphics card takes a draw's indices and inline vertices as one block instead of word by word.
+
+### Fixed
+
+- **The mouse was held at the middle of the window** while the game ran: mouse look now reads the mouse's movement
+  directly (raw input), so the cursor goes where you move it, and hides only after 3 s without moving.
+- **Frame limiters and overlays** (RivaTuner Statistics Server, MSI Afterburner) made the game judder: they wait inside
+  the call that shows a frame, which also ran the emulated graphics card. That call now has a thread of its own.
+- **The game's clocks start with the game**, like an Xbox's at power on, not with Windows. Counted from Windows' start,
+  after a few days of uptime a clock kept as a decimal number can no longer take a 1/60 s step and stands still (on
+  mc3port this froze a menu at 60 fps). Windows' fast startup keeps that count across a normal shutdown.
+- The Back+Start combo for the in-game menu is read only from what the game sees, so a quick press is no longer lost.
+- A timed wait in the kernel ends at its timeout even when only some of the objects it waits for are set.
+- A write just past one of the game's buffers lands in a fresh page, as a read there already did, instead of crashing.
+- Damaged disc images and executables (sizes or counts out of range) are refused cleanly instead of being read past
+  their end, and file names an Xbox drive cannot hold are refused instead of reaching Windows.
+- Textures without a palette no longer get a new cache entry every time the palette address changes (the cache grew
+  without end).
+
 ## 0.1.2
 
 ### New

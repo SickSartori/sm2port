@@ -35,6 +35,7 @@
 #include "imgui_internal.h"
 #include "pc/crash_report.h"
 #include "pc/game_pause.h"
+#include "pc/gamepad.h"
 #include "pc/input_hle.h"
 #include "pc/keyboard_bindings.h"
 #include "pc/launcher_music.h"
@@ -44,6 +45,7 @@
 #include "pc/paths.h"
 #include "pc/renderer_d3d11.h"
 #include "pc/settings.h"
+#include "pc/update_check.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 
@@ -51,7 +53,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND window, UINT m
 #define SM2PORT_VERSION "0.0.0"
 #endif
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 using Microsoft::WRL::ComPtr;
@@ -65,7 +67,7 @@ struct Texts {
     const char *ready, *ready_lead, *disc_ok, *disc_none, *disc_none_sub, *change, *choose_iso;
     const char *pad_on, *pad_on_sub, *pad_off, *pad_off_sub, *edit;
     const char *tab_game, *tab_display, *tab_graphics, *tab_effects;
-    const char *game_language, *game_language_sub, *like_windows, *volume, *music_volume, *music_volume_sub;
+    const char *game_language, *game_language_sub, *like_windows, *fps, *fps_sub, *volume, *music_volume, *music_volume_sub;
     const char *aspect, *aspect_sub, *window_mode, *window_mode_sub, *windowed, *fullscreen;
     const char *quality, *quality_sub, *original, *balanced, *high, *custom, *scale, *scale_sub;
     const char *anisotropy, *gpu_vertices, *gpu_vertices_sub, *effects, *effects_sub, *on, *off;
@@ -91,10 +93,11 @@ struct Texts {
 const Texts kEnglish = {
     "PLAY", "SETTINGS", "CONTROLS", "ABOUT", "QUIT",
     "READY TO SWING", "New York is waiting.", "Disc verified",
-    "No disc chosen", "Choose the disc image (ISO) of your Xbox copy (Italy or Europe).", "Change", "Choose the ISO",
-    "Controller connected", "Xbox and compatible controllers", "No controller", "The keyboard works too", "Edit",
+    "No disc chosen", "Choose the disc image (ISO) of your Xbox copy (Italy, Europe or World).", "Change", "Choose the ISO",
+    "Controller connected", "Xbox, PlayStation and other pads", "No controller", "The keyboard works too", "Edit",
     "Game", "Display", "Graphics", "Effects",
-    "Game language", "The game's text and speech", "Like Windows", "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
+    "Game language", "The game's text and speech", "Like Windows", "Frames per second", "60 is smoother; 30 like the Xbox",
+    "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
     "Aspect ratio", "16:9 uses the game's own widescreen mode", "Window mode", "Alt+Enter or F11 while playing",
     "Window", "Full screen",
     "Quality", "Sets filtering and effects together", "Original", "Balanced", "High", "Custom",
@@ -103,9 +106,9 @@ const Texts kEnglish = {
     "Modern effects", "Bloom, sharpening, colour and shading (F10 while playing)", "On", "Off",
     "Sharpening", "Light glow", "Glow threshold", "Saturation", "Contrast", "Vignette", "Ambient occlusion",
     "Occlusion size",
-    "Restore defaults", "Xbox controllers work as they are. Choose the keyboard keys here.", "Key? Esc cancels",
+    "Restore defaults", "Controllers work as they are. Choose the keyboard keys here.", "Key? Esc cancels",
     "Restore keys", "PC KEYS", "Full screen on and off", "Modern effects on and off", "Menus: move, select, back",
-    "PlayStation and other pads: through Steam Input or DS4Windows, which present them as Xbox controllers.",
+    "PlayStation, Switch and most other pads work too, with the buttons in the Xbox positions.",
     "Unofficial native Windows port. No game files included: you need your own copy.", "Looking for updates...",
     "This is the latest version", "Version %s is available", "Opens the release page; nothing downloads by itself",
     "Open", "Log folder", "For bug reports, attach sm2port.log", "Report a problem",
@@ -114,10 +117,10 @@ const Texts kEnglish = {
     "MIT licence \xC2\xB7 Dear ImGui (MIT) \xC2\xB7 Barlow Semi Condensed (OFL)",
     "Update", "Downloads and checks the installer, then shows it to you to start", "Downloading the update...",
     "The update could not be downloaded or checked",
-    "WELCOME", "You need your own copy: a disc image (ISO) of the Xbox Spider-Man 2 (Italy, or Europe in French, German or Spanish).",
+    "WELCOME", "You need your own copy: a disc image (ISO) of the Xbox Spider-Man 2 (Italy, Europe in French, German or Spanish, or World).",
     "NEXT", "QUALITY", "You can change it any time in the settings.", "ALL SET",
     "Disc verified. Connect a controller or use the keyboard.",
-    "Disc", "Xbox \xC2\xB7 Europe", "none", "Controller", "connected", "not connected", "Version", "Select", "Back",
+    "Disc", "Xbox", "none", "Controller", "connected", "not connected", "Version", "Select", "Back",
     "RESUME", "BACK TO GAME", "PAUSED", "The game is paused. F1 or Esc takes you back.", "EXIT GAME",
     "Progress since the last save will be lost.", "EXIT", "Applies the next time the game starts", "In-game menu",
     "Frame counter", "In a corner while playing", "Pause in the background",
@@ -137,10 +140,11 @@ const Texts kEnglish = {
 const Texts kItalian = {
     "GIOCA", "IMPOSTAZIONI", "CONTROLLI", "INFO", "ESCI",
     "PRONTO ALL'AZIONE", "New York ti aspetta.", "Disco verificato",
-    "Nessun disco scelto", "Scegli l'immagine del disco (ISO) della tua copia Xbox (Italia o Europa).", "Cambia", "Scegli l'ISO",
-    "Controller collegato", "Controller Xbox e compatibili", "Nessun controller", "Anche la tastiera funziona", "Modifica",
+    "Nessun disco scelto", "Scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa o World).", "Cambia", "Scegli l'ISO",
+    "Controller collegato", "Controller Xbox, PlayStation e altri", "Nessun controller", "Anche la tastiera funziona", "Modifica",
     "Gioco", "Schermo", "Grafica", "Effetti",
-    "Lingua del gioco", "Testi e voci del gioco", "Come Windows", "Volume del gioco", "Musica del launcher",
+    "Lingua del gioco", "Testi e voci del gioco", "Come Windows", "Fotogrammi al secondo",
+    "60 \xC3\xA8 pi\xC3\xB9 fluido; 30 come l'Xbox", "Volume del gioco", "Musica del launcher",
     "La musica di sottofondo di questa schermata; 0 la spegne",
     "Formato", "16:9 usa la modalit\xC3\xA0 panoramica del gioco", "Modalit\xC3\xA0 finestra",
     "Alt+Invio o F11 durante il gioco", "Finestra", "Schermo intero",
@@ -150,10 +154,10 @@ const Texts kItalian = {
     "Effetti moderni", "Bagliore, nitidezza, colori e ombreggiatura (F10 durante il gioco)", "S\xC3\xAC", "No",
     "Nitidezza", "Bagliore delle luci", "Soglia del bagliore", "Saturazione", "Contrasto", "Vignettatura",
     "Ombreggiatura ambientale", "Ampiezza dell'ombreggiatura",
-    "Valori predefiniti", "I controller Xbox funzionano cos\xC3\xAC come sono. Qui scegli i tasti della tastiera.",
+    "Valori predefiniti", "I controller funzionano cos\xC3\xAC come sono. Qui scegli i tasti della tastiera.",
     "Tasto? Esc annulla", "Tasti predefiniti", "TASTI DEL PC", "Schermo intero s\xC3\xAC/no", "Effetti moderni s\xC3\xAC/no",
     "Menu: muoversi, scegliere, tornare",
-    "Controller PlayStation e altri: tramite Steam Input o DS4Windows, che li presentano come controller Xbox.",
+    "Controller PlayStation, Switch e quasi tutti gli altri funzionano, con i tasti nelle posizioni Xbox.",
     "Port nativo non ufficiale per Windows. Nessun file del gioco incluso: serve la tua copia.",
     "Cerco aggiornamenti...", "Questa \xC3\xA8 l'ultima versione", "\xC3\x88 disponibile la versione %s",
     "Apre la pagina della versione; niente si scarica da solo", "Apri", "Cartella dei log",
@@ -164,10 +168,10 @@ const Texts kItalian = {
     "Aggiorna", "Scarica e verifica l'installer, poi te lo mostra da avviare", "Scarico l'aggiornamento...",
     "Non \xC3\xA8 stato possibile scaricare o verificare l'aggiornamento",
     "BENVENUTO",
-    "Per giocare serve la tua copia: l'immagine ISO del disco Xbox di Spider-Man 2 (Italia, oppure Europa in francese, tedesco o spagnolo).",
+    "Per giocare serve la tua copia: l'immagine ISO del disco Xbox di Spider-Man 2 (Italia, Europa in francese, tedesco o spagnolo, oppure World).",
     "AVANTI", "QUALIT\xC3\x80", "Potrai cambiarla quando vuoi nelle impostazioni.", "TUTTO PRONTO",
     "Disco verificato. Collega un controller o usa la tastiera.",
-    "Disco", "Xbox \xC2\xB7 Europa", "nessuno", "Controller", "collegato", "non collegato", "Versione", "Seleziona",
+    "Disco", "Xbox", "nessuno", "Controller", "collegato", "non collegato", "Versione", "Seleziona",
     "Indietro",
     "RIPRENDI", "TORNA AL GIOCO", "IN PAUSA", "Il gioco \xC3\xA8 in pausa. F1 o Esc per tornare.", "ESCI DAL GIOCO",
     "I progressi dall'ultimo salvataggio andranno persi.", "ESCI", "Vale dal prossimo avvio del gioco", "Menu in gioco",
@@ -310,21 +314,6 @@ struct UpdateCheck {
     std::filesystem::path setup_file;
 };
 
-std::vector<int> version_numbers(const std::string& text) {
-    std::vector<int> numbers;
-    for (size_t i = 0; i < text.size();) {
-        if (std::isdigit(static_cast<unsigned char>(text[i]))) {
-            size_t end = i;
-            while (end < text.size() && std::isdigit(static_cast<unsigned char>(text[end]))) ++end;
-            numbers.push_back(std::atoi(text.substr(i, end - i).c_str()));
-            i = end;
-        } else {
-            ++i;
-        }
-    }
-    return numbers;
-}
-
 std::string json_string(const std::string& json, const char* key) {
     const std::string marker = std::string("\"") + key + "\":\"";
     const size_t at = json.find(marker);
@@ -387,11 +376,12 @@ void check_for_updates(UpdateCheck* check) {
     const bool newer = version_numbers(tag) > version_numbers(SM2PORT_VERSION);
     check->state = newer ? 2 : 1;
     check->version = tag;
-    check->url = url;
+    check->url = release_link(url, kRepository, "tag/") ? url : std::string("https://github.com/") + kRepository + "/releases";
     const std::string marker = "\"browser_download_url\":\"";
     for (size_t at = body.find(marker); at != std::string::npos; at = body.find(marker, at + 1)) {
         const size_t start = at + marker.size(), end = body.find('"', start);
         const std::string asset = body.substr(start, end - start);
+        if (!release_link(asset, kRepository, "download/")) continue;
         if (asset.size() > 10 && asset.compare(asset.size() - 10, 10, "-setup.exe") == 0) check->setup_url = asset;
         if (asset.size() > 10 && asset.compare(asset.size() - 10, 10, "SHA256SUMS") == 0) check->sums_url = asset;
     }
@@ -564,7 +554,7 @@ private:
     void bottom_bar(float since);
     void resume();
     void stop_rumble();
-    void poll_gamepads(float now);  // every XInput port into ImGui's keys, the left stick as a d-pad
+    void poll_gamepads(float now);  // every controller slot into ImGui's keys, the left stick as a d-pad
     void focus_ring();              // the launcher's focus look on a standard ImGui widget
     float pad_icon(ImDrawList* list, const char* name, ImVec2 at, float h, bool draw = true);
     void resize_if_needed();
@@ -655,7 +645,6 @@ private:
     std::unique_ptr<LauncherMusic> music_;
     UpdateCheck updates_;
     std::thread update_thread_, download_thread_;
-    HMODULE xinput_ = nullptr;
     decltype(&XInputGetState) xinput_get_state_ = nullptr;
     bool pad_connected_ = false;
     bool pad_present_[4] = {};
@@ -745,7 +734,7 @@ bool Launcher::start_graphics() {
     return true;
 }
 
-// ImGui on device_ and context_, with the launcher's fonts and colours, and XInput for the controller status.
+// ImGui on device_ and context_, with the launcher's fonts and colours, and SDL for the controller status.
 void Launcher::start_imgui() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -779,11 +768,9 @@ void Launcher::start_imgui() {
     colours[ImGuiCol_NavCursor] = ImVec4(0, 0, 0, 0);  // the widgets draw their own focus (anim, focus_ring)
     colours[ImGuiCol_Border] = ImVec4(1, 1, 1, 0.1f);
 
-    xinput_ = LoadLibraryW(L"xinput1_4.dll");
-    if (!xinput_) xinput_ = LoadLibraryW(L"xinput9_1_0.dll");
-    if (xinput_) {
-        xinput_get_state_ = reinterpret_cast<decltype(&XInputGetState)>(GetProcAddress(xinput_, "XInputGetState"));
-        xinput_set_state_ = reinterpret_cast<decltype(&XInputSetState)>(GetProcAddress(xinput_, "XInputSetState"));
+    if (gamepad_init()) {
+        xinput_get_state_ = gamepad_get_state;
+        xinput_set_state_ = gamepad_set_state;
     }
 }
 
@@ -838,7 +825,6 @@ void Launcher::stop_graphics() {
     sampler_.Reset();
     context_.Reset();
     device_.Reset();
-    if (xinput_) FreeLibrary(xinput_);
 }
 
 void Launcher::resize_if_needed() {
@@ -1246,7 +1232,7 @@ void Launcher::apply_quality(int preset) {
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
-         {"game_language", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
+         {"game_language", "frame_rate", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
         if (setting(key) != setting_at_start(key)) return true;
     }
     return false;
@@ -1348,7 +1334,7 @@ void Launcher::page_play() {
     move_data_row();
     if (crash_report_ready() && status(false, t.crash_heading, t.crash_sub, t.crash_button, "##crash_report")) report_problem();
     if (disc_) {
-        if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox \xC2\xB7 PAL", t.change, "##disc")) choose_disc();
+        if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox", t.change, "##disc")) choose_disc();
     } else if (status(false, t.disc_none, disc_problem_.empty() ? t.disc_none_sub : disc_problem_.c_str(), t.choose_iso, "##disc")) {
         choose_disc();
     }
@@ -1356,8 +1342,8 @@ void Launcher::page_play() {
     char summary[160];
     const int preset = quality_preset();
     const char* quality = preset == 0 ? t.original : preset == 1 ? t.balanced : preset == 2 ? t.high : t.custom;
-    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 30 fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
-                  t.quality, quality);
+    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 %.0f fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
+                  setting("frame_rate") >= 60 ? 60.0f : 30.0f, t.quality, quality);
     if (status(true, summary, setting("effects") != 0 ? t.effects_sub : t.effects, t.edit, "##edit")) {
         page_ = Page::kSettings;
         page_since_ = static_cast<float>(ImGui::GetTime());
@@ -1416,6 +1402,10 @@ void Launcher::page_settings() {
         ImGui::PopItemWidth();
         cursor_ += px(58) + row_extra_;
         row_extra_ = 0;
+        row(t.fps, t.fps_sub, true);
+        const char* rates[] = {"30", "60"};
+        int rate = setting("frame_rate") >= 60 ? 1 : 0;
+        if (segmented("##fps", rates, 2, &rate)) set_setting("frame_rate", rate ? 60.0f : 30.0f);
         row(t.volume, nullptr);
         float volume = setting("volume");
         if (slider("##volume", &volume, 0, 100, "%.0f")) set_setting("volume", std::round(volume));
@@ -1524,7 +1514,7 @@ void Launcher::page_settings() {
     cursor_ += px(8);
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
-        for (const char* key : {"game_language", "volume", "launcher_music", "pause_in_background",
+        for (const char* key : {"game_language", "frame_rate", "volume", "launcher_music", "pause_in_background",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
                                 "anisotropy", "gpu_vertices", "sharp_2d", "effects", "sharpen", "bloom",
                                 "bloom_threshold", "saturation", "contrast", "vignette",
@@ -1735,7 +1725,7 @@ void Launcher::page_wizard() {
         update_row(false);
         move_data_row();
         if (disc_) {
-            if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox \xC2\xB7 PAL", t.change, "##disc")) choose_disc();
+            if (status(true, t.disc_ok, "Spider-Man 2 \xC2\xB7 Xbox", t.change, "##disc")) choose_disc();
         } else if (status(false, t.disc_none, disc_problem_.empty() ? t.disc_none_sub : disc_problem_.c_str(), t.choose_iso,
                           "##disc")) {
             choose_disc();
@@ -1759,6 +1749,10 @@ void Launcher::page_wizard() {
         const char* aspects[] = {"4:3", "16:9"};
         int aspect = setting("widescreen") != 0 ? 1 : 0;
         if (segmented("##aspect", aspects, 2, &aspect)) set_setting("widescreen", static_cast<float>(aspect));
+        row(t.fps, t.fps_sub, true);
+        const char* rates[] = {"30", "60"};
+        int rate = setting("frame_rate") >= 60 ? 1 : 0;
+        if (segmented("##fps", rates, 2, &rate)) set_setting("frame_rate", rate ? 60.0f : 30.0f);
         if (big_button(t.next, "##next", false)) {
             wizard_step_ = 2;
             page_since_ = static_cast<float>(ImGui::GetTime());
@@ -2375,8 +2369,8 @@ void Launcher::page_paused() {
     char summary[160];
     const int preset = quality_preset();
     const char* quality = preset == 0 ? t.original : preset == 1 ? t.balanced : preset == 2 ? t.high : t.custom;
-    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 30 fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
-                  t.quality, quality);
+    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 %.0f fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
+                  setting("frame_rate") >= 60 ? 60.0f : 30.0f, t.quality, quality);
     if (status(true, summary, setting("effects") != 0 ? t.effects_sub : t.effects, t.edit, "##edit")) {
         page_ = Page::kSettings;
         page_since_ = now_;
@@ -2684,4 +2678,4 @@ void game_menu_open() {
     if (g_game_menu) g_game_menu->request_open();
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 constexpr float kPi = 3.14159265f;
@@ -140,4 +140,4 @@ void WebEffects::spider(ImDrawList* list, ImVec2 screen, float scale, float now)
     list->AddCircleFilled(ImVec2(x, y + s * 1.6f), s * 0.28f, IM_COL32(210, 36, 40, 255));  // the red mark
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

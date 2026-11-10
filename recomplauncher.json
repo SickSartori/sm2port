@@ -4,7 +4,7 @@
   "name": "sm2port",
   "game": {
     "kind": "iso",
-    "label": "Your disc image (.iso) of Spider-Man 2 for the Xbox: the Italian release, or the European one (French, German, Spanish).",
+    "label": "Your disc image (.iso) of Spider-Man 2 for the Xbox: the Italian release, the European one (French, German, Spanish) or the World one.",
     "check": {
       "xdvdfs": "default.xbe"
     }
@@ -29,6 +29,16 @@
     }
   ],
   "settings": [
+    {
+      "id": "frame_rate",
+      "label": "Frame rate",
+      "help": "30 is the Xbox's own; 60 is smoother and needs a PC that handles twice the work.",
+      "choices": [
+        { "label": "30 fps", "set": { "frame_rate": "30" } },
+        { "label": "60 fps", "set": { "frame_rate": "60" } }
+      ],
+      "defaults": { "frame_rate": "30" }
+    },
     {
       "id": "resolution",
       "label": "Resolution",
@@ -159,6 +169,6 @@
     "logs": "{install}/logs"
   },
   "exit_codes": {
-    "2": "sm2port could not use your disc image. It needs the Italian or the European (French, German, Spanish) release of Spider-Man 2 for the Xbox, as a complete .iso: pick it again on the game's page."
+    "2": "sm2port could not use your disc image. It needs the Italian, the European (French, German, Spanish) or the World release of Spider-Man 2 for the Xbox, as a complete .iso: pick it again on the game's page."
   }
 }

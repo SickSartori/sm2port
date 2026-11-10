@@ -50,9 +50,9 @@ CHANGELOG (`tools/release_notes.ps1`) e i file di `dist/`.
 
 | Cartella | Contenuto |
 |---|---|
-| `src/core` | parti portabili: lettura ISO (XDVDFS), parser XBE, tabella export del kernel |
-| `src/pc` | runtime Windows x86: kernel emulato, GPU NV2A su D3D11, audio, input, launcher |
-| `third_party` | Dear ImGui e i font Barlow, con le loro licenze |
+| `external/sick-xport` | libreria privata condivisa con mc3port (sottomodulo git): `src/core` (ISO, XBE, export del kernel) e la parte di `src/pc` che non dipende dal gioco (kernel, memoria, thread, registri e texture della GPU, orologi, controller, percorsi, log, crash, profilo); `xport.cmake` |
+| `src/pc` | la parte di Spider-Man 2: patch del gioco, input e audio, renderer D3D11 e front end della GPU, dischi, launcher |
+| `third_party` | Dear ImGui e i font Barlow, con le loro licenze; la licenza di SDL3, che CMake scarica alla configurazione |
 | `res` | risorse Win32: icona, musica del launcher |
 | `tools` | script di build, pacchetto, note di rilascio e analisi dell'XBE |
 | `docs` | questo documento e il logo |
@@ -72,7 +72,7 @@ il minidump e lo zip di un crash), una cartella `mods` facoltativa sostituisce f
 stanno anche `sm2port.ini` e `shader_cache`. Se accanto a `sm2.exe` c'è un file `portable.txt` o un `sm2port.ini`,
 tutto resta invece accanto a `sm2.exe` (modalità portatile): è il caso delle build in `build\pc-x86\<config>`.
 
-Controlli: i controller XInput (Xbox 360/One/Series) sono le porte 1-4; Bianco e Nero diventano LB e RB. Senza
+Controlli: i controller (Xbox, PlayStation, Switch e la maggior parte degli altri, tramite SDL3) sono le porte 1-4; Bianco e Nero diventano LB e RB. Senza
 controller, la porta 1 è la tastiera (solo quando la finestra del gioco è in primo piano):
 
 | Tasto | Pulsante Xbox |
@@ -121,7 +121,7 @@ Variabili d'ambiente:
 | `SM2_SKIP_LAUNCHER=1` | parte direttamente il gioco |
 | `SM2_LAUNCHER_AUTOPLAY=<s>` | il launcher preme GIOCA dopo `s` secondi (test) |
 | `SM2_LAUNCHER_PAGE=settings\|controls\|about` | il launcher si apre su quella pagina (catture di prova) |
-| `SM2_ANY_VERSION=1` | accetta anche dischi diversi dalla versione PAL supportata |
+| `SM2_ANY_VERSION=1` | accetta anche dischi diversi dalle versioni supportate |
 | `SM2_DUMP_FRAMES=<n>` | salva un frame presentato ogni `n` come `frame-NNNNN.bmp` nella cartella di lavoro |
 | `SM2_DEBUG_DRAWS=<n>` | descrive nel log i primi `n` draw (vertici, combiner, texture, stati); con `SM2_DEBUG_DRAWS_FF=1` solo quelli fixed-function |
 | `SM2_DUMP_TARGET=<indirizzo hex>` | con ogni frame salvato, anche la render target a quell'indirizzo fisico (`target-NNNNN.bmp`) |

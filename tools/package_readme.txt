@@ -21,8 +21,8 @@ WHAT YOU NEED
   only: install the Media Feature Pack (Settings > Apps > Optional
   features), or sm2runtime.dll will not load.
 - A graphics card and driver with Direct3D 11 (feature level 11_0).
-- A disc image (.iso or .cci) of Spider-Man 2 for the Xbox, Italian or
-  European (French, German, Spanish). XISO and Redump dumps both work, in
+- A disc image (.iso or .cci) of Spider-Man 2 for the Xbox, Italian,
+  European (French, German, Spanish) or World. XISO and Redump dumps both work, in
   one file or split in parts, and so does the compressed CCI format. Other
   releases are not supported: the launcher tells you if the disc is a
   different version.
@@ -37,8 +37,8 @@ FIRST START
 3. Pick a quality preset and the frame rate, and press PLAY.
 
 Controls: W A S D move, the mouse (or the arrow keys) moves the camera,
-Space jumps, E clings to walls, the left mouse button attacks. Xbox
-controllers work as on the console. F1 opens the in-game menu, F11 toggles
+Space jumps, E clings to walls, the left mouse button attacks. Xbox,
+PlayStation and most other controllers work as on the console. F1 opens the in-game menu, F11 toggles
 full screen, F10 toggles the modern effects. Every key can be changed in
 the launcher's Controls page.
 

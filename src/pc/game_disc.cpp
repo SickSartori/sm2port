@@ -14,18 +14,20 @@
 #include "pc/log.h"
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
-// SHA-256 of default.xbe on Spider-Man 2 (Europe) (En,Fr,De,Es,It): the build the port's
-// code patches (hle_patches.cpp, dsound_hle.cpp, input_hle.cpp) are made for.
+// SHA-256 of default.xbe on the releases the port's code patches (hle_patches.cpp, dsound_hle.cpp, input_hle.cpp)
+// know the addresses of: Spider-Man 2 (Europe) (En,Fr,De,Es,It) in its two builds, and Spider-Man 2 (World).
 constexpr char kSupportedXbe[] = "2c0032e3b579c2c4b51bd1740b46e37e9a5c77ab9e5788e1d4667e15ed4c2597";  // Italy
 constexpr char kSupportedXbeEurope[] = "0c466591001257abee3d96fc8844635b045cb037d66b0925ccb1a8c6d1b866fb";  // Europe (Fr,De,Es)
+constexpr char kSupportedXbeWorld[] = "e8353bf6d975b281a77c5f41f49bb9a05e9e82db93bfa8ba73af0c424a4313af";  // World
 // SHA-256 of all their sections' raw data, in header order: the same with another header or certificate (region-free or
 // re-signed dumps). The code and data the patches check are what count.
 constexpr char kSupportedCode[] = "5f2fc1ea776bf8b34d8e776ca2ab0a7f65f04b192f5fa5c341460bb9e38481bd";  // Italy
 constexpr char kSupportedCodeEurope[] = "4b2daa09e0b9cb27be6aec0c0088cacf3d0cd547fccb43ddbbf07e07d3d265bb";  // Europe (Fr,De,Es)
-constexpr char kSupportedName[] = "Spider-Man 2, Xbox, Italy or Europe (Fr,De,Es)";
+constexpr char kSupportedCodeWorld[] = "5c8be0b6e8c1113a9914252410325bbb8db4b9cba25e18f0934516838236920d";  // World
+constexpr char kSupportedName[] = "Spider-Man 2, Xbox, Italy, Europe (Fr,De,Es) or World";
 
 // Dialog texts in English, or in Italian on an Italian Windows.
 const char* text(const char* english, const char* italian) {
@@ -85,12 +87,17 @@ std::optional<GameDisc> check_game_disc(const std::filesystem::path& path, std::
         problem = text("The game on this disc image cannot be read.", "Il gioco in questa immagine non si puo' leggere.");
         return std::nullopt;
     }
-    log_line("disc: %s: '%s', title id %08X, default.xbe SHA-256 %s", utf8(path).c_str(), xbe->title().c_str(),
-             xbe->title_id(), hash.c_str());
-    const bool known_file = hash == kSupportedXbe || hash == kSupportedXbeEurope;
+    // The release's region, from the certificate: a refused disc then says which one it is (reports come without the log).
+    const uint32_t region = xbe->game_region() & 7;
+    const char* region_name = region == 1 ? text("North America", "America del Nord") : region == 2 ? text("Japan", "Giappone")
+                              : region == 4 ? text("Europe and the rest of the world", "Europa e resto del mondo")
+                                            : text("several regions", "piu' regioni");
+    log_line("disc: %s: '%s', title id %08X, region %X, default.xbe SHA-256 %s", utf8(path).c_str(), xbe->title().c_str(),
+             xbe->title_id(), xbe->game_region(), hash.c_str());
+    const bool known_file = hash == kSupportedXbe || hash == kSupportedXbeEurope || hash == kSupportedXbeWorld;
     const std::string code = known_file ? std::string() : code_hash(*xbe);
     if (!known_file) log_line("disc: code SHA-256 %s", code.c_str());
-    if (!known_file && (code == kSupportedCode || code == kSupportedCodeEurope)) {
+    if (!known_file && (code == kSupportedCode || code == kSupportedCodeEurope || code == kSupportedCodeWorld)) {
         log_line("disc: its header differs from the known one, its code is the supported one");
     } else if (!known_file) {
         if (GetEnvironmentVariableW(L"SM2_ANY_VERSION", nullptr, 0)) {
@@ -98,10 +105,10 @@ std::optional<GameDisc> check_game_disc(const std::filesystem::path& path, std::
         } else {
             char message[512];
             std::snprintf(message, sizeof(message),
-                          text("This disc image holds \"%s\" (title id %08X), not the version sm2port supports:\n%s.",
-                               "Questa immagine contiene \"%s\" (title id %08X), non la versione supportata da "
+                          text("This disc image holds \"%s\" (title id %08X, %s), not the version sm2port supports:\n%s.",
+                               "Questa immagine contiene \"%s\" (title id %08X, %s), non la versione supportata da "
                                "sm2port:\n%s."),
-                          xbe->title().c_str(), xbe->title_id(), kSupportedName);
+                          xbe->title().c_str(), xbe->title_id(), region_name, kSupportedName);
             problem = message;
             return std::nullopt;
         }
@@ -208,4 +215,4 @@ std::optional<GameDisc> open_game_disc(const std::filesystem::path& exe_director
     }
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

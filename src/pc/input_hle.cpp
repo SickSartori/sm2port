@@ -2,7 +2,7 @@
 //
 // The game talks to its controllers only through a handful of XPP functions (found from its input code in
 // the XBE). XInitDevices is skipped (hle_patches.cpp), so there is no USB stack; these
-// functions are redirected here and served from XInput. A device type ("XPP_DEVICE_TYPE") is three port masks:
+// functions are redirected here and served from SDL3 (gamepad.cpp). A device type ("XPP_DEVICE_TYPE") is three port masks:
 // connected now, ports that changed since the last query, connected at the last query. XGetDevices and
 // XGetDeviceChanges keep the original logic on those masks, refreshing the gamepad masks from the host first.
 
@@ -18,6 +18,8 @@
 #include <vector>
 
 #include "pc/exec_memory.h"
+#include "pc/gamepad.h"
+#include "pc/hle_patches.h"
 #include "pc/keyboard_bindings.h"
 #include "pc/nv2a.h"
 #include "pc/game_pause.h"
@@ -25,13 +27,11 @@
 #include "pc/log.h"
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 constexpr uint32_t kPorts = 4;
-constexpr uint32_t kGamepadTypeItaly = 0x00444214;  // XDEVICE_TYPE_GAMEPAD
-// The Europe (Fr,De,Es) build is the Italian one with everything from here on moved down by 0x40 bytes.
-constexpr uint32_t kEuropeShift = 0x40;
+constexpr uint32_t kGamepadTypeItaly = 0x00444214;  // XDEVICE_TYPE_GAMEPAD (the other builds: build_address)
 uint32_t g_gamepad_type = kGamepadTypeItaly;
 
 constexpr uint32_t kErrorSuccess = 0;
@@ -119,14 +119,12 @@ uint32_t g_script_ports = 0;  // controllers the script presses on (a virtual pa
 ULONGLONG g_start_ms = 0;
 
 void load_xinput() {
-    HMODULE module = LoadLibraryW(L"xinput1_4.dll");
-    if (!module) module = LoadLibraryW(L"xinput9_1_0.dll");
-    if (!module) {
-        log_line("input: XInput not available, only the keyboard works");
+    if (!gamepad_init()) {
+        log_line("input: SDL not available, only the keyboard works");
         return;
     }
-    g_xinput_get_state = reinterpret_cast<XInputGetStateFunction>(GetProcAddress(module, "XInputGetState"));
-    g_xinput_set_state = reinterpret_cast<XInputSetStateFunction>(GetProcAddress(module, "XInputSetState"));
+    g_xinput_get_state = gamepad_get_state;
+    g_xinput_set_state = gamepad_set_state;
 }
 
 void load_script() {
@@ -238,35 +236,23 @@ void apply_script(XboxGamepad& pad, uint32_t port) {
     }
 }
 
-// Mouse look: the mouse moves the camera (right stick) while the game window is in front and the game runs. The
-// cursor is hidden and put back at the middle of the window after every poll, so what it moved since is the push.
+// Mouse look: the mouse moves the camera (right stick) while the game window is in front and the game runs. Its
+// movement comes from raw input (nv2a.cpp), so the cursor is free to go anywhere; while the game runs it is hidden
+// after 3 s without moving, and shown again as soon as the mouse moves.
 void mouse_look(XboxGamepad& pad) {
-    static bool active = false;
-    const bool wanted = setting("mouse_look") != 0 && game_has_focus() && !game_paused();
-    if (!wanted) {
-        if (active) nv2a_hide_cursor(false);
-        active = false;
-        return;
-    }
-    HWND window = GetForegroundWindow();
-    RECT client;
-    POINT middle, cursor;
-    if (!GetClientRect(window, &client)) return;
-    middle = {client.right / 2, client.bottom / 2};
-    ClientToScreen(window, &middle);
-    GetCursorPos(&cursor);
-    SetCursorPos(middle.x, middle.y);
-    if (!active) {  // the first poll only takes the mouse
-        nv2a_hide_cursor(true);
-        active = true;
-        return;
-    }
-    const float gain = 1500.0f * setting("mouse_sensitivity");  // stick units per pixel moved between two polls
+    static bool hidden = false;
+    const bool running = game_has_focus() && !game_paused();
+    const bool hide = running && nv2a_mouse_idle_ms() > 3000;
+    if (hide != hidden) nv2a_hide_cursor(hidden = hide);
+    int dx = 0, dy = 0;
+    nv2a_take_mouse_motion(dx, dy);
+    if (!running || setting("mouse_look") == 0) return;
+    const float gain = 1500.0f * setting("mouse_sensitivity");  // stick units per mickey moved between two polls
     const auto push = [](int16_t stick, float movement) {
         return static_cast<int16_t>(std::clamp(stick + movement, -32768.0f, 32767.0f));
     };
-    pad.thumb_rx = push(pad.thumb_rx, (cursor.x - middle.x) * gain);
-    pad.thumb_ry = push(pad.thumb_ry, -(cursor.y - middle.y) * gain);
+    pad.thumb_rx = push(pad.thumb_rx, dx * gain);
+    pad.thumb_ry = push(pad.thumb_ry, -dy * gain);
 }
 
 // Controller 1 without a pad: the keyboard and mouse (only while the game window is in front) and the test script.
@@ -397,8 +383,6 @@ bool read_host(uint32_t index, XboxGamepad& pad) {
         g_host_connected[index] = g_xinput_get_state(index, &state) == ERROR_SUCCESS;
         if (!g_host_connected[index]) g_next_scan_ms[index] = now + 1000;
         if (g_host_connected[index]) {
-            combo_track(index, state.Gamepad.wButtons, now);
-            state.Gamepad.wButtons = combo_filter(index, state.Gamepad.wButtons, now);
             pad = from_xinput(state.Gamepad);
             apply_script(pad, index);
             return true;
@@ -486,6 +470,12 @@ uint32_t __stdcall XInputGetState(uint32_t handle, XboxInputState* state) {
     Port* port = port_of(handle);
     XboxGamepad pad{};
     if (!port || !read_host(port->index, pad)) return kErrorDeviceNotConnected;
+    // The Back+Start combo, only on the read the game sees: host_mask's reads threw the replayed tap away.
+    if (g_host_connected[port->index]) {
+        const ULONGLONG now = GetTickCount64();
+        combo_track(port->index, pad.buttons, now);
+        pad.buttons = combo_filter(port->index, pad.buttons, now);
+    }
     if (std::memcmp(&pad, &port->last, sizeof(pad)) != 0) {
         port->last = pad;
         ++port->packet_number;
@@ -557,26 +547,23 @@ void input_note_file_opened(const std::string& path) {
 
 void install_input_hle(const Xbe& xbe) {
     constexpr uint32_t kTitleId = 0x4156002B;
-    constexpr uint32_t kEntryItaly = 0x00390610;
-    constexpr uint32_t kEntryEurope = 0x003905D0;
-    if (xbe.title_id() != kTitleId || (xbe.entry_point() != kEntryItaly && xbe.entry_point() != kEntryEurope)) {
+    if (xbe.title_id() != kTitleId || !build_address(xbe, kGamepadTypeItaly)) {
         log_line("input: not the XBE these addresses were taken from; controllers are not connected");
         return;
     }
-    const uint32_t shift = xbe.entry_point() == kEntryEurope ? kEuropeShift : 0;
-    g_gamepad_type = kGamepadTypeItaly - shift;
+    g_gamepad_type = build_address(xbe, kGamepadTypeItaly);
     load_xinput();
     load_script();
     g_start_ms = GetTickCount64();
     for (const Redirect& redirect : kRedirects) {
-        const uint32_t address = redirect.address - shift;
+        const uint32_t address = build_address(xbe, redirect.address);
         auto* code = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(address));
         code[0] = 0xE9;  // jmp rel32
         const uint32_t relative = address_of(redirect.function) - (address + 5);
         std::memcpy(code + 1, &relative, sizeof(relative));
     }
-    log_line("input: %u XPP entry points redirected to XInput and the keyboard",
+    log_line("input: %u XPP entry points redirected to SDL and the keyboard",
              static_cast<uint32_t>(sizeof(kRedirects) / sizeof(kRedirects[0])));
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

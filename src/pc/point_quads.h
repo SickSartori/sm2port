@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace sm2::pc {
+namespace xport::pc {
 
 // Polygon mode POINT (the night sky's stars): each vertex is a square of `size` surface pixels. Direct3D 11 only has
 // points of one window pixel, which would shrink as the internal resolution grows. Positions are pixels times w, so the
@@ -24,4 +24,4 @@ void append_point_quads(const std::vector<Vertex>& points, float size, std::vect
     }
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

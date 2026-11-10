@@ -24,7 +24,7 @@
 #include "pc/settings.h"
 #include "pc/xbox_types.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 constexpr uint32_t kFramesPerChunk = kOutputRate / 100;  // 10 ms
@@ -285,6 +285,7 @@ void finish_release(Voice& voice) {
     voice.playing = false;
     if (!voice.is_stream) return;
     voice.end_of_stream = false;
+    voice.stream_fed = false;
     voice.stopped_by_flush = true;
     for (const StreamPacket& packet : voice.packets) complete_packet(voice, packet, kPacketFlushed);
     voice.packets.clear();
@@ -337,16 +338,25 @@ void mix_buffer_voice(Voice& voice, float* out, uint32_t frames) {
     const double step = step_for(voice);
 
     for (uint32_t n = 0; n < frames; ++n) {
-        // Linear interpolation between this frame and the next one (which wraps to the loop start): picking the
-        // nearest frame aliases badly whenever the pitch is not exactly 1.
+        // Catmull-Rom over four frames (wrapping to the loop start). Effects are mostly loops at a lower rate than
+        // the output's: linear interpolation left copies of their sound in the top octave (2-4 dB more there,
+        // measured in mc3port).
         const uint32_t frame = static_cast<uint32_t>(voice.position);
         const float fraction = static_cast<float>(voice.position - frame);
         const uint32_t end = voice.looping ? loop_end : region_frames;
-        const uint32_t next = frame + 1 < end ? frame + 1 : (voice.looping ? loop_start : frame);
+        const auto after = [&](uint32_t f) { return f + 1 < end ? f + 1 : (voice.looping ? loop_start : f); };
+        const uint32_t before = voice.looping && frame == loop_start ? loop_end - 1 : (frame > 0 ? frame - 1 : 0);
+        const uint32_t next = after(frame), last = after(next);
         for (uint32_t channel = 0; channel < channels; ++channel) {
-            const float a = voice_sample(voice, region, region_bytes, frame, channel);
-            const float b = fraction > 0 ? voice_sample(voice, region, region_bytes, next, channel) : a;
-            const float sample = filtered(voice, channel, a + (b - a) * fraction);
+            float value = voice_sample(voice, region, region_bytes, frame, channel);
+            if (fraction > 0) {
+                const float p0 = voice_sample(voice, region, region_bytes, before, channel), p1 = value;
+                const float p2 = voice_sample(voice, region, region_bytes, next, channel);
+                const float p3 = voice_sample(voice, region, region_bytes, last, channel);
+                const float t = fraction;
+                value = p1 + 0.5f * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)));
+            }
+            const float sample = filtered(voice, channel, value);
             out[n * 2] += sample * gains.at(channel, 0, n);
             out[n * 2 + 1] += sample * gains.at(channel, 1, n);
         }
@@ -376,22 +386,36 @@ void mix_stream_voice(Voice& voice, float* out, uint32_t frames) {
         const uint32_t frame = current.consumed_frames;
         if (frame < packet_frames) {
             const float fraction = static_cast<float>(voice.stream_fraction);
-            for (uint32_t channel = 0; channel < channels; ++channel) {
-                const float a = voice_sample(voice, data, current.packet.max_size, frame, channel);
-                // The next frame, possibly the first of the next packet.
-                float b = a;
-                if (fraction > 0) {
-                    if (frame + 1 < packet_frames) {
-                        b = voice_sample(voice, data, current.packet.max_size, frame + 1, channel);
-                    } else if (voice.packets.size() > 1 && voice.format.format_tag != kFormatXboxAdpcm) {
-                        const StreamPacket& following = voice.packets[1];
-                        b = voice_sample(voice, guest<const uint8_t>(following.packet.buffer),
-                                         following.packet.max_size, 0, channel);
-                    }
+            // A later frame, possibly in the next packet. PCM only there: ADPCM's cache holds one block at a time.
+            const auto later = [&](uint32_t ahead, uint32_t channel, float otherwise) {
+                if (frame + ahead < packet_frames) {
+                    return voice_sample(voice, data, current.packet.max_size, frame + ahead, channel);
                 }
-                const float sample = filtered(voice, channel, a + (b - a) * fraction);
+                if (voice.packets.size() > 1 && voice.format.format_tag != kFormatXboxAdpcm) {
+                    const StreamPacket& following = voice.packets[1];
+                    return voice_sample(voice, guest<const uint8_t>(following.packet.buffer), following.packet.max_size,
+                                        frame + ahead - packet_frames, channel);
+                }
+                return otherwise;
+            };
+            for (uint32_t channel = 0; channel < channels; ++channel) {
+                const float p1 = voice_sample(voice, data, current.packet.max_size, frame, channel);
+                float value = p1;
+                if (fraction > 0) {
+                    // Catmull-Rom, as for buffers: linear interpolation took 3-4 dB off the music's top octave
+                    // (measured in mc3port).
+                    const float p0 = voice.stream_previous[channel], p2 = later(1, channel, p1), p3 = later(2, channel, p2);
+                    const float t = fraction;
+                    value = p1 + 0.5f * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)));
+                }
+                const float sample = filtered(voice, channel, value);
                 out[n * 2] += sample * gains.at(channel, 0, n);
                 out[n * 2 + 1] += sample * gains.at(channel, 1, n);
+            }
+            if (voice.stream_fraction + step >= 1) {
+                for (uint32_t channel = 0; channel < channels; ++channel) {
+                    voice.stream_previous[channel] = voice_sample(voice, data, current.packet.max_size, frame, channel);
+                }
             }
         }
         voice.stream_fraction += step;
@@ -404,7 +428,7 @@ void mix_stream_voice(Voice& voice, float* out, uint32_t frames) {
             voice.decoded_block = -1;
         }
     }
-    if (voice.packets.empty() && voice.end_of_stream) {
+    if (voice.packets.empty() && voice.end_of_stream && voice.stream_fed) {
         voice.playing = false;
         voice.end_of_stream = false;
     }
@@ -732,4 +756,4 @@ std::vector<CompletedPacket> take_completed_packets(const Voice& voice) {
     return taken;
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

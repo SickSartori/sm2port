@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(sm2port VERSION 0.1.2 LANGUAGES C CXX)
+project(sm2port VERSION 0.1.3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,14 +12,9 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 string(REPLACE "/Ob1" "/Ob2" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 string(REPLACE "/Ob1" "/Ob2" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 
-# Portable core: disc image and XBE parsing, kernel export table.
-# No platform headers here.
-add_library(sm2core STATIC
-    src/core/kernel_exports.cpp
-    src/core/xbe.cpp
-    src/core/xdvdfs.cpp
-)
-target_include_directories(sm2core PUBLIC src)
+# The shared runtime (private submodule, external/sick-xport): the Xbox kernel, memory, threads, the NV2A's
+# registers and textures, paths, logs; xportcore is its portable part (discs, XBE, kernel exports).
+include(external/sick-xport/xport.cmake)
 
 if(WIN32)
     if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -44,51 +39,50 @@ if(WIN32)
     # The launcher polls the controllers itself (every port, not only the first): see Launcher::poll_gamepads.
     target_compile_definitions(imgui PRIVATE NOMINMAX IMGUI_IMPL_WIN32_DISABLE_GAMEPAD)
 
+    # SDL3 (zlib): only its gamepad side, for Xbox, PlayStation, Switch and other controllers (src/pc/gamepad.cpp).
+    # Downloaded at configure time, pinned by version and hash, linked statically.
+    include(FetchContent)
+    FetchContent_Declare(SDL3
+        URL https://github.com/libsdl-org/SDL/releases/download/release-3.4.20/SDL3-3.4.20.tar.gz
+        URL_HASH SHA256=f3bb06f55bed9557227a700af2ea62e49497ebdf58037732a731a5fb3ef8581f
+    )
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+    set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+    foreach(subsystem AUDIO VIDEO HAPTIC POWER SENSOR DIALOG)
+        set(SDL_${subsystem} OFF CACHE BOOL "" FORCE)
+    endforeach()
+    FetchContent_MakeAvailable(SDL3)
+
     # Runtime: maps the XBE, emulates the Xbox kernel and hosts the game's threads.
     add_library(sm2runtime SHARED
+        ${XPORT_RUNTIME_SOURCES}
         src/pc/audio_mixer.cpp
         src/pc/dsound_hle.cpp
-        src/pc/exec_memory.cpp
-        src/pc/fs_patch.cpp
         src/pc/game_disc.cpp
-        src/pc/game_pause.cpp
-        src/pc/handles.cpp
         src/pc/hle_patches.cpp
         src/pc/input_hle.cpp
-        src/pc/kernel.cpp
-        src/pc/kernel_crypto.cpp
-        src/pc/kernel_dispatcher.cpp
         src/pc/kernel_io.cpp
-        src/pc/kernel_memory.cpp
-        src/pc/kernel_system.cpp
         src/pc/kernel_threads.cpp
         src/pc/keyboard_bindings.cpp
-        src/pc/launcher_music.cpp
         src/pc/launcher_ui.cpp
         src/pc/launcher_web.cpp
-        src/pc/log.cpp
-        src/pc/mmio.cpp
         src/pc/nv2a.cpp
-        src/pc/nv2a_combiner.cpp
         src/pc/nv2a_kelvin.cpp
-        src/pc/nv2a_texture.cpp
-        src/pc/nv2a_vsh.cpp
-        src/pc/crash_report.cpp
-        src/pc/paths.cpp
-        src/pc/physical_memory.cpp
-        src/pc/privileged.cpp
-        src/pc/profile.cpp
-        src/pc/renderer_d3d11.cpp
+        src/pc/renderer_game.cpp
         src/pc/runtime.cpp
         src/pc/settings.cpp
-        src/pc/texture_upscale.cpp
-        src/pc/xbox_thread.cpp
         res/launcher.rc
     )
-    target_link_libraries(sm2runtime PRIVATE sm2core shell32 user32 gdi32 winmm ole32 xaudio2 d3d11 dxgi d3dcompiler dbghelp dwmapi bcrypt comdlg32 winhttp windowscodecs imgui mfplat mfreadwrite mfuuid shlwapi)
+    target_link_libraries(sm2runtime PRIVATE xportcore shell32 user32 gdi32 winmm ole32 xaudio2 d3d11 dxgi d3dcompiler dbghelp dwmapi bcrypt comdlg32 winhttp windowscodecs imgui mfplat mfreadwrite mfuuid shlwapi SDL3::SDL3-static)
     target_compile_definitions(sm2runtime PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE
                                SM2PORT_VERSION="${PROJECT_VERSION}" ${SM2_VERSION_DEFINES})
     target_compile_options(sm2runtime PRIVATE /utf-8)
+    target_include_directories(sm2runtime PRIVATE src res)
+    xport_identity(sm2runtime sm2port SM2PORT SM2_)
+    # Started by RecompLauncher, the data stays next to sm2.exe (since 0.1.2).
+    target_compile_definitions(sm2runtime PRIVATE XPORT_DATA_WITH_RECOMPLAUNCHER)
     # The GPU thread's hot path crosses files (methods, physical memory, renderer).
     set_target_properties(sm2runtime PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
                                                 INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
@@ -112,20 +106,17 @@ if(WIN32)
     if(BUILD_TESTING)
         function(sm2_test name)
             add_executable(${name} tests/${name}.cpp ${ARGN})
-            target_link_libraries(${name} PRIVATE sm2core)
-            target_include_directories(${name} PRIVATE tests)
+            target_link_libraries(${name} PRIVATE xportcore)
+            target_include_directories(${name} PRIVATE src tests ${XPORT_DIR}/tests)
             target_compile_definitions(${name} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
             target_compile_options(${name} PRIVATE /utf-8)
             set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
             add_test(NAME ${name} COMMAND ${name})
         endfunction()
-        sm2_test(test_core)
-        sm2_test(test_log src/pc/log.cpp)
-        sm2_test(test_data_folder src/pc/paths.cpp)
         sm2_test(test_point_quads)
-        sm2_test(test_crash_report src/pc/crash_report.cpp)
-        sm2_test(test_textures src/pc/nv2a_texture.cpp src/pc/texture_upscale.cpp)
         sm2_test(test_game_disc src/pc/game_disc.cpp)
+        sm2_test(test_settings src/pc/settings.cpp ${XPORT_DIR}/src/pc/log.cpp)
+        xport_add_tests(sm2port SM2PORT SM2_)
         target_link_libraries(test_game_disc PRIVATE bcrypt comdlg32 shell32 user32)
         add_test(NAME disc_real COMMAND test_game_disc real)
         set_tests_properties(disc_real PROPERTIES SKIP_RETURN_CODE 77)

@@ -2,9 +2,9 @@
 
 # sm2port
 
-An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian and the European
-French/German/Spanish releases). It runs the game from **your own disc image**, with 16:9 widescreen, a
-higher internal resolution, keyboard and mouse, and optional modern effects.
+An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian, the European
+French/German/Spanish and the World releases). It runs the game from **your own disc image**, with 16:9 widescreen, up to
+60 fps, a higher internal resolution, keyboard and mouse, and optional modern effects.
 
 > [!IMPORTANT]
 > sm2port is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by or sponsored by Marvel,
@@ -23,13 +23,13 @@ higher internal resolution, keyboard and mouse, and optional modern effects.
 
 sm2port is a port, not a remaster. It runs the original 2004 game, with its own city, missions and soundtrack. The game's
 x86 code runs natively on your PC; sm2port replaces the Xbox around it: its kernel, the NV2A graphics chip (on
-Direct3D 11), the sound chip (on XAudio2) and the controllers (on XInput, keyboard and mouse).
+Direct3D 11), the sound chip (on XAudio2) and the controllers (on SDL3, keyboard and mouse).
 
 Compared with the console:
 
 - **True 16:9**: the game's own widescreen mode, with a wider view and no black bars. The full picture of the PAL game is
   shown (576 lines).
-- **30 fps, like the Xbox** (60 fps is not available yet).
+- **30 fps like the Xbox, or 60 fps** (in the launcher's settings; 60 needs a PC that handles twice the work).
 - **Higher internal resolution** (up to 4K, or as many lines as your screen) with anisotropic filtering.
 - **Modern effects**, all optional: light glow, sharpening, colour, vignette and ambient occlusion (F10 switches them on
   and off to compare).
@@ -49,6 +49,7 @@ Compared with the console:
   |---|---|
   | Italy | `2c0032e3b579c2c4b51bd1740b46e37e9a5c77ab9e5788e1d4667e15ed4c2597` |
   | Europe (French, German, Spanish) | `0c466591001257abee3d96fc8844635b045cb037d66b0925ccb1a8c6d1b866fb` |
+  | World | `e8353bf6d975b281a77c5f41f49bb9a05e9e82db93bfa8ba73af0c424a4313af` |
 
   XISO and full Redump dumps both work, in one file or split in parts, and so does the compressed CCI format. Other
   releases are not supported: sm2port checks the executable and tells you if the disc is a different version.
@@ -77,8 +78,8 @@ where it is. Then pick a quality preset and the frame rate and press **PLAY**.
 
 ## Controls
 
-Xbox controllers (Xbox 360, One and Series, or anything XInput) work as on the console. PlayStation and other pads work
-through Steam Input or DS4Windows. Without a controller, the keyboard and the mouse are controller 1; every key can be
+Xbox controllers (360, One and Series) work as on the console. PlayStation, Switch and most other USB or Bluetooth pads
+work too, through SDL3, with the buttons in the Xbox positions (the bottom face button is A). Without a controller, the keyboard and the mouse are controller 1; every key can be
 changed in the launcher's **Controls** page.
 
 | Input | Xbox controller |
@@ -101,7 +102,8 @@ changed in the launcher's **Controls** page.
 | F11 or Alt+Enter | full screen on and off |
 | F10 | modern effects on and off |
 
-The mouse moves the camera while the game window is in front and the game runs (the cursor is hidden). Settings
+The mouse moves the camera while the game window is in front and the game runs (the cursor hides after a few seconds
+without moving). Settings
 `mouse_look` and `mouse_sensitivity` in `sm2port.ini` turn it off or change its speed.
 
 ## Settings
@@ -112,6 +114,7 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 | Setting | What it does |
 |---|---|
 | Game language | the game's own languages for your release, by default like Windows |
+| Frames per second | 30 like the Xbox, or 60 |
 | Aspect ratio | 16:9 (the game's widescreen mode) or 4:3 |
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
@@ -123,7 +126,7 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 - **Textures**: some textures look wrong in places (blurred or stretched surfaces, odd stripes on some buildings).
 - **Sound**: the game's sounds, music and films play, but some DirectSound calls (3D positioning among them) are not
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
-- Online play (Xbox Live) is not available. Only the Italian and the European (French, German, Spanish) releases are supported.
+- Online play (Xbox Live) is not available. Only the Italian, the European (French, German, Spanish) and the World releases are supported.
 - On monitors wider than 16:9 there are thin black bars at the sides.
 - Linux (Wine, Proton) has not been tried with this game.
 
@@ -141,8 +144,12 @@ version and PC filled in, and the folder with `sm2port.log` to attach.
 
 ## Building from source
 
-Visual Studio with "Desktop development with C++" (MSVC x86 tools, Windows SDK, CMake tools). From a Developer
-PowerShell in the project folder:
+sm2port's game-specific code is here; the shared runtime it builds on (the Xbox kernel, memory and threads, the
+graphics chip's registers and textures, disc reading) is a private library, `external/sick-xport`, so this
+repository alone does not build. The releases include it, compiled, in `sm2runtime.dll`.
+
+With access to the library: Visual Studio with "Desktop development with C++" (MSVC x86 tools, Windows SDK, CMake
+tools), `git submodule update --init`, then from a Developer PowerShell in the project folder:
 
 ```
 cmake -S . -B build/pc-x86 -A Win32
@@ -166,5 +173,7 @@ xemu and other open-source Xbox projects were studied as references only; no cod
 
 ## Licence
 
-sm2port's code is released under the [MIT licence](LICENSE). Third-party parts keep their own licences, listed in
+sm2port's code in this repository is released under the [MIT licence](LICENSE). The shared runtime
+(`external/sick-xport`) is not: it is private, and its compiled form in `sm2runtime.dll` may be used and passed on
+unchanged as part of sm2port's releases. Third-party parts keep their own licences, listed in
 [THIRD_PARTY.md](THIRD_PARTY.md). The game itself, and everything read from your disc, belongs to its owners.
