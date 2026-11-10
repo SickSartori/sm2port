@@ -14,6 +14,13 @@
 
 ### Improved
 
+- **Overlays no longer break the textures**: RivaTuner Statistics Server, Steam, Discord and MSI Afterburner draw
+  inside the call that shows a frame, and since that call has a thread of its own they drew with the game's Direct3D
+  device while the game was drawing. The window now presents with a device of its own (as mc3port 0.3.6 does).
+- Compiled pixel shaders are kept in the shader cache too, so a place seen before no longer stutters while they are
+  made again. On integrated graphics the automatic resolution stops at 1080 lines.
+- sm2port now shares its game-independent runtime and its Direct3D 11 renderer with mc3port, so fixes to either reach
+  both.
 - On laptops with two graphics cards the game runs on the fast one, not on Windows' default (the integrated one), unless
   Windows' graphics settings say otherwise for `sm2.exe`.
 - A disc of another release is refused with its region named (North America, Japan, Europe), in the message and in the

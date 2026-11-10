@@ -70,7 +70,7 @@ if(WIN32)
         src/pc/launcher_web.cpp
         src/pc/nv2a.cpp
         src/pc/nv2a_kelvin.cpp
-        src/pc/renderer_d3d11.cpp
+        src/pc/renderer_game.cpp
         src/pc/runtime.cpp
         src/pc/settings.cpp
         res/launcher.rc
