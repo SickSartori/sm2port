@@ -5,7 +5,7 @@
 #include "pc/point_quads.h"
 #include "test.h"
 
-using namespace sm2::pc;
+using namespace xport::pc;
 
 namespace {
 struct Vertex {

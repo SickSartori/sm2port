@@ -14,7 +14,7 @@
 #include "pc/log.h"
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 // SHA-256 of default.xbe on the releases the port's code patches (hle_patches.cpp, dsound_hle.cpp, input_hle.cpp)
@@ -215,4 +215,4 @@ std::optional<GameDisc> open_game_disc(const std::filesystem::path& exe_director
     }
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

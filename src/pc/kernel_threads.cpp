@@ -12,7 +12,7 @@
 #include "pc/profile.h"
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 // Xbox stacks are committed up front and the Xbox CRT does not probe large stack frames page by page. On Windows
@@ -192,4 +192,4 @@ void register_thread_functions() {
     register_kernel(250, &ObfDereferenceObject);
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

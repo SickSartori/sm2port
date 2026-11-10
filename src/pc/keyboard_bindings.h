@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace sm2::pc {
+namespace xport::pc {
 
 enum class PadInput : uint8_t {
     kRightTrigger, kLeftTrigger, kMoveLeft, kMoveRight, kMoveUp, kMoveDown,
@@ -31,4 +31,4 @@ void bind_key(PadInput input, int virtual_key);  // and saves all bindings
 void reset_key_bindings();
 void load_key_bindings();  // from the settings (after settings_load)
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

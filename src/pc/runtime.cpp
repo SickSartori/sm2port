@@ -46,7 +46,7 @@
 
 static_assert(sizeof(void*) == 4, "the PC runtime runs the game's x86 code natively and must be 32-bit");
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 constexpr uint32_t kMainThreadStackSize = 1024 * 1024;
@@ -552,12 +552,12 @@ DWORD WINAPI xbox_main_thread(void* parameter) {
 }
 
 }  // namespace
-}  // namespace sm2::pc
+}  // namespace xport::pc
 
 // Called by the launcher; never returns, because the launcher's code no longer exists once the XBE is mapped.
 extern "C" __declspec(dllexport) __declspec(noreturn) void __cdecl sm2_run(void* reserved, unsigned long reserved_size) {
-    using namespace sm2;
-    using namespace sm2::pc;
+    using namespace xport;
+    using namespace xport::pc;
 
     const HostImage host = host_image();
     const std::filesystem::path exe_directory = program_directory();

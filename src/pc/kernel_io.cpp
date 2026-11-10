@@ -34,7 +34,7 @@
 #include "pc/physical_memory.h"
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 
 namespace fs = std::filesystem;
 
@@ -1273,4 +1273,4 @@ void register_io_functions() {
     register_kernel(65, &IoCreateDevice);
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

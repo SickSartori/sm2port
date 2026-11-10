@@ -13,7 +13,7 @@
 #include "pc/nv2a_combiner.h"
 #include "pc/nv2a_texture.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 
 // A vertex after the NV2A vertex program. The position is in pixels of the target surface, times w (x * w,
 // y * w, z * w, w); the renderer maps it to clip space with the surface's real size.
@@ -163,4 +163,4 @@ using RendererOverlay = void (*)(ID3D11Device* device, ID3D11DeviceContext* cont
                                  uint32_t width, uint32_t height);
 void renderer_set_overlay(RendererOverlay overlay);
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

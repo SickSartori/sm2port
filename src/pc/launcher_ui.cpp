@@ -53,7 +53,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND window, UINT m
 #define SM2PORT_VERSION "0.0.0"
 #endif
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 using Microsoft::WRL::ComPtr;
@@ -2678,4 +2678,4 @@ void game_menu_open() {
     if (g_game_menu) g_game_menu->request_open();
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

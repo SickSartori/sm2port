@@ -9,7 +9,7 @@
 
 #include "imgui.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 
 class WebEffects {
 public:
@@ -39,4 +39,4 @@ private:
     std::mt19937 random_{std::random_device{}()};
 };
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

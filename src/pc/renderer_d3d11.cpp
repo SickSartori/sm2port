@@ -34,7 +34,7 @@
 #include "pc/texture_page_hash.h"
 #include "pc/texture_upscale.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 
 using Microsoft::WRL::ComPtr;
 
@@ -2741,4 +2741,4 @@ void renderer_present(uint32_t address, uint32_t width, uint32_t height, uint32_
     }
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

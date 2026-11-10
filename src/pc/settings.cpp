@@ -13,7 +13,7 @@
 
 #include "pc/log.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 struct Setting {
@@ -214,4 +214,4 @@ void setting_save(const char* key, float value) {
     save_line(key, text, comment);
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

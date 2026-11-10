@@ -11,7 +11,7 @@
 
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 // Mouse buttons are virtual keys too (VK_LBUTTON...): the mouse drives the camera (input_hle.cpp, mouse_look).
@@ -88,4 +88,4 @@ void load_key_bindings() {
     }
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

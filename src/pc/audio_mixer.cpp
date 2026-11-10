@@ -24,7 +24,7 @@
 #include "pc/settings.h"
 #include "pc/xbox_types.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 constexpr uint32_t kFramesPerChunk = kOutputRate / 100;  // 10 ms
@@ -741,4 +741,4 @@ std::vector<CompletedPacket> take_completed_packets(const Voice& voice) {
     return taken;
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

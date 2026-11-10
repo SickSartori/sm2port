@@ -14,7 +14,7 @@
 #include "pc/nv2a.h"
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 // --- time stamp counter ---
@@ -184,4 +184,4 @@ void apply_hle_patches(const Xbe& xbe) {
     }
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

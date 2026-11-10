@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace sm2::pc {
+namespace xport::pc {
 
 using DmaResolver = uint32_t (*)(uint32_t handle);
 
@@ -22,4 +22,4 @@ uint32_t kelvin_drawn_width(uint32_t address);
 // The same for the height: 480 lines on NTSC, 576 on PAL (this game's PAL build draws 640x576), 0 if none.
 uint32_t kelvin_drawn_height(uint32_t address);
 
-}  // namespace sm2::pc
+}  // namespace xport::pc

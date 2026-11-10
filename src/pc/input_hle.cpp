@@ -27,7 +27,7 @@
 #include "pc/log.h"
 #include "pc/settings.h"
 
-namespace sm2::pc {
+namespace xport::pc {
 namespace {
 
 constexpr uint32_t kPorts = 4;
@@ -566,4 +566,4 @@ void install_input_hle(const Xbe& xbe) {
              static_cast<uint32_t>(sizeof(kRedirects) / sizeof(kRedirects[0])));
 }
 
-}  // namespace sm2::pc
+}  // namespace xport::pc
