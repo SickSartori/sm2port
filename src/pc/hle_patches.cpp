@@ -22,8 +22,8 @@ namespace {
 // The game turns the CPU time stamp counter into time assuming the Xbox's 733 MHz: its clock
 // divides rdtsc by 733333 and XAPI's QueryPerformanceFrequency returns 733333333. The PC's counter runs at several
 // GHz, so everything timed that way went 5-6 times too fast (menu key repeat made the controller "too sensitive").
-// These rdtsc sites read a 733 MHz counter made from the host's performance counter instead, without the time the
-// game spent paused (the in-game menu).
+// These rdtsc sites read a 733 MHz counter made from the game's performance counter instead (game_ticks: from the
+// game's start, without the time it spent paused in the in-game menu).
 
 constexpr uint64_t kXboxCpuHz = 733333333;
 
@@ -33,9 +33,7 @@ uint64_t xbox_time_stamp() {
         QueryPerformanceFrequency(&value);
         return static_cast<uint64_t>(value.QuadPart);
     }();
-    LARGE_INTEGER value;
-    QueryPerformanceCounter(&value);
-    const auto counter = static_cast<uint64_t>(value.QuadPart - game_paused_ticks());
+    const auto counter = static_cast<uint64_t>(game_ticks());
     return counter / frequency * kXboxCpuHz + counter % frequency * kXboxCpuHz / frequency;
 }
 
