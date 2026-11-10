@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+### Improved
+
+- The ambient occlusion (one of the modern effects) no longer leaves a fine grain on bright surfaces in the areas it
+  darkens: it uses the same directions for every pixel.
+
 ## 0.1.3
 
 ### New
