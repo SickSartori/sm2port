@@ -19,6 +19,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <mutex>
@@ -60,7 +61,7 @@ using Microsoft::WRL::ComPtr;
 
 constexpr char kRepository[] = "SickSartori/sm2port";
 
-// --- texts: the launcher speaks Windows' language (Italian, else English) ---
+// --- texts: the launcher speaks Windows' language (Italian, Portuguese, Spanish, else English) ---
 
 struct Texts {
     const char *play, *settings, *controls, *about, *quit;
@@ -77,6 +78,8 @@ struct Texts {
         *legal,
         *credits;
     const char *update_now, *update_install_sub, *downloading, *update_failed;
+    const char *update_title, *update_lead, *update_big, *update_install, *update_install_note, *update_page,
+        *update_portable_note, *update_later, *update_progress, *update_ready, *update_install_small;
     const char *welcome, *welcome_lead, *next, *quality_title, *quality_lead, *all_set, *all_set_lead;
     const char *bar_disc, *bar_disc_ok, *bar_disc_none, *bar_pad, *bar_pad_on, *bar_pad_off, *bar_version, *select, *back;
     const char *resume, *back_to_game, *paused, *paused_lead, *exit_game, *exit_lead, *exit_now, *next_start, *menu_key;
@@ -88,6 +91,12 @@ struct Texts {
     const char *crash_heading, *crash_sub, *crash_button, *crash_link;
     const char *move_heading, *move_sub, *move_failed, *move_button;
     const char *move_title, *move_lead, *move_now, *move_later;
+    const char *time_of_day, *time_of_day_sub, *time_game, *dawn, *day, *sunset, *night;
+    const char *hud_aspect, *hud_aspect_sub, *field_of_view, *field_of_view_sub,
+        *letterbox, *letterbox_sub, *hide_hud_key;
+    const char *keyboard_keys, *pc_keys, *pad_tab, *group_move, *group_camera, *group_actions, *group_menu,
+        *pad_lead, *press_pad, *reset_pad;
+    const char *back_to_launcher, *back_to_launcher_sub, *back_to_launcher_button, *menu_launcher;
 };
 
 const Texts kEnglish = {
@@ -106,7 +115,7 @@ const Texts kEnglish = {
     "Modern effects", "Bloom, sharpening, colour and shading (F10 while playing)", "On", "Off",
     "Sharpening", "Light glow", "Glow threshold", "Saturation", "Contrast", "Vignette", "Ambient occlusion",
     "Occlusion size",
-    "Restore defaults", "Controllers work as they are. Choose the keyboard keys here.", "Key? Esc cancels",
+    "Restore defaults", "A controller is recommended. Choose the keyboard keys, or move the controller's buttons around.", "Key? Esc cancels",
     "Restore keys", "PC KEYS", "Full screen on and off", "Modern effects on and off", "Menus: move, select, back",
     "PlayStation, Switch and most other pads work too, with the buttons in the Xbox positions.",
     "Unofficial native Windows port. No game files included: you need your own copy.", "Looking for updates...",
@@ -114,9 +123,13 @@ const Texts kEnglish = {
     "Open", "Log folder", "For bug reports, attach sm2port.log", "Report a problem",
     "The form on GitHub, already filled in, and the log to attach", "Update to %s",
     "Spider-Man is a trademark of Marvel; the game belongs to Activision. This project is not affiliated with them.",
-    "MIT licence \xC2\xB7 Dear ImGui (MIT) \xC2\xB7 Barlow Semi Condensed (OFL)",
-    "Update", "Downloads and checks the installer, then shows it to you to start", "Downloading the update...",
+    "Licences, credits and how to contribute: on GitHub",
+    "Update", "Downloads and checks the installer; then you start it with one click", "Downloading the update...",
     "The update could not be downloaded or checked",
+    "NEW VERSION", "sm2port %s is out. What is new:", "UPDATE", "INSTALL",
+    "The launcher closes and the installer opens. Your saves and settings stay.", "OPEN THE PAGE",
+    "This copy is portable: download the new version from the release page.", "Later", "%.1f of %.1f MB",
+    "Update ready", "Install",
     "WELCOME", "You need your own copy: a disc image (ISO) of the Xbox Spider-Man 2 (Italy, Europe in French, German or Spanish, or World).",
     "NEXT", "QUALITY", "You can change it any time in the settings.", "ALL SET",
     "Disc verified. Connect a controller or use the keyboard.",
@@ -135,6 +148,17 @@ const Texts kEnglish = {
     "You have files from an earlier version", "Move your saves and settings to Documents\\sm2port",
     "Could not move them: close what uses them, then try again", "Move",
     "Move your files", "Your saves and settings from an earlier version are in a hidden folder. Move them to Documents\\sm2port, where they are easy to find and copy. Until you do, the game keeps using them where they are.", "Move now", "Later",
+    "Time of day", "The sky stays at the chosen hour; Game keeps its own clock", "Game", "Dawn", "Day", "Sunset", "Night",
+    "Round HUD in 16:9", "The health ring keeps its shape instead of stretching", "Field of view",
+    "100% is the game's own; more shows more around Spider-Man",
+    "Black bars in cutscenes", "Those of the scenes made with the game's engine; the films keep theirs",
+    "HUD hidden and shown again (photos)",
+    "Keyboard", "PC keys", "Controller", "MOVEMENT", "CAMERA", "ACTIONS", "MENU AND D-PAD",
+    "Each button of the game comes from the button of your controller shown on the right: choose it to change it.",
+    "Press a button \xC2\xB7 Esc cancels", "Restore buttons",
+    "BACK TO THE LAUNCHER",
+    "The game closes and the launcher opens again, as at the start: every setting and the disc can be changed there. Progress since the last save is lost.",
+    "OPEN THE LAUNCHER", "LAUNCHER",
 };
 
 const Texts kItalian = {
@@ -154,7 +178,7 @@ const Texts kItalian = {
     "Effetti moderni", "Bagliore, nitidezza, colori e ombreggiatura (F10 durante il gioco)", "S\xC3\xAC", "No",
     "Nitidezza", "Bagliore delle luci", "Soglia del bagliore", "Saturazione", "Contrasto", "Vignettatura",
     "Ombreggiatura ambientale", "Ampiezza dell'ombreggiatura",
-    "Valori predefiniti", "I controller funzionano cos\xC3\xAC come sono. Qui scegli i tasti della tastiera.",
+    "Valori predefiniti", "Consigliato: un controller. Qui scegli i tasti della tastiera o sposti i tasti del controller.",
     "Tasto? Esc annulla", "Tasti predefiniti", "TASTI DEL PC", "Schermo intero s\xC3\xAC/no", "Effetti moderni s\xC3\xAC/no",
     "Menu: muoversi, scegliere, tornare",
     "Controller PlayStation, Switch e quasi tutti gli altri funzionano, con i tasti nelle posizioni Xbox.",
@@ -164,9 +188,13 @@ const Texts kItalian = {
     "Per segnalare un problema allega sm2port.log", "Segnala un problema",
     "Il modulo su GitHub, già compilato, e il log da allegare", "Aggiorna alla %s",
     "Spider-Man \xC3\xA8 un marchio Marvel; il gioco appartiene ad Activision. Progetto non affiliato.",
-    "Licenza MIT \xC2\xB7 Dear ImGui (MIT) \xC2\xB7 Barlow Semi Condensed (OFL)",
-    "Aggiorna", "Scarica e verifica l'installer, poi te lo mostra da avviare", "Scarico l'aggiornamento...",
+    "Licenze, crediti e come contribuire: su GitHub",
+    "Aggiorna", "Scarica e verifica l'installer, poi lo avvii con un clic", "Scarico l'aggiornamento...",
     "Non \xC3\xA8 stato possibile scaricare o verificare l'aggiornamento",
+    "NUOVA VERSIONE", "\xC3\x88 uscito sm2port %s. Le novit\xC3\xA0:", "AGGIORNA", "INSTALLA",
+    "Il launcher si chiude e si apre l'installer. Salvataggi e impostazioni restano.", "APRI LA PAGINA",
+    "Questa copia \xC3\xA8 portatile: scarica la nuova versione dalla pagina della release.", "Pi\xC3\xB9 tardi",
+    "%.1f di %.1f MB", "Aggiornamento pronto", "Installa",
     "BENVENUTO",
     "Per giocare serve la tua copia: l'immagine ISO del disco Xbox di Spider-Man 2 (Italia, Europa in francese, tedesco o spagnolo, oppure World).",
     "AVANTI", "QUALIT\xC3\x80", "Potrai cambiarla quando vuoi nelle impostazioni.", "TUTTO PRONTO",
@@ -187,13 +215,163 @@ const Texts kItalian = {
     "Hai file di una versione precedente", "Sposta salvataggi e impostazioni in Documenti\\sm2port",
     "Spostamento non riuscito: chiudi ci\xC3\xB2 che li usa e riprova", "Sposta",
     "Sposta i tuoi file", "I salvataggi e le impostazioni di una versione precedente sono in una cartella nascosta. Spostali in Documenti\\sm2port, dove sono facili da trovare e copiare. Finch\xC3\xA9 non lo fai, il gioco continua a usarli dove sono.", "Sposta ora", "Pi\xC3\xB9 tardi",
+    "Ora del giorno", "Il cielo resta all'ora scelta; Gioco lascia il suo orologio", "Gioco", "Alba", "Giorno", "Tramonto", "Notte",
+    "HUD tondo in 16:9", "L'anello della vita resta tondo invece di allargarsi", "Campo visivo",
+    "100% \xC3\xA8 quello del gioco; di pi\xC3\xB9 mostra pi\xC3\xB9 cose attorno a Spider-Man",
+    "Bande nere nelle scene", "Quelle delle scene fatte col motore del gioco; i filmati tengono le loro", "Nasconde e rimostra l'HUD (foto)",
+    "Tastiera", "Tasti del PC", "Controller", "MOVIMENTO", "TELECAMERA", "AZIONI", "MENU E CROCE",
+    "Ogni tasto del gioco viene dal tasto del tuo controller mostrato a destra: sceglilo per cambiarlo.",
+    "Premi un tasto \xC2\xB7 Esc annulla", "Tasti predefiniti",
+    "TORNA AL LAUNCHER",
+    "Il gioco si chiude e si riapre il launcher, come all'avvio: l\xC3\xAC si cambiano tutte le impostazioni e il disco. I progressi dall'ultimo salvataggio andranno persi.",
+    "APRI IL LAUNCHER", "LAUNCHER",
 };
 
+// Portuguese (Brazil). The game itself has no Portuguese: its own menus stay in English.
+const Texts kPortuguese = {
+    "JOGAR", "CONFIGURAÇÕES", "CONTROLES", "SOBRE", "SAIR",
+    "PRONTO PARA BALANÇAR", "Nova York está esperando.", "Disco verificado",
+    "Nenhum disco escolhido", "Escolha a imagem do disco (ISO) da sua cópia de Xbox (Itália, Europa ou World).", "Trocar", "Escolher a ISO",
+    "Controle conectado", "Xbox, PlayStation e outros controles", "Nenhum controle", "O teclado também funciona", "Editar",
+    "Jogo", "Tela", "Gráficos", "Efeitos",
+    "Idioma do jogo", "Textos e vozes do jogo (não há português)", "Como o Windows", "Quadros por segundo", "60 é mais fluido; 30 como no Xbox",
+    "Volume do jogo", "Música do launcher", "A música de fundo desta tela; 0 desliga",
+    "Proporção", "16:9 usa o modo widescreen do próprio jogo", "Modo de janela", "Alt+Enter ou F11 durante o jogo",
+    "Janela", "Tela cheia",
+    "Qualidade", "Define filtros e efeitos de uma vez", "Original", "Equilibrada", "Alta", "Personalizada",
+    "Resolução interna", "Bordas mais suaves, mais trabalho para a placa de vídeo",
+    "Filtro anisotrópico", "Vértices na placa de vídeo", "Mais rápido; desligue só para resolver problemas",
+    "Efeitos modernos", "Brilho, nitidez, cor e sombreamento (F10 durante o jogo)", "Sim", "Não",
+    "Nitidez", "Brilho das luzes", "Limite do brilho", "Saturação", "Contraste", "Vinheta", "Oclusão de ambiente",
+    "Tamanho da oclusão",
+    "Restaurar padrões", "Um controle é recomendado. Escolha as teclas do teclado ou troque os botões do controle de lugar.", "Tecla? Esc cancela",
+    "Restaurar teclas", "TECLAS DO PC", "Tela cheia sim/não", "Efeitos modernos sim/não", "Menus: mover, escolher, voltar",
+    "Controles de PlayStation, Switch e quase todos os outros funcionam, com os botões nas posições do Xbox.",
+    "Port nativo não oficial para Windows. Nenhum arquivo do jogo incluído: você precisa da sua cópia.", "Procurando atualizações...",
+    "Esta é a versão mais recente", "A versão %s está disponível", "Abre a página da versão; nada é baixado sozinho",
+    "Abrir", "Pasta de logs", "Para relatar um problema, anexe sm2port.log", "Relatar um problema",
+    "O formulário no GitHub, já preenchido, e o log para anexar", "Atualizar para %s",
+    "Spider-Man é uma marca da Marvel; o jogo pertence à Activision. Este projeto não tem ligação com elas.",
+    "Licenças, créditos e como contribuir: no GitHub",
+    "Atualizar", "Baixa e verifica o instalador; depois você o inicia com um clique", "Baixando a atualização...",
+    "Não foi possível baixar ou verificar a atualização",
+    "NOVA VERSÃO", "Saiu o sm2port %s. As novidades:", "ATUALIZAR", "INSTALAR",
+    "O launcher fecha e o instalador abre. Seus saves e configurações ficam.", "ABRIR A PÁGINA",
+    "Esta cópia é portátil: baixe a nova versão na página da versão.", "Mais tarde", "%.1f de %.1f MB",
+    "Atualização pronta", "Instalar",
+    "BEM-VINDO", "Você precisa da sua cópia: uma imagem de disco (ISO) do Spider-Man 2 de Xbox (Itália, Europa em francês, alemão ou espanhol, ou World).",
+    "AVANÇAR", "QUALIDADE", "Você pode mudar quando quiser nas configurações.", "TUDO PRONTO",
+    "Disco verificado. Conecte um controle ou use o teclado.",
+    "Disco", "Xbox", "nenhum", "Controle", "conectado", "não conectado", "Versão", "Selecionar", "Voltar",
+    "CONTINUAR", "VOLTAR AO JOGO", "PAUSADO", "O jogo está pausado. F1 ou Esc para voltar.", "SAIR DO JOGO",
+    "O progresso desde o último save será perdido.", "SAIR", "Vale a partir do próximo início do jogo", "Menu do jogo",
+    "Contador de FPS", "Num canto durante o jogo", "Pausar em segundo plano",
+    "Abre o menu quando você troca de janela", "Continuar", "Abas", "Jogar",
+    "Direcional \xC2\xB7 A \xC2\xB7 B \xC2\xB7 LB RB \xC2\xB7 Start", "Controle: mover, escolher, voltar, abas, jogar", "Páginas", "Mover", "Direcional",
+    "Mover \xC2\xB7 direita: entrar na página",
+    "Estilo dos efeitos", "Original: a imagem como no Xbox. Melhorado: brilho, nitidez, cor e sombreamento", "Melhorado", "Original",
+    "Personalizado",
+    "Reinício necessário", "Para as mudanças que valem no início; o progresso não salvo é perdido", "Reiniciar agora",
+    "Imagens do HUD nítidas", "Ícones e letras do HUD ampliados com bordas limpas",
+    "O jogo fechou com um erro da última vez", "sm2port-crash-report.zip está pronto para anexar a um relato", "Relatar", "Relatar o erro",
+    "Você tem arquivos de uma versão anterior", "Mover seus saves e configurações para Documentos\\sm2port",
+    "Não foi possível movê-los: feche o que os usa e tente de novo", "Mover",
+    "Mover seus arquivos", "Seus saves e configurações de uma versão anterior estão numa pasta oculta. Mova-os para Documentos\\sm2port, onde é fácil encontrá-los e copiá-los. Até lá, o jogo continua a usá-los onde estão.", "Mover agora", "Mais tarde",
+    "Hora do dia", "O céu fica na hora escolhida; Jogo deixa o relógio do jogo", "Jogo", "Amanhecer", "Dia", "Pôr do sol", "Noite",
+    "HUD redondo em 16:9", "O anel da vida fica redondo em vez de esticar", "Campo de visão",
+    "100% é o do próprio jogo; mais mostra mais coisas em volta do Homem-Aranha",
+    "Faixas pretas nas cenas", "As das cenas feitas com o motor do jogo; os vídeos mantêm as suas",
+    "Esconde e mostra de novo o HUD (fotos)",
+    "Teclado", "Teclas do PC", "Controle", "MOVIMENTO", "CÂMERA", "AÇÕES", "MENU E DIRECIONAL",
+    "Cada botão do jogo vem do botão do seu controle mostrado à direita: escolha-o para trocá-lo.",
+    "Aperte um botão \xC2\xB7 Esc cancela", "Restaurar botões",
+    "VOLTAR AO LAUNCHER",
+    "O jogo fecha e o launcher abre de novo, como no início: lá se mudam todas as configurações e o disco. O progresso desde o último save será perdido.",
+    "ABRIR O LAUNCHER", "LAUNCHER",
+};
+
+const Texts kSpanish = {
+    "JUGAR", "AJUSTES", "CONTROLES", "ACERCA DE", "SALIR",
+    "LISTO PARA BALANCEARTE", "Nueva York te espera.", "Disco verificado",
+    "Ningún disco elegido", "Elige la imagen del disco (ISO) de tu copia de Xbox (Italia, Europa o World).", "Cambiar", "Elegir la ISO",
+    "Mando conectado", "Mandos de Xbox, PlayStation y otros", "Ningún mando", "El teclado también funciona", "Editar",
+    "Juego", "Pantalla", "Gráficos", "Efectos",
+    "Idioma del juego", "Textos y voces del juego", "Como Windows", "Fotogramas por segundo", "60 es más fluido; 30 como en Xbox",
+    "Volumen del juego", "Música del launcher", "La música de fondo de esta pantalla; 0 la apaga",
+    "Relación de aspecto", "16:9 usa el modo panorámico del propio juego", "Modo de ventana", "Alt+Intro o F11 mientras juegas",
+    "Ventana", "Pantalla completa",
+    "Calidad", "Ajusta filtros y efectos a la vez", "Original", "Equilibrada", "Alta", "Personalizada",
+    "Resolución interna", "Bordes más suaves, más trabajo para la tarjeta gráfica",
+    "Filtro anisotrópico", "Vértices en la tarjeta gráfica", "Más rápido; apágalo solo para resolver problemas",
+    "Efectos modernos", "Resplandor, nitidez, color y sombreado (F10 mientras juegas)", "Sí", "No",
+    "Nitidez", "Resplandor de las luces", "Umbral del resplandor", "Saturación", "Contraste", "Viñeta", "Oclusión ambiental",
+    "Tamaño de la oclusión",
+    "Restaurar valores", "Se recomienda un mando. Elige las teclas del teclado o cambia de sitio los botones del mando.", "¿Tecla? Esc cancela",
+    "Restaurar teclas", "TECLAS DEL PC", "Pantalla completa sí/no", "Efectos modernos sí/no", "Menús: moverse, elegir, volver",
+    "Los mandos de PlayStation, Switch y casi todos los demás funcionan, con los botones en las posiciones de Xbox.",
+    "Port nativo no oficial para Windows. No incluye archivos del juego: necesitas tu copia.", "Buscando actualizaciones...",
+    "Esta es la última versión", "La versión %s está disponible", "Abre la página de la versión; nada se descarga solo",
+    "Abrir", "Carpeta de registros", "Para informar de un problema, adjunta sm2port.log", "Informar de un problema",
+    "El formulario en GitHub, ya rellenado, y el registro para adjuntar", "Actualizar a %s",
+    "Spider-Man es una marca de Marvel; el juego pertenece a Activision. Este proyecto no está afiliado a ellas.",
+    "Licencias, créditos y cómo contribuir: en GitHub",
+    "Actualizar", "Descarga y comprueba el instalador; luego lo inicias con un clic", "Descargando la actualización...",
+    "No se pudo descargar o comprobar la actualización",
+    "NUEVA VERSIÓN", "Ha salido sm2port %s. Las novedades:", "ACTUALIZAR", "INSTALAR",
+    "El launcher se cierra y se abre el instalador. Tus partidas y ajustes se quedan.", "ABRIR LA PÁGINA",
+    "Esta copia es portátil: descarga la nueva versión desde la página de la versión.", "Más tarde", "%.1f de %.1f MB",
+    "Actualización lista", "Instalar",
+    "BIENVENIDO", "Necesitas tu copia: una imagen de disco (ISO) de Spider-Man 2 de Xbox (Italia, Europa en francés, alemán o español, o World).",
+    "SIGUIENTE", "CALIDAD", "Puedes cambiarla cuando quieras en los ajustes.", "TODO LISTO",
+    "Disco verificado. Conecta un mando o usa el teclado.",
+    "Disco", "Xbox", "ninguno", "Mando", "conectado", "no conectado", "Versión", "Elegir", "Volver",
+    "CONTINUAR", "VOLVER AL JUEGO", "EN PAUSA", "El juego está en pausa. F1 o Esc para volver.", "SALIR DEL JUEGO",
+    "Se perderá el progreso desde la última partida guardada.", "SALIR", "Se aplica la próxima vez que empiece el juego", "Menú del juego",
+    "Contador de FPS", "En una esquina mientras juegas", "Pausa en segundo plano",
+    "Abre el menú cuando cambias de ventana", "Continuar", "Pestañas", "Jugar",
+    "Cruceta \xC2\xB7 A \xC2\xB7 B \xC2\xB7 LB RB \xC2\xB7 Start", "Mando: moverse, elegir, volver, pestañas, jugar", "Páginas", "Mover", "Cruceta",
+    "Mover \xC2\xB7 derecha: entrar en la página",
+    "Estilo de los efectos", "Original: la imagen como en Xbox. Mejorado: resplandor, nitidez, color y sombreado", "Mejorado", "Original",
+    "Personalizado",
+    "Hace falta reiniciar", "Para los cambios que se aplican al empezar; se pierde el progreso no guardado", "Reiniciar ahora",
+    "Imágenes del HUD nítidas", "Iconos y letras del HUD ampliados con bordes limpios",
+    "La última vez el juego se cerró por un error", "sm2port-crash-report.zip está listo para adjuntar a un informe", "Informar", "Informar del error",
+    "Tienes archivos de una versión anterior", "Mover tus partidas y ajustes a Documentos\\sm2port",
+    "No se pudieron mover: cierra lo que los usa y vuelve a intentarlo", "Mover",
+    "Mover tus archivos", "Tus partidas y ajustes de una versión anterior están en una carpeta oculta. Muévelos a Documentos\\sm2port, donde es fácil encontrarlos y copiarlos. Hasta entonces, el juego sigue usándolos donde están.", "Mover ahora", "Más tarde",
+    "Hora del día", "El cielo se queda en la hora elegida; Juego deja el reloj del juego", "Juego", "Amanecer", "Día", "Atardecer", "Noche",
+    "HUD redondo en 16:9", "El anillo de la vida se queda redondo en vez de estirarse", "Campo de visión",
+    "100% es el del propio juego; más muestra más cosas alrededor de Spider-Man",
+    "Bandas negras en las escenas", "Las de las escenas hechas con el motor del juego; los vídeos mantienen las suyas",
+    "Oculta y vuelve a mostrar el HUD (fotos)",
+    "Teclado", "Teclas del PC", "Mando", "MOVIMIENTO", "CÁMARA", "ACCIONES", "MENÚ Y CRUCETA",
+    "Cada botón del juego viene del botón de tu mando que se muestra a la derecha: elígelo para cambiarlo.",
+    "Pulsa un botón \xC2\xB7 Esc cancela", "Restaurar botones",
+    "VOLVER AL LAUNCHER",
+    "El juego se cierra y el launcher se abre de nuevo, como al empezar: allí se cambian todos los ajustes y el disco. Se perderá el progreso desde la última partida guardada.",
+    "ABRIR EL LAUNCHER", "LAUNCHER",
+};
+
+// The launcher's language: Windows', or SM2_LAUNCHER_LANGUAGE=en|it|pt|es for test screenshots.
 const Texts& T() {
-    static const Texts& texts = PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_ITALIAN ? kItalian : kEnglish;
+    static const Texts& texts = [] () -> const Texts& {
+        char forced[8] = {};
+        WORD language = PRIMARYLANGID(GetUserDefaultUILanguage());
+        if (GetEnvironmentVariableA("SM2_LAUNCHER_LANGUAGE", forced, sizeof(forced))) {
+            language = !std::strcmp(forced, "it") ? LANG_ITALIAN : !std::strcmp(forced, "pt") ? LANG_PORTUGUESE
+                     : !std::strcmp(forced, "es") ? LANG_SPANISH : LANG_ENGLISH;
+        }
+        return language == LANG_ITALIAN ? kItalian : language == LANG_PORTUGUESE ? kPortuguese
+             : language == LANG_SPANISH ? kSpanish : kEnglish;
+    }();
     return texts;
 }
-bool italian() { return &T() == &kItalian; }
+
+// For the few texts kept in tables beside their item (keys, buttons): the one in the launcher's language.
+const char* in_language(const char* english, const char* italian, const char* portuguese, const char* spanish) {
+    const Texts& texts = T();
+    return &texts == &kItalian ? italian : &texts == &kPortuguese ? portuguese : &texts == &kSpanish ? spanish : english;
+}
 
 // --- colours ---
 
@@ -277,12 +455,12 @@ std::string key_name(int virtual_key) {
         case VK_DOWN: return "\xE2\x86\x93";
         case VK_LEFT: return "\xE2\x86\x90";
         case VK_RIGHT: return "\xE2\x86\x92";
-        case VK_SPACE: return italian() ? "Spazio" : "Space";
-        case VK_RETURN: return italian() ? "Invio" : "Enter";
+        case VK_SPACE: return in_language("Space", "Spazio", "Espaço", "Espacio");
+        case VK_RETURN: return in_language("Enter", "Invio", "Enter", "Intro");
         case VK_BACK: return "Backspace";
-        case VK_LBUTTON: return italian() ? "Mouse sx" : "Mouse L";
-        case VK_RBUTTON: return italian() ? "Mouse dx" : "Mouse R";
-        case VK_MBUTTON: return italian() ? "Mouse centro" : "Mouse M";
+        case VK_LBUTTON: return in_language("Mouse L", "Mouse sx", "Mouse esq.", "Ratón izq.");
+        case VK_RBUTTON: return in_language("Mouse R", "Mouse dx", "Mouse dir.", "Ratón der.");
+        case VK_MBUTTON: return in_language("Mouse M", "Mouse centro", "Mouse meio", "Ratón centro");
         case VK_LSHIFT: case VK_RSHIFT: return "Shift";
         case VK_LCONTROL: case VK_RCONTROL: return "Ctrl";
         default: break;
@@ -310,21 +488,16 @@ struct UpdateCheck {
     int state = 0;  // 0 checking, 1 up to date, 2 newer found, 3 failed (shown as nothing)
     std::string version, url;
     std::string setup_url, sums_url;  // the release's installer and SHA256SUMS, if it has them
-    int download = 0;                 // 0 none, 1 downloading, 2 verified (show it), 3 failed
+    int download = 0;                 // 0 none, 1 downloading, 2 verified (the player installs it), 3 failed
+    uint64_t received = 0, size = 0;  // of the installer, while it downloads
     std::filesystem::path setup_file;
+    std::vector<std::string> points;  // what is new, from the release's notes
 };
-
-std::string json_string(const std::string& json, const char* key) {
-    const std::string marker = std::string("\"") + key + "\":\"";
-    const size_t at = json.find(marker);
-    if (at == std::string::npos) return {};
-    const size_t start = at + marker.size(), end = json.find('"', start);
-    return end == std::string::npos ? std::string() : json.substr(start, end - start);
-}
 
 // A GET over HTTPS. WinHTTP follows redirects, which GitHub's release downloads need. The body only when the answer
 // is 200; *status is the answer, for the log.
-std::string https_get(const std::wstring& url, const wchar_t* headers, DWORD* status) {
+std::string https_get(const std::wstring& url, const wchar_t* headers, DWORD* status,
+                      const std::function<void(uint64_t, uint64_t)>& progress = nullptr) {
     std::string body;
     *status = 0;
     wchar_t host[256] = {}, path[2048] = {}, query[2048] = {};
@@ -351,9 +524,15 @@ std::string https_get(const std::wstring& url, const wchar_t* headers, DWORD* st
         WinHttpQueryHeaders(request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, nullptr, status, &size,
                             nullptr) &&
         *status == 200) {
+        DWORD length = 0, length_size = sizeof(length);  // 0 when the server does not say
+        WinHttpQueryHeaders(request, WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER, nullptr, &length,
+                            &length_size, nullptr);
         char buffer[16384];
         DWORD read = 0;
-        while (WinHttpReadData(request, buffer, sizeof(buffer), &read) && read) body.append(buffer, read);
+        while (WinHttpReadData(request, buffer, sizeof(buffer), &read) && read) {
+            body.append(buffer, read);
+            if (progress) progress(body.size(), length);
+        }
     }
     if (request) WinHttpCloseHandle(request);
     if (connection) WinHttpCloseHandle(connection);
@@ -361,19 +540,26 @@ std::string https_get(const std::wstring& url, const wchar_t* headers, DWORD* st
     return body;
 }
 
+// SM2_UPDATE_TEST=<version>: test runs of the update notice, as an installed copy of that version.
+const char* update_test() {
+    static char version[32] = {};
+    static const bool set = GetEnvironmentVariableA("SM2_UPDATE_TEST", version, sizeof(version)) > 0;
+    return set ? version : nullptr;
+}
+
 void check_for_updates(UpdateCheck* check) {
     wchar_t latest[160];
     std::swprintf(latest, 160, L"https://api.github.com/repos/%hs/releases/latest", kRepository);
     DWORD status = 0;
     const std::string body = https_get(latest, L"Accept: application/vnd.github+json\r\n", &status);
-    const std::string tag = json_string(body, "tag_name"), url = json_string(body, "html_url");
+    const std::string tag = json_text(body, "tag_name"), url = json_text(body, "html_url");
     std::lock_guard<std::mutex> lock(check->mutex);
     if (tag.empty()) {
         check->state = 3;
         log_line("launcher: update check: no answer (HTTP %lu)", status);
         return;
     }
-    const bool newer = version_numbers(tag) > version_numbers(SM2PORT_VERSION);
+    const bool newer = version_numbers(tag) > version_numbers(update_test() ? update_test() : SM2PORT_VERSION);
     check->state = newer ? 2 : 1;
     check->version = tag;
     check->url = release_link(url, kRepository, "tag/") ? url : std::string("https://github.com/") + kRepository + "/releases";
@@ -385,6 +571,7 @@ void check_for_updates(UpdateCheck* check) {
         if (asset.size() > 10 && asset.compare(asset.size() - 10, 10, "-setup.exe") == 0) check->setup_url = asset;
         if (asset.size() > 10 && asset.compare(asset.size() - 10, 10, "SHA256SUMS") == 0) check->sums_url = asset;
     }
+    check->points = release_points(json_text(body, "body"), 6);
     log_line("launcher: latest release %s (%s)", tag.c_str(), newer ? "newer" : "not newer");
 }
 
@@ -404,7 +591,7 @@ std::string sha256_hex(const std::string& data) {
 }
 
 // Downloads the release's installer and SHA256SUMS and checks the installer's hash; only a verified installer is
-// saved, to %TEMP%\sm2port-update. The player starts it (see the launcher's loop): sm2port never runs it by itself.
+// saved, to %TEMP%\sm2port-update. The player starts it (install_update): sm2port never runs it by itself.
 void download_update(UpdateCheck* check) {
     std::string setup_url, sums_url;
     {
@@ -420,7 +607,10 @@ void download_update(UpdateCheck* check) {
     DWORD setup_status = 0, sums_status = 0;
     const std::string installer = sums_url.empty() ? std::string()
                                                    : https_get(std::wstring(setup_url.begin(), setup_url.end()), nullptr,
-                                                               &setup_status);
+                                                               &setup_status, [check](uint64_t received, uint64_t size) {
+                                                                   std::lock_guard<std::mutex> lock(check->mutex);
+                                                                   check->received = received, check->size = size;
+                                                               });
     const std::string list = installer.empty() ? std::string()
                                                : https_get(std::wstring(sums_url.begin(), sums_url.end()), nullptr,
                                                            &sums_status);
@@ -519,7 +709,7 @@ public:
 
 private:
     // In game, kPlay is the pause page and kQuit the page that exits the game.
-    enum class Page { kPlay, kSettings, kControls, kAbout, kQuit };
+    enum class Page { kPlay, kSettings, kControls, kAbout, kLauncher, kQuit };
 
     bool start_graphics();
     void start_imgui();
@@ -571,6 +761,9 @@ private:
 
     // Panel content: cursor_ moves down.
     void title(const char* str);
+    void page_keyboard_keys(float row_height, float column);
+    void page_system_keys(float row_height);
+    void page_pad_buttons(float row_height, float column);
     void lead(const char* str);
     bool status(bool good, const char* heading, const char* detail, const char* button_label, const char* id,
                 bool pulse = false);
@@ -593,12 +786,19 @@ private:
     void page_controls();
     void page_about();
     void update_row(bool always);
+    void page_update();
+    void start_update_download();
+    void install_update();
+    bool install_requested_ = false;  // Install pressed: started between frames, outside the UI lock (see install_update)
+    bool update_prompt_ = false, update_prompt_shown_ = false;  // the new version's notice, once per start
+    Page update_prompt_page_ = Page::kPlay;                      // another page from the menu closes it
     void move_data_row();
     void page_move_data();
     bool update_available();
     void page_wizard();
     void page_paused();
     void page_exit();
+    void page_launcher();
     // The file dialog makes the game window its owner, which needs the window thread: never while g_ui_mutex is
     // held (that thread waits for it in window_hook). Clicks only ask for it; run() opens it between frames.
     void choose_disc() { choose_disc_requested_ = true; }
@@ -665,6 +865,11 @@ private:
     bool move_prompt_ = false;  // the page offering to move an earlier version's files, before all else
     int wizard_step_ = 0;
     int rebinding_ = -1;
+    int controls_tab_ = 0;  // the Controls page's tab: 0 the keyboard keys, 1 the controller, 2 the PC keys
+    int pad_rebinding_ = -1;  // the game button waiting for a button of the controller
+    float pad_rebinding_since_ = 0;
+    uint32_t pad_buttons_before_ = 0;  // PadButton bits down at the last poll
+    int pad_captured_ = -1;            // the button pressed while waiting
     float rebinding_since_ = 0;
     bool done_ = false, play_ = false, choose_disc_requested_ = false;
     float start_time_ = 0;
@@ -1238,12 +1443,34 @@ bool restart_pending() {
     return false;
 }
 
+// The game closes and the launcher opens again, as at the first start: settings that need a restart and the disc can
+// be changed there. The command line stays (a frontend's disc is still the one shown).
+void back_to_launcher() {
+    wchar_t exe[MAX_PATH] = {};
+    GetModuleFileNameW(nullptr, exe, MAX_PATH);
+    std::wstring command = GetCommandLineW();
+    SetEnvironmentVariableW(L"SM2_SKIP_LAUNCHER", nullptr);
+    SetEnvironmentVariableW(L"SM2_SHOW_LAUNCHER", L"1");
+    SetEnvironmentVariableW(L"SM2_RESTART_FROM", std::to_wstring(GetCurrentProcessId()).c_str());
+    STARTUPINFOW startup{sizeof(startup)};
+    PROCESS_INFORMATION process{};
+    if (!CreateProcessW(exe, command.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &startup, &process)) {
+        log_line("game menu: back to the launcher failed (error %lu)", GetLastError());
+        return;
+    }
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+    log_line("game menu: back to the launcher");
+    end_process(0);
+}
+
 // A new sm2.exe, with the same command line, straight into the game (SM2_SKIP_LAUNCHER); it waits for this one to
 // end (SM2_RESTART_FROM, runtime.cpp) before it opens the log, the settings and the saves.
 void restart_game() {
     wchar_t exe[MAX_PATH] = {};
     GetModuleFileNameW(nullptr, exe, MAX_PATH);
     std::wstring command = GetCommandLineW();
+    SetEnvironmentVariableW(L"SM2_SHOW_LAUNCHER", nullptr);  // after "Back to the launcher": a restart goes straight on
     SetEnvironmentVariableW(L"SM2_SKIP_LAUNCHER", L"1");
     SetEnvironmentVariableW(L"SM2_RESTART_FROM", std::to_wstring(GetCurrentProcessId()).c_str());
     STARTUPINFOW startup{sizeof(startup)};
@@ -1406,6 +1633,14 @@ void Launcher::page_settings() {
         const char* rates[] = {"30", "60"};
         int rate = setting("frame_rate") >= 60 ? 1 : 0;
         if (segmented("##fps", rates, 2, &rate)) set_setting("frame_rate", rate ? 60.0f : 30.0f);
+        row(t.time_of_day, t.time_of_day_sub, false, 450);
+        static const float kHours[] = {-1, 6.5f, 12, 18, 22.5f};
+        const char* times[] = {t.time_game, t.dawn, t.day, t.sunset, t.night};
+        int time = 0;
+        for (int i = 1; i < 5; ++i) {
+            if (setting("time_of_day") == kHours[i]) time = i;
+        }
+        if (segmented("##time_of_day", times, 5, &time, nullptr, 450)) set_setting("time_of_day", kHours[time]);
         row(t.volume, nullptr);
         float volume = setting("volume");
         if (slider("##volume", &volume, 0, 100, "%.0f")) set_setting("volume", std::round(volume));
@@ -1470,6 +1705,15 @@ void Launcher::page_settings() {
         row(t.sharp_2d, t.sharp_2d_sub, true);
         int sharp = setting("sharp_2d") != 0 ? 1 : 0;
         if (segmented("##sharp_2d", toggle, 2, &sharp)) set_setting("sharp_2d", static_cast<float>(sharp));
+        row(t.hud_aspect, t.hud_aspect_sub);
+        int round_hud = setting("hud_aspect") != 0 ? 1 : 0;
+        if (segmented("##hud_aspect", toggle, 2, &round_hud)) set_setting("hud_aspect", static_cast<float>(round_hud));
+        row(t.field_of_view, t.field_of_view_sub);
+        float view = setting("field_of_view");
+        if (slider("##field_of_view", &view, 75, 130, "%.0f%%")) set_setting("field_of_view", std::round(view));
+        row(t.letterbox, t.letterbox_sub);
+        int bars = setting("letterbox") != 0 ? 1 : 0;
+        if (segmented("##letterbox", toggle, 2, &bars)) set_setting("letterbox", static_cast<float>(bars));
     } else {
         // Two ready-made looks and a custom one. Original: the Xbox's picture. Enhanced: the modern effects. Custom
         // (setting effects_advanced): every value by itself, in two columns so that the page stays on screen.
@@ -1514,9 +1758,10 @@ void Launcher::page_settings() {
     cursor_ += px(8);
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
-        for (const char* key : {"game_language", "frame_rate", "volume", "launcher_music", "pause_in_background",
+        for (const char* key : {"game_language", "frame_rate", "time_of_day", "volume", "launcher_music", "pause_in_background",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
-                                "anisotropy", "gpu_vertices", "sharp_2d", "effects", "sharpen", "bloom",
+                                "anisotropy", "gpu_vertices", "sharp_2d", "hud_aspect", "field_of_view",
+                                "letterbox", "effects", "sharpen", "bloom",
                                 "bloom_threshold", "saturation", "contrast", "vignette",
                                 "effects_advanced", "ambient_occlusion", "ambient_occlusion_radius"}) {
             set_setting(key, setting_default(key));
@@ -1552,49 +1797,141 @@ void Launcher::page_controls() {
         g_capturing = false;
         rebinding_ = -1;
     }
-    const float row_height = px(33), column = panel_width_ / 2 + px(10);
-    for (int i = 0; i < kPadInputs; ++i) {
-        const KeyBinding& binding = key_binding(static_cast<PadInput>(i));
+    const float row_height = px(31), column = panel_width_ / 2 + px(10);
+    // Tabs: the page is taller than the window with all the lists.
+    const char* tab_labels[] = {t.keyboard_keys, t.pad_tab, t.pc_keys};
+    const int tab_before = controls_tab_;
+    tabs(tab_labels, 3, &controls_tab_);
+    if (controls_tab_ != tab_before) {
+        rebinding_ = pad_rebinding_ = -1;
+        g_capturing = false;
+    }
+    if (controls_tab_ == 0) {
+        page_keyboard_keys(row_height, column);
+    } else if (controls_tab_ == 1) {
+        page_pad_buttons(row_height, column);
+    } else {
+        page_system_keys(row_height);
+    }
+}
+
+void Launcher::page_keyboard_keys(float row_height, float column) {
+    const Texts& t = T();
+    // In groups, two columns each.
+    struct Group {
+        const char* heading;
+        std::vector<PadInput> inputs;
+    };
+    const Group groups[] = {
+        {t.group_move, {PadInput::kMoveUp, PadInput::kMoveDown, PadInput::kMoveLeft, PadInput::kMoveRight}},
+        {t.group_camera, {PadInput::kLookUp, PadInput::kLookDown, PadInput::kLookLeft, PadInput::kLookRight}},
+        {t.group_actions, {PadInput::kA, PadInput::kX, PadInput::kB, PadInput::kY, PadInput::kRightTrigger,
+                           PadInput::kLeftTrigger, PadInput::kBlack, PadInput::kWhite, PadInput::kLeftThumb,
+                           PadInput::kRightThumb}},
+        {t.group_menu, {PadInput::kStart, PadInput::kBack, PadInput::kDpadUp, PadInput::kDpadDown, PadInput::kDpadLeft,
+                        PadInput::kDpadRight}},
+    };
+    for (const Group& group : groups) {
+        text(body_bold_, px(14), ImVec2(origin_.x, origin_.y + cursor_ + px(4)), kDim, group.heading);
+        cursor_ += px(24);
+        const int count = static_cast<int>(group.inputs.size());
+        for (int n = 0; n < count; ++n) {
+            const int i = static_cast<int>(group.inputs[n]);
+            const KeyBinding& binding = key_binding(group.inputs[n]);
+            const float x = origin_.x + (n % 2 ? column : 0.0f), y = origin_.y + cursor_ + row_height * static_cast<float>(n / 2);
+            const float cell = panel_width_ / 2 - px(10);
+            const float icon_h = px(22), icon_w = pad_icon(list_, binding.button, ImVec2(0, 0), icon_h, false);
+            pad_icon(list_, binding.button, ImVec2(x + (px(70) - icon_w) / 2, y + (row_height - icon_h) / 2), icon_h);
+            const bool waiting = rebinding_ == i;
+            const std::string key = waiting ? t.press_key : key_name(bound_key(static_cast<PadInput>(i)));
+            const ImVec2 key_size = measure(body_bold_, px(16), key.c_str());
+            const ImVec2 box_a(x + cell - std::max(px(60), key_size.x + px(18)), y + px(3)), box_b(x + cell, y + row_height - px(3));
+            list_->PushClipRect(ImVec2(x + px(80), y), ImVec2(box_a.x - px(6), y + row_height), true);  // never under the key box
+            text(body_, px(15), ImVec2(x + px(80), y + px(8)), kInk, in_language(binding.english, binding.italian, binding.portuguese, binding.spanish));
+            list_->PopClipRect();
+            ImGui::SetCursorScreenPos(box_a);
+            ImGui::PushID(i);
+            claim_focus();
+            if (ImGui::InvisibleButton("##key", ImVec2(box_b.x - box_a.x, box_b.y - box_a.y), kNavigable)) {
+                rebinding_ = i;
+                rebinding_since_ = static_cast<float>(ImGui::GetTime());
+                g_captured_key = 0;
+                g_capturing = true;
+            }
+            const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused() || waiting);
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            ImGui::PopID();
+            list_->AddRectFilled(box_a, box_b, fade(mix(IM_COL32(255, 255, 255, 14), kRed, hot * (waiting ? 0.8f : 0.35f))));
+            text(body_bold_, px(16), ImVec2(box_b.x - key_size.x - px(9), y + (row_height - key_size.y) / 2), kInk, key.c_str());
+        }
+        cursor_ += row_height * static_cast<float>((count + 1) / 2) + px(4);
+    }
+    cursor_ += px(8);
+    if (small_button(t.reset_keys, ImVec2(origin_.x, origin_.y + cursor_), "##reset_keys")) reset_key_bindings();
+    cursor_ += px(52);
+}
+
+// The controller's buttons: each game button with the button of the PC's controller that gives it, chosen by pressing
+// it (poll_gamepads catches the press).
+void Launcher::page_pad_buttons(float row_height, float column) {
+    const Texts& t = T();
+    const ImVec2 lead_size = measure(body_, px(16), t.pad_lead, panel_width_);
+    text(body_, px(16), ImVec2(origin_.x, origin_.y + cursor_), kDim, t.pad_lead, panel_width_);
+    cursor_ += lead_size.y + px(12);
+    if (pad_rebinding_ >= 0 && pad_captured_ >= 0) {
+        bind_pad_button(static_cast<PadButton>(pad_rebinding_), static_cast<PadButton>(pad_captured_));
+        pad_rebinding_ = -1;
+    }
+    if (pad_rebinding_ >= 0 && (ImGui::IsKeyPressed(ImGuiKey_Escape) || ImGui::GetTime() - pad_rebinding_since_ > 6)) {
+        pad_rebinding_ = -1;
+    }
+    for (int i = 0; i < kPadButtons; ++i) {
+        const PadButtonBinding& game = pad_button_binding(static_cast<PadButton>(i));
+        const PadButtonBinding& source = pad_button_binding(pad_button_source(static_cast<PadButton>(i)));
         const float x = origin_.x + (i % 2 ? column : 0.0f), y = origin_.y + cursor_ + row_height * static_cast<float>(i / 2);
         const float cell = panel_width_ / 2 - px(10);
-        const float icon_h = px(22), icon_w = pad_icon(list_, binding.button, ImVec2(0, 0), icon_h, false);
-        pad_icon(list_, binding.button, ImVec2(x + (px(70) - icon_w) / 2, y + (row_height - icon_h) / 2), icon_h);
-        const bool waiting = rebinding_ == i;
-        const std::string key = waiting ? t.press_key : key_name(bound_key(static_cast<PadInput>(i)));
-        const ImVec2 key_size = measure(body_bold_, px(16), key.c_str());
-        const ImVec2 box_a(x + cell - std::max(px(60), key_size.x + px(18)), y + px(3)), box_b(x + cell, y + row_height - px(3));
-        list_->PushClipRect(ImVec2(x + px(80), y), ImVec2(box_a.x - px(6), y + row_height), true);  // never under the key box
-        text(body_, px(15), ImVec2(x + px(80), y + px(8)), kInk, italian() ? binding.italian : binding.english);
+        const float icon_h = px(22), icon_w = pad_icon(list_, game.icon, ImVec2(0, 0), icon_h, false);
+        pad_icon(list_, game.icon, ImVec2(x + (px(70) - icon_w) / 2, y + (row_height - icon_h) / 2), icon_h);
+        const bool waiting = pad_rebinding_ == i;
+        const float source_w = waiting ? measure(body_bold_, px(14), t.press_pad).x : pad_icon(list_, source.icon, ImVec2(0, 0), icon_h, false);
+        const ImVec2 box_a(x + cell - std::max(px(60), source_w + px(18)), y + px(3)), box_b(x + cell, y + row_height - px(3));
+        list_->PushClipRect(ImVec2(x + px(80), y), ImVec2(box_a.x - px(6), y + row_height), true);
+        text(body_, px(15), ImVec2(x + px(80), y + px(7)), kInk, in_language(game.english, game.italian, game.portuguese, game.spanish));
         list_->PopClipRect();
         ImGui::SetCursorScreenPos(box_a);
-        ImGui::PushID(i);
+        ImGui::PushID(1000 + i);
         claim_focus();
-        if (ImGui::InvisibleButton("##key", ImVec2(box_b.x - box_a.x, box_b.y - box_a.y), kNavigable)) {
-            rebinding_ = i;
-            rebinding_since_ = static_cast<float>(ImGui::GetTime());
-            g_captured_key = 0;
-            g_capturing = true;
+        if (ImGui::InvisibleButton("##pad", ImVec2(box_b.x - box_a.x, box_b.y - box_a.y), kNavigable)) {
+            pad_rebinding_ = i;
+            pad_rebinding_since_ = static_cast<float>(ImGui::GetTime());
+            pad_captured_ = -1;
         }
         const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused() || waiting);
         if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
         ImGui::PopID();
         list_->AddRectFilled(box_a, box_b, fade(mix(IM_COL32(255, 255, 255, 14), kRed, hot * (waiting ? 0.8f : 0.35f))));
-        text(body_bold_, px(16), ImVec2(box_b.x - key_size.x - px(9), y + (row_height - key_size.y) / 2), kInk, key.c_str());
+        if (waiting) {
+            const ImVec2 size = measure(body_bold_, px(14), t.press_pad);
+            text(body_bold_, px(14), ImVec2(box_b.x - size.x - px(9), y + (row_height - size.y) / 2), kInk, t.press_pad);
+        } else {
+            pad_icon(list_, source.icon, ImVec2(box_b.x - source_w - px(9), y + (row_height - icon_h) / 2), icon_h);
+        }
     }
-    cursor_ += row_height * static_cast<float>((kPadInputs + 1) / 2) + px(12);
-    if (small_button(t.reset_keys, ImVec2(origin_.x, origin_.y + cursor_), "##reset_keys")) reset_key_bindings();
+    cursor_ += row_height * static_cast<float>((kPadButtons + 1) / 2) + px(12);
+    if (small_button(t.reset_pad, ImVec2(origin_.x, origin_.y + cursor_), "##reset_pad")) reset_pad_buttons();
     cursor_ += px(52);
+}
 
-    // The port's own keys, not rebindable.
-    text(heading_, px(20), ImVec2(origin_.x, origin_.y + cursor_), kInk, t.system_keys);
-    cursor_ += px(32);
-    const char* enter = italian() ? "Invio" : "Enter";
+// The port's own keys, not rebindable.
+void Launcher::page_system_keys(float row_height) {
+    const Texts& t = T();
+    const char* enter = in_language("Enter", "Invio", "Enter", "Intro");
     char alt_enter[32];
     std::snprintf(alt_enter, sizeof(alt_enter), "F11 \xC2\xB7 Alt+%s", enter);
     char navigation[48];
-    std::snprintf(navigation, sizeof(navigation), "%s \xC2\xB7 %s \xC2\xB7 Esc \xC2\xB7 Q E", italian() ? "Frecce" : "Arrows", enter);
+    std::snprintf(navigation, sizeof(navigation), "%s \xC2\xB7 %s \xC2\xB7 Esc \xC2\xB7 Q E", in_language("Arrows", "Frecce", "Setas", "Flechas"), enter);
     const char* system[][2] = {{"F1 \xC2\xB7 Back+Start", t.menu_key}, {alt_enter, t.full_screen_key}, {"F10", t.effects_key},
-                               {navigation, t.launcher_keys}, {t.pad_keys, t.pad_menu_keys}};
+                               {"F7", t.hide_hud_key}, {navigation, t.launcher_keys}, {t.pad_keys, t.pad_menu_keys}};
     for (const auto& [keys, action] : system) {
         const ImVec2 size = measure(body_bold_, px(16), keys);
         const ImVec2 a(origin_.x, origin_.y + cursor_ + px(3));
@@ -1625,20 +1962,19 @@ void Launcher::update_row(bool always) {
     }
     if (setting("check_updates") == 0 || state == 3 || (!always && state != 2)) return;
     std::error_code ignored;
-    const bool installed = !portable_mode() && std::filesystem::exists(program_directory() / "unins000.exe", ignored);
+    const bool installed = update_test() || (!portable_mode() && std::filesystem::exists(program_directory() / "unins000.exe", ignored));
     const bool self_update = installed && !setup_url.empty() && download != 3;
     char found[96];
     std::snprintf(found, sizeof(found), t.update_found, version.c_str());
     if (download == 1) {
-        status(false, t.downloading, found, nullptr, nullptr);
+        status(false, t.downloading, found, nullptr, nullptr, true);
+    } else if (download == 2) {
+        if (status(true, t.update_ready, found, t.update_install_small, "##update")) install_requested_ = true;
     } else if (state == 2) {
         if (status(false, download == 3 ? t.update_failed : found, self_update ? t.update_install_sub : t.update_sub,
                    self_update ? t.update_now : t.open, "##update", download != 3)) {
             if (self_update) {
-                std::lock_guard<std::mutex> lock(updates_.mutex);
-                updates_.download = 1;
-                if (download_thread_.joinable()) download_thread_.join();
-                download_thread_ = std::thread(download_update, &updates_);
+                start_update_download();
             } else {
                 ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
             }
@@ -1648,12 +1984,97 @@ void Launcher::update_row(bool always) {
     }
 }
 
-// A newer release is known and not being installed: the first page and the guide show the notice at the top, the
-// side menu marks About.
+// A newer release is known: the first page and the guide show the notice at the top, the side menu marks About.
 bool Launcher::update_available() {
     if (setting("check_updates") == 0) return false;
     std::lock_guard<std::mutex> lock(updates_.mutex);
-    return updates_.state == 2 && updates_.download != 2;
+    return updates_.state == 2;
+}
+
+void Launcher::start_update_download() {
+    std::lock_guard<std::mutex> lock(updates_.mutex);
+    if (updates_.download == 1) return;
+    updates_.download = 1;
+    updates_.received = updates_.size = 0;
+    if (download_thread_.joinable()) download_thread_.join();
+    download_thread_ = std::thread(download_update, &updates_);
+}
+
+// The player pressed Install: the verified installer starts and the launcher closes, so that it can replace our files.
+// Should Windows refuse to start it, Explorer shows it instead. Called between frames: ShellExecute sends messages to
+// our window, whose thread waits for the UI lock a frame holds.
+void Launcher::install_update() {
+    std::filesystem::path setup;
+    {
+        std::lock_guard<std::mutex> lock(updates_.mutex);
+        setup = updates_.setup_file;
+    }
+    const HINSTANCE started = ShellExecuteW(window_, L"open", setup.c_str(), nullptr, setup.parent_path().c_str(), SW_SHOWNORMAL);
+    if (reinterpret_cast<INT_PTR>(started) <= 32) {
+        const std::wstring argument = L"/select,\"" + setup.wstring() + L"\"";
+        ShellExecuteW(nullptr, L"open", L"explorer.exe", argument.c_str(), nullptr, SW_SHOWNORMAL);
+    }
+    log_line("launcher: update: %s the installer, closing", reinterpret_cast<INT_PTR>(started) > 32 ? "started" : "showing");
+    done_ = true;
+}
+
+// The new version's notice, over the first page once per start: what is new, then Update (an installed copy: the
+// download with its progress, then Install) or the release page (a portable copy), or Later.
+void Launcher::page_update() {
+    const Texts& t = T();
+    int download;
+    uint64_t received, size;
+    std::string version, url, setup_url;
+    std::vector<std::string> points;
+    {
+        std::lock_guard<std::mutex> lock(updates_.mutex);
+        download = updates_.download;
+        received = updates_.received, size = updates_.size;
+        version = updates_.version, url = updates_.url, setup_url = updates_.setup_url;
+        points = updates_.points;
+    }
+    title(t.update_title);
+    char line[256];
+    std::snprintf(line, sizeof(line), t.update_lead, version.c_str());
+    lead(line);
+    for (const std::string& point : points) {
+        const float wrap = panel_width_ - px(24);
+        const ImVec2 at(origin_.x, origin_.y + cursor_), point_size = measure(body_, px(18), point.c_str(), wrap);
+        list_->AddRectFilled(ImVec2(at.x + px(2), at.y + px(9)), ImVec2(at.x + px(9), at.y + px(16)), fade(kRed));
+        text(body_, px(18), ImVec2(at.x + px(24), at.y), kInk, point.c_str(), wrap);
+        cursor_ += point_size.y + px(10);
+    }
+    cursor_ += px(8);
+    std::error_code ignored;
+    const bool installed = update_test() || (!portable_mode() && std::filesystem::exists(program_directory() / "unins000.exe", ignored));
+    const bool self_update = installed && !setup_url.empty();
+    if (download == 1) {
+        std::snprintf(line, sizeof(line), t.update_progress, received / 1048576.0, size / 1048576.0);
+        status(false, t.downloading, size ? line : "", nullptr, nullptr, true);
+        if (size) {  // the bar under the row
+            const float y = origin_.y + cursor_ - px(14), fraction = std::min(1.0f, static_cast<float>(received) / size);
+            list_->AddRectFilled(ImVec2(origin_.x, y), ImVec2(origin_.x + panel_width_, y + px(4)), fade(IM_COL32(255, 255, 255, 30)));
+            list_->AddRectFilled(ImVec2(origin_.x, y), ImVec2(origin_.x + panel_width_ * fraction, y + px(4)), fade(kRed));
+        }
+        return;  // no Later while it downloads: the download goes on in any case
+    }
+    if (download == 2) {
+        if (big_button(t.update_install, "##update_install", true)) install_requested_ = true;
+        lead(t.update_install_note);
+    } else {
+        if (download == 3) status(false, t.update_failed, "", nullptr, nullptr);
+        if (self_update && download != 3) {
+            if (big_button(t.update_big, "##update_big", true)) start_update_download();
+        } else {
+            if (big_button(t.update_page, "##update_page", true)) ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+            if (!installed) lead(t.update_portable_note);
+        }
+    }
+    if (small_button(t.update_later, ImVec2(origin_.x, origin_.y + cursor_), "##update_later")) {
+        update_prompt_ = false;
+        page_since_ = static_cast<float>(ImGui::GetTime());
+    }
+    cursor_ += px(52);
 }
 
 // sm2port.log selected in Explorer, or the report of a crash when there is a new one.
@@ -1857,7 +2278,16 @@ void Launcher::panel(float now, float since) {
     list_->ChannelsSplit(2);
     list_->ChannelsSetCurrent(1);
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, g_alpha);
-    if (wizard_) {
+    if (!update_prompt_shown_ && !wizard_ && !in_game_ && update_available()) {
+        update_prompt_ = update_prompt_shown_ = true;
+        update_prompt_page_ = page_;
+        page_since_ = now;
+        focus_panel_ = true;  // Update already selected: one press of A
+    }
+    if (update_prompt_ && page_ != update_prompt_page_) update_prompt_ = false;
+    if (update_prompt_ && !wizard_) {
+        page_update();
+    } else if (wizard_) {
         page_wizard();
     } else {
         switch (page_) {
@@ -1865,6 +2295,7 @@ void Launcher::panel(float now, float since) {
             case Page::kSettings: page_settings(); break;
             case Page::kControls: page_controls(); break;
             case Page::kAbout: page_about(); break;
+            case Page::kLauncher: page_launcher(); break;
             case Page::kQuit:
                 if (in_game_) page_exit();
                 break;
@@ -2100,11 +2531,11 @@ void Launcher::bottom_bar(float since) {
     if (in_game_) {
         hint(pad ? "Start" : "F1", kChrome, t.resume_hint);
     } else if (!wizard_ && disc_) {
-        hint(pad ? "Start" : (italian() ? "Invio" : "Enter"), kChrome, t.play_hint);
+        hint(pad ? "Start" : (in_language("Enter", "Invio", "Enter", "Intro")), kChrome, t.play_hint);
     }
     if (!wizard_) hint(pad ? "LB RB" : "Q E", kChrome, page_ == Page::kSettings ? t.tabs_hint : t.pages_hint);
     hint(pad ? "B" : "Esc", IM_COL32(255, 90, 90, 255), t.back);
-    hint(pad ? "A" : (italian() ? "Invio" : "Enter"), kGreen, t.select);
+    hint(pad ? "A" : (in_language("Enter", "Invio", "Enter", "Intro")), kGreen, t.select);
     hint(pad ? t.dpad : "\xE2\x86\x91\xE2\x86\x93\xE2\x86\x90\xE2\x86\x92", kChrome,
          pad && menu_has_focus_ && !wizard_ ? t.enter_hint : t.move_hint);
 }
@@ -2154,6 +2585,27 @@ void Launcher::poll_gamepads(float now) {
         pad.sThumbRY = larger(pad.sThumbRY, g.sThumbRY);
     }
     pad_connected_ = any;
+    // The Controls page waiting for a button: a button that goes down is the answer, and the menus see nothing.
+    static constexpr WORD kBits[kPadButtons] = {
+        XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_LEFT_SHOULDER,
+        XINPUT_GAMEPAD_RIGHT_SHOULDER, 0, 0, XINPUT_GAMEPAD_LEFT_THUMB, XINPUT_GAMEPAD_RIGHT_THUMB, XINPUT_GAMEPAD_START,
+        XINPUT_GAMEPAD_BACK, XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT,
+        XINPUT_GAMEPAD_DPAD_RIGHT};
+    uint32_t down = 0;
+    for (int i = 0; i < kPadButtons; ++i) {
+        const bool on = static_cast<PadButton>(i) == PadButton::kLeftTrigger    ? pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
+                        : static_cast<PadButton>(i) == PadButton::kRightTrigger ? pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
+                                                                                : (pad.wButtons & kBits[i]) != 0;
+        if (on) down |= 1u << i;
+    }
+    const uint32_t pressed = down & ~pad_buttons_before_;
+    pad_buttons_before_ = down;
+    if (pad_rebinding_ >= 0) {
+        for (int i = 0; i < kPadButtons && pad_captured_ < 0; ++i) {
+            if (pressed & (1u << i)) pad_captured_ = i;
+        }
+        pad = {};
+    }
     if (!any) {
         io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;  // ImGui then clears the gamepad keys
         stick_x_ = stick_y_ = 0;
@@ -2392,6 +2844,14 @@ void Launcher::page_exit() {
     }
 }
 
+// In the game menu: the launcher again, as at the start (back_to_launcher).
+void Launcher::page_launcher() {
+    const Texts& t = T();
+    title(t.back_to_launcher);
+    lead(t.back_to_launcher_sub);
+    if (big_button(t.back_to_launcher_button, "##back_to_launcher", false)) back_to_launcher();
+}
+
 void Launcher::frame_in_game(float now) {
     const Texts& t = T();
     const ImVec2 screen(static_cast<float>(width_), static_cast<float>(height_));
@@ -2412,9 +2872,9 @@ void Launcher::frame_in_game(float now) {
     list_ = ImGui::GetWindowDrawList();
     // The launcher's entrance, twice as quick.
     header(since * 2);
-    const char* labels[] = {t.resume, t.settings, t.controls, t.quit};
-    const Page targets[] = {Page::kPlay, Page::kSettings, Page::kControls, Page::kQuit};
-    side_menu(now, since * 2, labels, targets, 4);
+    const char* labels[] = {t.resume, t.settings, t.controls, t.menu_launcher, t.quit};
+    const Page targets[] = {Page::kPlay, Page::kSettings, Page::kControls, Page::kLauncher, Page::kQuit};
+    side_menu(now, since * 2, labels, targets, 5);
     panel(now, since * 2);
     bottom_bar(since * 2);
     g_alpha = 1;
@@ -2608,16 +3068,6 @@ std::optional<GameDisc> Launcher::run() {
         resize_if_needed();
         upload_art();
         {
-            std::lock_guard<std::mutex> lock(updates_.mutex);
-            if (updates_.download == 2) {  // verified: Explorer shows the installer for the player to start; we close
-                updates_.download = 0;     // so that it can replace our files
-                const std::wstring argument = L"/select,\"" + updates_.setup_file.wstring() + L"\"";
-                ShellExecuteW(nullptr, L"open", L"explorer.exe", argument.c_str(), nullptr, SW_SHOWNORMAL);
-                log_line("launcher: update downloaded, showing the installer, closing");
-                done_ = true;
-            }
-        }
-        {
             std::lock_guard<std::recursive_mutex> lock(g_ui_mutex);
             configure_navigation();
             ImGui_ImplDX11_NewFrame();
@@ -2631,6 +3081,10 @@ std::optional<GameDisc> Launcher::run() {
         draw_background(time);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         swap_chain_->Present(1, 0);
+        if (install_requested_) {  // outside the lock, like the dialogs
+            install_requested_ = false;
+            install_update();
+        }
         if (choose_disc_requested_) {  // outside the lock: see choose_disc
             choose_disc_requested_ = false;
             run_disc_dialog();

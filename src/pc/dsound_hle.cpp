@@ -201,6 +201,7 @@ std::vector<CompletedPacket> flush_stream(Voice& voice) {
     voice.decoded_block = -1;
     voice.envelope_stage = EnvelopeStage::kOff;
     voice.playing = false;
+    voice.paused = false;  // see finish_release
     voice.end_of_stream = false;
     voice.stream_fed = false;
     return take_completed_packets(voice);
@@ -732,9 +733,13 @@ HRESULT32 __stdcall BufferSetBufferData(uint32_t self, uint32_t data, uint32_t b
 
 // --- streams: exported functions ---
 
+// 0 RESUME, 1 PAUSE, 2 SYNCHPLAYBACK, 3 PAUSENOACTIVATE (a pause; Midnight Club 3 uses it, Spider-Man 2 does not).
+// The game resumes with 2, never followed by a SynchPlayback: its sound channels go from paused (state 5) to playing
+// (state 4) right after that call (0x38C705 in the World build). Taken as a pause, a stream paused once (the music
+// under the opening film) stayed silent for good.
 HRESULT32 __stdcall StreamPause(uint32_t self, uint32_t pause) {
     GameLock lock(audio_lock());
-    voice_of(self)->paused = pause != 0;
+    voice_of(self)->paused = pause == 1 || pause == 3;
     restart_stream(*voice_of(self));
     return kOk;
 }

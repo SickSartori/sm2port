@@ -185,7 +185,62 @@ uint32_t find_address(const Xbe& xbe, uint32_t address, const std::vector<uint8_
     return 0;
 }
 
+// The game's clock: seconds of the day, an int the sky and the scripts' game_clock_timer follow. Its address (in the
+// uninitialised data, so there are no bytes to check there) comes from the tick that advances it:
+//   mov eax,[clock]; inc eax; xor edx,edx; mov ecx,60; mov [clock],eax
+volatile uint32_t* g_clock = nullptr;
+
+volatile uint32_t* find_clock(const Xbe& xbe) {
+    const uint32_t address = build_address(xbe, 0x002CE4F8);
+    if (!address) return nullptr;
+    const auto* code = reinterpret_cast<const uint8_t*>(static_cast<uintptr_t>(address));
+    static const uint8_t kMiddle[] = {0x40, 0x33, 0xD2, 0xB9, 0x3C, 0x00, 0x00, 0x00, 0xA3};
+    uint32_t read = 0, written = 0;
+    std::memcpy(&read, code + 1, 4);
+    std::memcpy(&written, code + 14, 4);
+    if (code[0] != 0xA1 || std::memcmp(code + 5, kMiddle, sizeof(kMiddle)) != 0 || read != written) return nullptr;
+    return reinterpret_cast<volatile uint32_t*>(static_cast<uintptr_t>(read));
+}
+
+// The 3D view's field of view: the game turns its value (1 = 90 degrees, changed by the camera as it goes) into degrees
+// with a constant (89.9999) right before setting the perspective, in two places: mulss xmm0,[constant]. Both read this
+// copy instead, scaled by setting field_of_view (percent; 100 = like the game).
+constexpr uint32_t kFieldOfViewSites[] = {0x00261AAE, 0x0026BEA0};
+float g_fov_constant = 0;
+volatile float g_fov_degrees = 0;
+
+void scale_field_of_view() {
+    if (g_fov_constant) g_fov_degrees = g_fov_constant * std::clamp(setting("field_of_view"), 50.0f, 150.0f) / 100;
+}
+
+void patch_field_of_view(const Xbe& xbe) {
+    for (const uint32_t site : kFieldOfViewSites) {
+        const uint32_t address = build_address(xbe, site);
+        auto* code = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(address));
+        static const uint8_t kMulss[] = {0xF3, 0x0F, 0x59, 0x05};
+        uint32_t constant = 0;
+        if (address) std::memcpy(&constant, code + 4, 4);
+        const auto* value = reinterpret_cast<const float*>(static_cast<uintptr_t>(constant));
+        if (!address || std::memcmp(code, kMulss, sizeof(kMulss)) != 0 || !constant || *value < 89 || *value > 91) {
+            log_line("HLE: field of view at %08X does not match this XBE, not patched", site);
+            continue;
+        }
+        g_fov_constant = *value;
+        const uint32_t ours = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(&g_fov_degrees));
+        std::memcpy(code + 4, &ours, 4);
+        log_line("HLE: field of view at %08X reads the port's copy", address);
+    }
+    scale_field_of_view();
+}
+
 }  // namespace
+
+void hle_frame() {
+    const float hour = setting("time_of_day");
+    // Whole minutes: the tick makes it hh:mm:01, so the game's "new minute" work does not run on every tick.
+    if (g_clock && hour >= 0 && hour < 24) *g_clock = static_cast<uint32_t>(hour * 60) * 60;
+    scale_field_of_view();
+}
 
 uint32_t build_address(const Xbe& xbe, uint32_t italy_address) {
     switch (xbe.entry_point()) {
@@ -209,6 +264,13 @@ void apply_hle_patches(const Xbe& xbe) {
             log_line("HLE: frame rate mode not found, the game stays at 29.97 fps");
         }
     }
+    g_clock = find_clock(xbe);
+    if (g_clock) {
+        log_line("HLE: game clock at %08X", static_cast<uint32_t>(reinterpret_cast<uintptr_t>(g_clock)));
+    } else {
+        log_line("HLE: game clock not found, no fixed time of day");
+    }
+    patch_field_of_view(xbe);
     g_kick_off_return = build_address(xbe, 0x003C424B);
     g_read_get_return = build_address(xbe, 0x003C4099);
     for (const Patch& patch : kPatches) {

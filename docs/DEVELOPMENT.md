@@ -50,7 +50,7 @@ CHANGELOG (`tools/release_notes.ps1`) e i file di `dist/`.
 
 | Cartella | Contenuto |
 |---|---|
-| `external/sick-xport` | libreria privata condivisa con mc3port (sottomodulo git): `src/core` (ISO, XBE, export del kernel) e la parte di `src/pc` che non dipende dal gioco (kernel, memoria, thread, registri e texture della GPU, orologi, controller, percorsi, log, crash, profilo); `xport.cmake` |
+| `external/xport` | libreria open source (MIT) condivisa con mc3port (sottomodulo git, github.com/SickSartori/xport): `src/core` (ISO, XBE, export del kernel) e la parte di `src/pc` che non dipende dal gioco (kernel, memoria, thread, registri e texture della GPU, orologi, controller, percorsi, log, crash, profilo); `xport.cmake` |
 | `src/pc` | la parte di Spider-Man 2: patch del gioco, input e audio, renderer D3D11 e front end della GPU, dischi, launcher |
 | `third_party` | Dear ImGui e i font Barlow, con le loro licenze; la licenza di SDL3, che CMake scarica alla configurazione |
 | `res` | risorse Win32: icona, musica del launcher |
@@ -127,6 +127,7 @@ Variabili d'ambiente:
 | `SM2_DUMP_TARGET=<indirizzo hex>` | con ogni frame salvato, anche la render target a quell'indirizzo fisico (`target-NNNNN.bmp`) |
 | `SM2_DEBUG_FRAME_AT=<s>[+<durata>]` | una riga per draw (e per clear) durante 1 s, o `durata` secondi, a partire da `s` secondi dopo il primo draw (rettangolo a schermo, coordinate di texture, stati) |
 | `SM2_DEBUG_PROBE=<x>,<y>` | con il precedente, registra il pixel (x, y) ogni volta che un draw lo cambia |
+| `SM2_DEBUG_HUD=<n>` | a ogni F7, i successivi `n` draw piatti nel log con la decisione del renderer (HUD stretto, nascosto, bande nere) |
 | `SM2_DEBUG_FULLSCREEN=1` | con `SM2_DEBUG_FRAME_AT`, solo i draw che coprono quasi tutta la superficie (gli effetti a schermo intero), così la finestra può durare a lungo |
 | `SM2_DEBUG_ADDITIVE=1` | con `SM2_DEBUG_FRAME_AT`, solo i draw che aggiungono luce (fusione con destinazione ONE: aloni, scie, bagliori) |
 | `SM2_DUMP_TEXTURE=<indirizzo hex>` | salva le texture decodificate di quella pagina di 4 KB come `texture-<indirizzo>.bmp` (con l'alfa) |

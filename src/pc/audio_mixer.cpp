@@ -284,6 +284,10 @@ void finish_release(Voice& voice) {
     voice.envelope_level = 1;
     voice.playing = false;
     if (!voice.is_stream) return;
+    // A flushed stream is no longer paused: the game stops a sound channel (state 7) and frees it only once its stream
+    // is neither playing nor paused (0x38C630 in the World build). Still paused, the music stopped under the pause menu
+    // kept its channel for ever and never came back.
+    voice.paused = false;
     voice.end_of_stream = false;
     voice.stream_fed = false;
     voice.stopped_by_flush = true;

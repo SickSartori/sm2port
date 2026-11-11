@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.1.4
+
+### New
+
+- **A fixed time of day**: dawn, day, sunset or night, chosen in the Game settings (in the launcher and in
+  the in-game menu). The sky and the city's lights stay at that hour; Game keeps the game's own clock.
+- **The HUD keeps its shape in 16:9**: the game draws it with the proportions of 4:3, so the health ring came out a
+  third too wide. Setting "Round HUD in 16:9" in Graphics, on by default.
+- **Field of view**, from 75% to 130% of the game's own (Graphics); the camera still widens and narrows it as it goes.
+- **F7 hides the HUD** and shows it again, for photos and videos.
+- **The controller's buttons can be moved around** (Controls, Controller tab): each button of the game comes from the
+  one of your pad you choose.
+- **The right stick click on the keyboard** (middle mouse button by default).
+- **A new version says what is new** when the launcher opens, from its release notes. Update downloads the installer
+  with its progress and checks it against SHA256SUMS; Install starts it and closes the launcher. Nothing installs by
+  itself, and a portable copy opens the release page instead.
+- **Back to the launcher** from the in-game menu (F1): the game closes and the launcher opens again, where the disc
+  and the settings that need a restart can be changed.
+- **The launcher in Portuguese (Brazil) and Spanish**, keys and buttons included, after Windows' language.
+
+### Improved
+
+- The ambient occlusion (one of the modern effects) no longer leaves a fine grain on bright surfaces in the areas it
+  darkens: it uses the same directions for every pixel.
+- "Sharp HUD pictures" now covers the health ring and the tutorials' boxes too.
+- The HUD keeps its shape in 16:9 also for the minimap and the grey tab beside the health ring.
+- The Controls page in tabs (keyboard, controller, PC keys), the keyboard keys in groups: the PC keys were below the
+  window's edge. "Down" in Italian and the arrows of the key names showed as odd characters.
+- About says where to find the licences, the credits and how to contribute: on GitHub.
+- sm2port's shared runtime is now open source, as [xport](https://github.com/SickSartori/xport) (MIT licence), so
+  every line of the Windows files can be read and built from public code.
+
+### Fixed
+
+- **The music no longer disappears** after the opening film or the pause menu, and dialogue playing at that moment no
+  longer goes silent. The game resumes its sounds with a value the port took as one more pause, and a sound stopped
+  while paused kept its channel for ever.
+
 ## 0.1.3
 
 ### New
