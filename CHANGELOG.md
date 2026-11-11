@@ -2,6 +2,11 @@
 
 ## 0.1.4
 
+### New
+
+- **A fixed time of day**: dawn, day, sunset or night, chosen in the Game settings (in the launcher and in
+  the in-game menu). The sky and the city's lights stay at that hour; Game keeps the game's own clock.
+
 ### Improved
 
 - The ambient occlusion (one of the modern effects) no longer leaves a fine grain on bright surfaces in the areas it

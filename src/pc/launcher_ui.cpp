@@ -88,6 +88,7 @@ struct Texts {
     const char *crash_heading, *crash_sub, *crash_button, *crash_link;
     const char *move_heading, *move_sub, *move_failed, *move_button;
     const char *move_title, *move_lead, *move_now, *move_later;
+    const char *time_of_day, *time_of_day_sub, *time_game, *dawn, *day, *sunset, *night;
 };
 
 const Texts kEnglish = {
@@ -135,6 +136,7 @@ const Texts kEnglish = {
     "You have files from an earlier version", "Move your saves and settings to Documents\\sm2port",
     "Could not move them: close what uses them, then try again", "Move",
     "Move your files", "Your saves and settings from an earlier version are in a hidden folder. Move them to Documents\\sm2port, where they are easy to find and copy. Until you do, the game keeps using them where they are.", "Move now", "Later",
+    "Time of day", "The sky stays at the chosen hour; Game keeps its own clock", "Game", "Dawn", "Day", "Sunset", "Night",
 };
 
 const Texts kItalian = {
@@ -187,6 +189,7 @@ const Texts kItalian = {
     "Hai file di una versione precedente", "Sposta salvataggi e impostazioni in Documenti\\sm2port",
     "Spostamento non riuscito: chiudi ci\xC3\xB2 che li usa e riprova", "Sposta",
     "Sposta i tuoi file", "I salvataggi e le impostazioni di una versione precedente sono in una cartella nascosta. Spostali in Documenti\\sm2port, dove sono facili da trovare e copiare. Finch\xC3\xA9 non lo fai, il gioco continua a usarli dove sono.", "Sposta ora", "Pi\xC3\xB9 tardi",
+    "Ora del giorno", "Il cielo resta all'ora scelta; Gioco lascia il suo orologio", "Gioco", "Alba", "Giorno", "Tramonto", "Notte",
 };
 
 const Texts& T() {
@@ -1406,6 +1409,14 @@ void Launcher::page_settings() {
         const char* rates[] = {"30", "60"};
         int rate = setting("frame_rate") >= 60 ? 1 : 0;
         if (segmented("##fps", rates, 2, &rate)) set_setting("frame_rate", rate ? 60.0f : 30.0f);
+        row(t.time_of_day, t.time_of_day_sub, false, 450);
+        static const float kHours[] = {-1, 6.5f, 12, 18, 22.5f};
+        const char* times[] = {t.time_game, t.dawn, t.day, t.sunset, t.night};
+        int time = 0;
+        for (int i = 1; i < 5; ++i) {
+            if (setting("time_of_day") == kHours[i]) time = i;
+        }
+        if (segmented("##time_of_day", times, 5, &time, nullptr, 450)) set_setting("time_of_day", kHours[time]);
         row(t.volume, nullptr);
         float volume = setting("volume");
         if (slider("##volume", &volume, 0, 100, "%.0f")) set_setting("volume", std::round(volume));
@@ -1514,7 +1525,7 @@ void Launcher::page_settings() {
     cursor_ += px(8);
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
-        for (const char* key : {"game_language", "frame_rate", "volume", "launcher_music", "pause_in_background",
+        for (const char* key : {"game_language", "frame_rate", "time_of_day", "volume", "launcher_music", "pause_in_background",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
                                 "anisotropy", "gpu_vertices", "sharp_2d", "effects", "sharpen", "bloom",
                                 "bloom_threshold", "saturation", "contrast", "vignette",

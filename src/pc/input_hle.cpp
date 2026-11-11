@@ -469,6 +469,7 @@ uint32_t __stdcall XInputGetState(uint32_t handle, XboxInputState* state) {
     std::lock_guard<std::mutex> lock(g_mutex);
     Port* port = port_of(handle);
     XboxGamepad pad{};
+    if (port && port->index == 0) hle_frame();  // controller 1 is always there and read once a frame
     if (!port || !read_host(port->index, pad)) return kErrorDeviceNotConnected;
     // The Back+Start combo, only on the read the game sees: host_mask's reads threw the replayed tap away.
     if (g_host_connected[port->index]) {
