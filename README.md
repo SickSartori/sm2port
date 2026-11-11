@@ -2,6 +2,8 @@
 
 # sm2port
 
+[![Get it on RecompLauncher](https://recomplauncher.com/assets/press/launcher/badge-dark.svg)](https://recomplauncher.com/game/sm2port)
+
 An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian, the European
 French/German/Spanish and the World releases). It runs the game from **your own disc image**, with 16:9 widescreen, up to
 60 fps, a higher internal resolution, keyboard and mouse, and optional modern effects.
