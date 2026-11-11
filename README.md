@@ -149,10 +149,11 @@ version and PC filled in, and the folder with `sm2port.log` to attach.
 ## Building from source
 
 sm2port's game-specific code is here; the shared runtime it builds on (the Xbox kernel, memory and threads, the
-graphics chip's registers and textures, disc reading) is a private library, `external/sick-xport`, so this
-repository alone does not build. The releases include it, compiled, in `sm2runtime.dll`.
+graphics chip's registers and textures, disc reading) is an open-source library shared with
+[mc3port](https://github.com/SickSartori/mc3port): [xport](https://github.com/SickSartori/xport), a git
+submodule in `external/xport`.
 
-With access to the library: Visual Studio with "Desktop development with C++" (MSVC x86 tools, Windows SDK, CMake
+You need Visual Studio with "Desktop development with C++" (MSVC x86 tools, Windows SDK, CMake
 tools), `git submodule update --init`, then from a Developer PowerShell in the project folder:
 
 ```
@@ -177,7 +178,6 @@ xemu and other open-source Xbox projects were studied as references only; no cod
 
 ## Licence
 
-sm2port's code in this repository is released under the [MIT licence](LICENSE). The shared runtime
-(`external/sick-xport`) is not: it is private, and its compiled form in `sm2runtime.dll` may be used and passed on
-unchanged as part of sm2port's releases. Third-party parts keep their own licences, listed in
+sm2port's code in this repository is released under the [MIT licence](LICENSE), and so is the shared runtime
+[xport](https://github.com/SickSartori/xport). Third-party parts keep their own licences, listed in
 [THIRD_PARTY.md](THIRD_PARTY.md). The game itself, and everything read from your disc, belongs to its owners.
