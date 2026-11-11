@@ -13,6 +13,12 @@
 - **The controller's buttons can be moved around** (Controls, Controller tab): each button of the game comes from the
   one of your pad you choose.
 - **The right stick click on the keyboard** (middle mouse button by default).
+- **A new version says what is new** when the launcher opens, from its release notes. Update downloads the installer
+  with its progress and checks it against SHA256SUMS; Install starts it and closes the launcher. Nothing installs by
+  itself, and a portable copy opens the release page instead.
+- **Back to the launcher** from the in-game menu (F1): the game closes and the launcher opens again, where the disc
+  and the settings that need a restart can be changed.
+- **The launcher in Portuguese (Brazil) and Spanish**, keys and buttons included, after Windows' language.
 
 ### Improved
 
