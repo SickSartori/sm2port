@@ -62,6 +62,7 @@ struct TextSetting {
 const TextSetting kTextSettings[] = {
     {"disc_image", "Your Spider-Man 2 disc image (.iso or .cci; of an image split in parts, any part). Filled in when you choose it; empty = ask."},
     {"keyboard", "Keyboard keys for controller 1 (Windows virtual-key codes); change them in the launcher. Empty = defaults."},
+    {"controller", "The controllers' buttons moved around (game button:your controller's button); change them in the launcher. Empty = as on the pad."},
 };
 
 std::filesystem::path g_file;
