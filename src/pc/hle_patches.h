@@ -15,4 +15,8 @@ uint32_t build_address(const Xbe& xbe, uint32_t italy_address);
 // build_address; every patch checks the original bytes first and is skipped, with a log line, if they differ.
 void apply_hle_patches(const Xbe& xbe);
 
+// Once a frame, from the game's controller reads: settings that write the game's variables (the fixed time of day,
+// the field of view).
+void hle_frame();
+
 }  // namespace xport::pc

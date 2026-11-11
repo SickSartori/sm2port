@@ -78,9 +78,10 @@ where it is. Then pick a quality preset and the frame rate and press **PLAY**.
 
 ## Controls
 
-Xbox controllers (360, One and Series) work as on the console. PlayStation, Switch and most other USB or Bluetooth pads
-work too, through SDL3, with the buttons in the Xbox positions (the bottom face button is A). Without a controller, the keyboard and the mouse are controller 1; every key can be
-changed in the launcher's **Controls** page.
+A controller is recommended. Xbox controllers (360, One and Series) work as on the console. PlayStation, Switch and most
+other USB or Bluetooth pads work too, through SDL3, with the buttons in the Xbox positions (the bottom face button is A);
+their buttons can be moved around in the launcher's **Controls** page (Controller tab). Without a controller, the
+keyboard and the mouse are controller 1; every key can be changed on the same page (Keyboard tab).
 
 | Input | Xbox controller |
 |---|---|
@@ -93,6 +94,7 @@ changed in the launcher's **Controls** page.
 | Q | left trigger |
 | R | Y |
 | C / Left Shift / Left Ctrl | left stick click / Black / White |
+| Middle mouse button | right stick click |
 | I / J / K / L | D-pad |
 | Enter / Backspace | Start (pause) / Back |
 
@@ -101,6 +103,7 @@ changed in the launcher's **Controls** page.
 | F1 (controller: Back+Start) | in-game menu: settings, controls, resume, exit; the game pauses meanwhile |
 | F11 or Alt+Enter | full screen on and off |
 | F10 | modern effects on and off |
+| F7 | HUD hidden and shown again (for photos and videos) |
 
 The mouse moves the camera while the game window is in front and the game runs (the cursor hides after a few seconds
 without moving). Settings
@@ -116,6 +119,9 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 | Game language | the game's own languages for your release, by default like Windows |
 | Frames per second | 30 like the Xbox, or 60 |
 | Aspect ratio | 16:9 (the game's widescreen mode) or 4:3 |
+| Time of day | the game's own clock, or always dawn, day, sunset or night |
+| Round HUD in 16:9 | the health ring keeps its shape in 16:9 instead of stretching |
+| Field of view | 75% to 130% of the game's own |
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
 | Modern effects | glow, sharpening, colour, vignette, ambient occlusion |
@@ -145,10 +151,11 @@ version and PC filled in, and the folder with `sm2port.log` to attach.
 ## Building from source
 
 sm2port's game-specific code is here; the shared runtime it builds on (the Xbox kernel, memory and threads, the
-graphics chip's registers and textures, disc reading) is a private library, `external/sick-xport`, so this
-repository alone does not build. The releases include it, compiled, in `sm2runtime.dll`.
+graphics chip's registers and textures, disc reading) is an open-source library shared with
+[mc3port](https://github.com/SickSartori/mc3port): [xport](https://github.com/SickSartori/xport), a git
+submodule in `external/xport`.
 
-With access to the library: Visual Studio with "Desktop development with C++" (MSVC x86 tools, Windows SDK, CMake
+You need Visual Studio with "Desktop development with C++" (MSVC x86 tools, Windows SDK, CMake
 tools), `git submodule update --init`, then from a Developer PowerShell in the project folder:
 
 ```
@@ -171,9 +178,15 @@ xemu and other open-source Xbox projects were studied as references only; no cod
 - The launcher's background music and its background pictures were generated for the project with ElevenLabs Music and
   Magnific. The program icon and logo are the project's own (`tools/make_icon.py`).
 
+## Supporting the project
+
+sm2port is free and always will be: no paid builds, no early access, no locked features. If you enjoy it and want to
+say thanks, you can support its author on [GitHub Sponsors](https://github.com/sponsors/SickSartori) or
+[Ko-fi](https://ko-fi.com/sicksartori). It is never needed to play, and it buys nothing: it gives more time for fixes,
+features and the next port.
+
 ## Licence
 
-sm2port's code in this repository is released under the [MIT licence](LICENSE). The shared runtime
-(`external/sick-xport`) is not: it is private, and its compiled form in `sm2runtime.dll` may be used and passed on
-unchanged as part of sm2port's releases. Third-party parts keep their own licences, listed in
+sm2port's code in this repository is released under the [MIT licence](LICENSE), and so is the shared runtime
+[xport](https://github.com/SickSartori/xport). Third-party parts keep their own licences, listed in
 [THIRD_PARTY.md](THIRD_PARTY.md). The game itself, and everything read from your disc, belongs to its owners.
