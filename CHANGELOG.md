@@ -28,6 +28,9 @@
 - The HUD keeps its shape in 16:9 also for the minimap and the grey tab beside the health ring.
 - The Controls page in tabs (keyboard, controller, PC keys), the keyboard keys in groups: the PC keys were below the
   window's edge. "Down" in Italian and the arrows of the key names showed as odd characters.
+- About says where to find the licences, the credits and how to contribute: on GitHub.
+- sm2port's shared runtime is now open source, as [xport](https://github.com/SickSartori/xport) (MIT licence), so
+  every line of the Windows files can be read and built from public code.
 
 ### Fixed
 
