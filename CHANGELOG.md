@@ -7,6 +7,12 @@
 - The ambient occlusion (one of the modern effects) no longer leaves a fine grain on bright surfaces in the areas it
   darkens: it uses the same directions for every pixel.
 
+### Fixed
+
+- **The music no longer disappears** after the opening film or the pause menu, and dialogue playing at that moment no
+  longer goes silent. The game resumes its sounds with a value the port took as one more pause, and a sound stopped
+  while paused kept its channel for ever.
+
 ## 0.1.3
 
 ### New
