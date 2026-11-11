@@ -6,6 +6,9 @@ An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the
 French/German/Spanish and the World releases). It runs the game from **your own disc image**, with 16:9 widescreen, up to
 60 fps, a higher internal resolution, keyboard and mouse, and optional modern effects.
 
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-support-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/SickSartori)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/sicksartori)
+
 > [!IMPORTANT]
 > sm2port is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by or sponsored by Marvel,
 > Activision, Treyarch or Microsoft. Spider-Man is a trademark of Marvel.
