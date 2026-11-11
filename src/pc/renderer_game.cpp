@@ -48,18 +48,24 @@ RendererNarrowing narrowing(const SurfaceState& surface, float left, float right
         n.factor = 0;
         return n;
     }
-    // Setting hud_aspect. In 16:9 the game draws its HUD with the pixels of 4:3, so the ring comes out a third too wide.
-    // While the ring is up, what lies wholly in a top corner is narrowed back towards its side; only there, as the
-    // pieces of one box must share a column (the tutorials' box at the bottom reaches past the middle: narrowing its
-    // pieces each towards its own side would tear it apart).
+    // Setting hud_aspect. In 16:9 the game draws its HUD with the pixels of 4:3, so the ring and the minimap come out a
+    // third too wide. While the ring is up, what lies wholly in a corner is narrowed back towards its side: the top
+    // ones (the ring, with its grey tab) and the lower right one from 0.67 of the width (the minimap); not the lower
+    // left one, as the pieces of one box must share a column and the tutorials' box there reaches past the middle
+    // (narrowing its pieces each towards its own side would tear it apart). What counts is the part inside the scissor
+    // rectangle: the minimap's map is tiles cut to its window.
     const float narrow = (4.0f / 3.0f) / renderer_aspect();
-    if (setting("hud_aspect") != 0 && ring && narrow < 0.99f && bottom <= 0.45f * height) {
-        if (right <= 0.35f * width) {
-            n.factor = narrow;
-        } else if (left >= 0.65f * width) {
-            n.factor = narrow;
-            n.anchor = width;
-        }
+    if (setting("hud_aspect") == 0 || !ring || narrow >= 0.99f) return n;
+    left = std::max(left, static_cast<float>(surface.clip_x));
+    right = std::min(right, static_cast<float>(surface.clip_x + surface.clip_width));
+    top = std::max(top, static_cast<float>(surface.clip_y));
+    bottom = std::min(bottom, static_cast<float>(surface.clip_y + surface.clip_height));
+    if (left > right || top > bottom) return n;
+    if (bottom <= 0.45f * height && right <= 0.35f * width) {
+        n.factor = narrow;
+    } else if ((bottom <= 0.45f * height && left >= 0.65f * width) || (top >= 0.45f * height && left >= 0.67f * width)) {
+        n.factor = narrow;
+        n.anchor = width;
     }
     return n;
 }
@@ -75,6 +81,8 @@ void renderer_game_toggle_hud() {
 }
 
 void renderer_game_note_screen_space(bool screen_space) { g_screen_space = screen_space; }
+
+bool renderer_game_hud_up() { return ring_on_screen(); }
 
 RendererNarrowing renderer_game_narrowing(const SurfaceState& surface, float left, float right, float top, float bottom,
                                           uint32_t texture) {
