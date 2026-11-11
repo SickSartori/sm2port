@@ -6,11 +6,16 @@
 
 - **A fixed time of day**: dawn, day, sunset or night, chosen in the Game settings (in the launcher and in
   the in-game menu). The sky and the city's lights stay at that hour; Game keeps the game's own clock.
+- **The HUD keeps its shape in 16:9**: the game draws it with the proportions of 4:3, so the health ring came out a
+  third too wide. Setting "Round HUD in 16:9" in Graphics, on by default.
+- **Field of view**, from 75% to 130% of the game's own (Graphics); the camera still widens and narrows it as it goes.
+- **F7 hides the HUD** and shows it again, for photos and videos.
 
 ### Improved
 
 - The ambient occlusion (one of the modern effects) no longer leaves a fine grain on bright surfaces in the areas it
   darkens: it uses the same directions for every pixel.
+- "Sharp HUD pictures" now covers the health ring and the tutorials' boxes too.
 
 ### Fixed
 

@@ -127,6 +127,7 @@ Variabili d'ambiente:
 | `SM2_DUMP_TARGET=<indirizzo hex>` | con ogni frame salvato, anche la render target a quell'indirizzo fisico (`target-NNNNN.bmp`) |
 | `SM2_DEBUG_FRAME_AT=<s>[+<durata>]` | una riga per draw (e per clear) durante 1 s, o `durata` secondi, a partire da `s` secondi dopo il primo draw (rettangolo a schermo, coordinate di texture, stati) |
 | `SM2_DEBUG_PROBE=<x>,<y>` | con il precedente, registra il pixel (x, y) ogni volta che un draw lo cambia |
+| `SM2_DEBUG_HUD=<n>` | a ogni F7, i successivi `n` draw piatti nel log con la decisione del renderer (HUD stretto, nascosto, bande nere) |
 | `SM2_DEBUG_FULLSCREEN=1` | con `SM2_DEBUG_FRAME_AT`, solo i draw che coprono quasi tutta la superficie (gli effetti a schermo intero), così la finestra può durare a lungo |
 | `SM2_DEBUG_ADDITIVE=1` | con `SM2_DEBUG_FRAME_AT`, solo i draw che aggiungono luce (fusione con destinazione ONE: aloni, scie, bagliori) |
 | `SM2_DUMP_TEXTURE=<indirizzo hex>` | salva le texture decodificate di quella pagina di 4 KB come `texture-<indirizzo>.bmp` (con l'alfa) |

@@ -101,6 +101,7 @@ changed in the launcher's **Controls** page.
 | F1 (controller: Back+Start) | in-game menu: settings, controls, resume, exit; the game pauses meanwhile |
 | F11 or Alt+Enter | full screen on and off |
 | F10 | modern effects on and off |
+| F7 | HUD hidden and shown again (for photos and videos) |
 
 The mouse moves the camera while the game window is in front and the game runs (the cursor hides after a few seconds
 without moving). Settings
@@ -116,6 +117,9 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 | Game language | the game's own languages for your release, by default like Windows |
 | Frames per second | 30 like the Xbox, or 60 |
 | Aspect ratio | 16:9 (the game's widescreen mode) or 4:3 |
+| Time of day | the game's own clock, or always dawn, day, sunset or night |
+| Round HUD in 16:9 | the health ring keeps its shape in 16:9 instead of stretching |
+| Field of view | 75% to 130% of the game's own |
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
 | Modern effects | glow, sharpening, colour, vignette, ambient occlusion |

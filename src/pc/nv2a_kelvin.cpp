@@ -24,6 +24,7 @@
 #include "pc/profile.h"
 #include "pc/point_quads.h"
 #include "pc/renderer_d3d11.h"
+#include "pc/renderer_game.h"
 #include "pc/settings.h"
 #include "pc/xbox_thread.h"
 
@@ -843,14 +844,16 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
     const SurfaceState target = surface();
     if (!target.width || !target.height) return;
 
-    // Setting sharp_2d: where a flat draw over the 3D scene falls on the screen. Flat: w 1 on every vertex and one
-    // z for all, 0 when the draw compares or writes depth (the HUD: some of it does, at z 0, to stack its pieces);
-    // glows and halos of lights over the scene have a z each, and the scene's other flat passes a z of their own.
+    // Where a flat draw over the 3D scene falls on the screen (sharp_2d enlarges its textures; renderer_game.cpp keeps
+    // the HUD's shape in 16:9, hides it with F7 and leaves out the cutscenes' black bars). Flat: w 1 on every vertex and
+    // one z for all, 0 or the far plane (0.998 of clip_max and up) when the draw compares or writes depth (the HUD does: its texts
+    // at 0, the health ring and the tutorials' box at the far plane); glows and halos of lights over the scene have a z
+    // each, and the scene's other flat passes a z of their own.
     // Only the positions go through the CPU once more, and only for draws whose first vertex is flat: more work
     // here slowed this thread enough to change the game's timing, and the game crashed.
     g_k.draw.screen_left = 1, g_k.draw.screen_right = 0;
-    static const bool measure = setting_at_start("sharp_2d") != 0;
-    if (measure && target.width >= 640 && count <= 1024 && renderer_over_shown_scene(target)) {
+    renderer_game_note_screen_space(false);
+    if (target.width >= 640 && count <= 1024 && renderer_over_shown_scene(target)) {
         Vec4 inputs[kVshAttributes];
         Vec4 outputs[kVshOutputs];
         const auto position = [&](uint32_t i) {
@@ -861,10 +864,11 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
             return outputs[kOutPosition];
         };
         const Vec4 first = position(0);
+        renderer_game_note_screen_space(first[3] == 1);
         constexpr uint32_t kDepthAlways = 0x207;
         const bool uses_depth =
             (g_k.draw.depth_test && g_k.draw.depth_function != kDepthAlways) || g_k.draw.depth_write;
-        bool flat = first[3] == 1 && (!uses_depth || first[2] == 0);
+        bool flat = first[3] == 1 && (!uses_depth || first[2] == 0 || first[2] >= 0.998f * g_k.clip_max);
         float left = first[0], right = first[0], top = first[1], bottom = first[1];
         for (uint32_t i = 1; i < count && flat; ++i) {
             const Vec4 p = position(i);

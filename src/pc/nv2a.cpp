@@ -19,6 +19,7 @@
 #include "pc/mmio.h"
 #include "pc/nv2a_kelvin.h"
 #include "pc/renderer_d3d11.h"
+#include "pc/renderer_game.h"
 #include "pc/physical_memory.h"
 #include "pc/profile.h"
 #include "pc/settings.h"
@@ -795,6 +796,10 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPAR
     if (message == WM_SYSCHAR && wparam == VK_RETURN) return 0;  // no beep for Alt+Enter
     if (message == WM_SYSKEYDOWN && wparam == VK_F10) {  // F10 is a system key
         if (!(lparam & (1 << 30))) renderer_toggle_effects();
+        return 0;
+    }
+    if (message == WM_KEYDOWN && wparam == VK_F7) {
+        if (!(lparam & (1 << 30))) renderer_game_toggle_hud();
         return 0;
     }
     return DefWindowProcW(window, message, wparam, lparam);

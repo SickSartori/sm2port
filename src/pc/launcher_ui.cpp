@@ -89,6 +89,8 @@ struct Texts {
     const char *move_heading, *move_sub, *move_failed, *move_button;
     const char *move_title, *move_lead, *move_now, *move_later;
     const char *time_of_day, *time_of_day_sub, *time_game, *dawn, *day, *sunset, *night;
+    const char *hud_aspect, *hud_aspect_sub, *field_of_view, *field_of_view_sub,
+        *letterbox, *letterbox_sub, *hide_hud_key;
 };
 
 const Texts kEnglish = {
@@ -137,6 +139,10 @@ const Texts kEnglish = {
     "Could not move them: close what uses them, then try again", "Move",
     "Move your files", "Your saves and settings from an earlier version are in a hidden folder. Move them to Documents\\sm2port, where they are easy to find and copy. Until you do, the game keeps using them where they are.", "Move now", "Later",
     "Time of day", "The sky stays at the chosen hour; Game keeps its own clock", "Game", "Dawn", "Day", "Sunset", "Night",
+    "Round HUD in 16:9", "The health ring keeps its shape instead of stretching", "Field of view",
+    "100% is the game's own; more shows more around Spider-Man",
+    "Black bars in cutscenes", "Those of the scenes made with the game's engine; the films keep theirs",
+    "HUD hidden and shown again (photos)",
 };
 
 const Texts kItalian = {
@@ -190,6 +196,9 @@ const Texts kItalian = {
     "Spostamento non riuscito: chiudi ci\xC3\xB2 che li usa e riprova", "Sposta",
     "Sposta i tuoi file", "I salvataggi e le impostazioni di una versione precedente sono in una cartella nascosta. Spostali in Documenti\\sm2port, dove sono facili da trovare e copiare. Finch\xC3\xA9 non lo fai, il gioco continua a usarli dove sono.", "Sposta ora", "Pi\xC3\xB9 tardi",
     "Ora del giorno", "Il cielo resta all'ora scelta; Gioco lascia il suo orologio", "Gioco", "Alba", "Giorno", "Tramonto", "Notte",
+    "HUD tondo in 16:9", "L'anello della vita resta tondo invece di allargarsi", "Campo visivo",
+    "100% \xC3\xA8 quello del gioco; di pi\xC3\xB9 mostra pi\xC3\xB9 cose attorno a Spider-Man",
+    "Bande nere nelle scene", "Quelle delle scene fatte col motore del gioco; i filmati tengono le loro", "Nasconde e rimostra l'HUD (foto)",
 };
 
 const Texts& T() {
@@ -1481,6 +1490,15 @@ void Launcher::page_settings() {
         row(t.sharp_2d, t.sharp_2d_sub, true);
         int sharp = setting("sharp_2d") != 0 ? 1 : 0;
         if (segmented("##sharp_2d", toggle, 2, &sharp)) set_setting("sharp_2d", static_cast<float>(sharp));
+        row(t.hud_aspect, t.hud_aspect_sub);
+        int round_hud = setting("hud_aspect") != 0 ? 1 : 0;
+        if (segmented("##hud_aspect", toggle, 2, &round_hud)) set_setting("hud_aspect", static_cast<float>(round_hud));
+        row(t.field_of_view, t.field_of_view_sub);
+        float view = setting("field_of_view");
+        if (slider("##field_of_view", &view, 75, 130, "%.0f%%")) set_setting("field_of_view", std::round(view));
+        row(t.letterbox, t.letterbox_sub);
+        int bars = setting("letterbox") != 0 ? 1 : 0;
+        if (segmented("##letterbox", toggle, 2, &bars)) set_setting("letterbox", static_cast<float>(bars));
     } else {
         // Two ready-made looks and a custom one. Original: the Xbox's picture. Enhanced: the modern effects. Custom
         // (setting effects_advanced): every value by itself, in two columns so that the page stays on screen.
@@ -1527,7 +1545,8 @@ void Launcher::page_settings() {
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
         for (const char* key : {"game_language", "frame_rate", "time_of_day", "volume", "launcher_music", "pause_in_background",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
-                                "anisotropy", "gpu_vertices", "sharp_2d", "effects", "sharpen", "bloom",
+                                "anisotropy", "gpu_vertices", "sharp_2d", "hud_aspect", "field_of_view",
+                                "letterbox", "effects", "sharpen", "bloom",
                                 "bloom_threshold", "saturation", "contrast", "vignette",
                                 "effects_advanced", "ambient_occlusion", "ambient_occlusion_radius"}) {
             set_setting(key, setting_default(key));
@@ -1605,7 +1624,7 @@ void Launcher::page_controls() {
     char navigation[48];
     std::snprintf(navigation, sizeof(navigation), "%s \xC2\xB7 %s \xC2\xB7 Esc \xC2\xB7 Q E", italian() ? "Frecce" : "Arrows", enter);
     const char* system[][2] = {{"F1 \xC2\xB7 Back+Start", t.menu_key}, {alt_enter, t.full_screen_key}, {"F10", t.effects_key},
-                               {navigation, t.launcher_keys}, {t.pad_keys, t.pad_menu_keys}};
+                               {"F7", t.hide_hud_key}, {navigation, t.launcher_keys}, {t.pad_keys, t.pad_menu_keys}};
     for (const auto& [keys, action] : system) {
         const ImVec2 size = measure(body_bold_, px(16), keys);
         const ImVec2 a(origin_.x, origin_.y + cursor_ + px(3));
