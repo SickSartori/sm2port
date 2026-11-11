@@ -1,15 +1,32 @@
-<p align="center"><img src="docs/logo.png" alt="sm2port logo" width="160"></p>
+<div align="center">
 
-# sm2port
+<img src="docs/logo.png" alt="sm2port logo" width="150">
+
+# sm2port · Spider-Man 2 PC Port
+
+**An unofficial native Windows port of Spider-Man 2 for the original Xbox** (the Italian, the European
+French/German/Spanish and the World releases).<br>
+16:9 widescreen, up to 60 fps, a higher internal resolution, keyboard and mouse and optional modern effects, running
+from your own disc image.
 
 [![Get it on RecompLauncher](https://recomplauncher.com/assets/press/launcher/badge-dark.svg)](https://recomplauncher.com/game/sm2port)
 
-An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian, the European
-French/German/Spanish and the World releases). It runs the game from **your own disc image**, with 16:9 widescreen, up to
-60 fps, a higher internal resolution, keyboard and mouse, and optional modern effects.
-
+[![Latest release](https://img.shields.io/github/v/release/SickSartori/sm2port?label=release)](https://github.com/SickSartori/sm2port/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/SickSartori/sm2port/total)](https://github.com/SickSartori/sm2port/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows-blue)](#requirements)
+[![Licence](https://img.shields.io/github/license/SickSartori/sm2port)](LICENSE)
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-support-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/SickSartori)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/sicksartori)
+
+[Download](https://github.com/SickSartori/sm2port/releases/latest) ·
+[Install](#installing) ·
+[Controls](#controls) ·
+[Settings](#settings) ·
+[Known issues](#known-issues) ·
+[Troubleshooting](#troubleshooting) ·
+[Changelog](CHANGELOG.md)
+
+</div>
 
 > [!IMPORTANT]
 > sm2port is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by or sponsored by Marvel,
