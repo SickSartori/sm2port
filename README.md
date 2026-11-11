@@ -178,6 +178,13 @@ xemu and other open-source Xbox projects were studied as references only; no cod
 - The launcher's background music and its background pictures were generated for the project with ElevenLabs Music and
   Magnific. The program icon and logo are the project's own (`tools/make_icon.py`).
 
+## Supporting the project
+
+sm2port is free and always will be: no paid builds, no early access, no locked features. If you enjoy it and want to
+say thanks, you can support its author on [GitHub Sponsors](https://github.com/sponsors/SickSartori) or
+[Ko-fi](https://ko-fi.com/sicksartori). It is never needed to play, and it buys nothing: it gives more time for fixes,
+features and the next port.
+
 ## Licence
 
 sm2port's code in this repository is released under the [MIT licence](LICENSE), and so is the shared runtime
