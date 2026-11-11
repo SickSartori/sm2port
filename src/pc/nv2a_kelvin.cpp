@@ -846,14 +846,18 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
 
     // Where a flat draw over the 3D scene falls on the screen (sharp_2d enlarges its textures; renderer_game.cpp keeps
     // the HUD's shape in 16:9, hides it with F7 and leaves out the cutscenes' black bars). Flat: w 1 on every vertex and
-    // one z for all, 0 or the far plane (0.998 of clip_max and up) when the draw compares or writes depth (the HUD does: its texts
-    // at 0, the health ring and the tutorials' box at the far plane); glows and halos of lights over the scene have a z
-    // each, and the scene's other flat passes a z of their own.
+    // one z for all, 0 or the far plane (0.998 of clip_max and up) when the draw compares or writes depth (the HUD
+    // does: its texts at 0, the health ring and the tutorials' box at the far plane); glows and halos of lights over the
+    // scene have a z each, and the scene's other flat passes a z of their own.
     // Only the positions go through the CPU once more, and only for draws whose first vertex is flat: more work
-    // here slowed this thread enough to change the game's timing, and the game crashed.
+    // here slowed this thread enough to change the game's timing, and the game crashed. While the HUD is up, also the
+    // draws on a shown frame with no depth buffer bound: some HUD pieces are drawn so (the ring's grey tab, the dark
+    // fill of the tutorials' box), and the scene is not "under" them for the renderer.
     g_k.draw.screen_left = 1, g_k.draw.screen_right = 0;
     renderer_game_note_screen_space(false);
-    if (target.width >= 640 && count <= 1024 && renderer_over_shown_scene(target)) {
+    const bool hud_without_depth =
+        !target.zeta_address && renderer_game_hud_up() && renderer_surface_shown(target.color_address);
+    if (target.width >= 640 && count <= 1024 && (renderer_over_shown_scene(target) || hud_without_depth)) {
         Vec4 inputs[kVshAttributes];
         Vec4 outputs[kVshOutputs];
         const auto position = [&](uint32_t i) {
@@ -866,8 +870,8 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
         const Vec4 first = position(0);
         renderer_game_note_screen_space(first[3] == 1);
         constexpr uint32_t kDepthAlways = 0x207;
-        const bool uses_depth =
-            (g_k.draw.depth_test && g_k.draw.depth_function != kDepthAlways) || g_k.draw.depth_write;
+        const bool uses_depth = target.zeta_address &&  // with no depth buffer bound the depth state does nothing
+            ((g_k.draw.depth_test && g_k.draw.depth_function != kDepthAlways) || g_k.draw.depth_write);
         bool flat = first[3] == 1 && (!uses_depth || first[2] == 0 || first[2] >= 0.998f * g_k.clip_max);
         float left = first[0], right = first[0], top = first[1], bottom = first[1];
         for (uint32_t i = 1; i < count && flat; ++i) {
