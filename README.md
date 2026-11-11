@@ -78,9 +78,10 @@ where it is. Then pick a quality preset and the frame rate and press **PLAY**.
 
 ## Controls
 
-Xbox controllers (360, One and Series) work as on the console. PlayStation, Switch and most other USB or Bluetooth pads
-work too, through SDL3, with the buttons in the Xbox positions (the bottom face button is A). Without a controller, the keyboard and the mouse are controller 1; every key can be
-changed in the launcher's **Controls** page.
+A controller is recommended. Xbox controllers (360, One and Series) work as on the console. PlayStation, Switch and most
+other USB or Bluetooth pads work too, through SDL3, with the buttons in the Xbox positions (the bottom face button is A);
+their buttons can be moved around in the launcher's **Controls** page (Controller tab). Without a controller, the
+keyboard and the mouse are controller 1; every key can be changed on the same page (Keyboard tab).
 
 | Input | Xbox controller |
 |---|---|
@@ -93,6 +94,7 @@ changed in the launcher's **Controls** page.
 | Q | left trigger |
 | R | Y |
 | C / Left Shift / Left Ctrl | left stick click / Black / White |
+| Middle mouse button | right stick click |
 | I / J / K / L | D-pad |
 | Enter / Backspace | Start (pause) / Back |
 

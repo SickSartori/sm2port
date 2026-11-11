@@ -91,6 +91,8 @@ struct Texts {
     const char *time_of_day, *time_of_day_sub, *time_game, *dawn, *day, *sunset, *night;
     const char *hud_aspect, *hud_aspect_sub, *field_of_view, *field_of_view_sub,
         *letterbox, *letterbox_sub, *hide_hud_key;
+    const char *keyboard_keys, *pc_keys, *pad_tab, *group_move, *group_camera, *group_actions, *group_menu,
+        *pad_lead, *press_pad, *reset_pad;
 };
 
 const Texts kEnglish = {
@@ -109,7 +111,7 @@ const Texts kEnglish = {
     "Modern effects", "Bloom, sharpening, colour and shading (F10 while playing)", "On", "Off",
     "Sharpening", "Light glow", "Glow threshold", "Saturation", "Contrast", "Vignette", "Ambient occlusion",
     "Occlusion size",
-    "Restore defaults", "Controllers work as they are. Choose the keyboard keys here.", "Key? Esc cancels",
+    "Restore defaults", "A controller is recommended. Choose the keyboard keys, or move the controller's buttons around.", "Key? Esc cancels",
     "Restore keys", "PC KEYS", "Full screen on and off", "Modern effects on and off", "Menus: move, select, back",
     "PlayStation, Switch and most other pads work too, with the buttons in the Xbox positions.",
     "Unofficial native Windows port. No game files included: you need your own copy.", "Looking for updates...",
@@ -143,6 +145,9 @@ const Texts kEnglish = {
     "100% is the game's own; more shows more around Spider-Man",
     "Black bars in cutscenes", "Those of the scenes made with the game's engine; the films keep theirs",
     "HUD hidden and shown again (photos)",
+    "Keyboard", "PC keys", "Controller", "MOVEMENT", "CAMERA", "ACTIONS", "MENU AND D-PAD",
+    "Each button of the game comes from the button of your controller shown on the right: choose it to change it.",
+    "Press a button \xC2\xB7 Esc cancels", "Restore buttons",
 };
 
 const Texts kItalian = {
@@ -162,7 +167,7 @@ const Texts kItalian = {
     "Effetti moderni", "Bagliore, nitidezza, colori e ombreggiatura (F10 durante il gioco)", "S\xC3\xAC", "No",
     "Nitidezza", "Bagliore delle luci", "Soglia del bagliore", "Saturazione", "Contrasto", "Vignettatura",
     "Ombreggiatura ambientale", "Ampiezza dell'ombreggiatura",
-    "Valori predefiniti", "I controller funzionano cos\xC3\xAC come sono. Qui scegli i tasti della tastiera.",
+    "Valori predefiniti", "Consigliato: un controller. Qui scegli i tasti della tastiera o sposti i tasti del controller.",
     "Tasto? Esc annulla", "Tasti predefiniti", "TASTI DEL PC", "Schermo intero s\xC3\xAC/no", "Effetti moderni s\xC3\xAC/no",
     "Menu: muoversi, scegliere, tornare",
     "Controller PlayStation, Switch e quasi tutti gli altri funzionano, con i tasti nelle posizioni Xbox.",
@@ -199,6 +204,9 @@ const Texts kItalian = {
     "HUD tondo in 16:9", "L'anello della vita resta tondo invece di allargarsi", "Campo visivo",
     "100% \xC3\xA8 quello del gioco; di pi\xC3\xB9 mostra pi\xC3\xB9 cose attorno a Spider-Man",
     "Bande nere nelle scene", "Quelle delle scene fatte col motore del gioco; i filmati tengono le loro", "Nasconde e rimostra l'HUD (foto)",
+    "Tastiera", "Tasti del PC", "Controller", "MOVIMENTO", "TELECAMERA", "AZIONI", "MENU E CROCE",
+    "Ogni tasto del gioco viene dal tasto del tuo controller mostrato a destra: sceglilo per cambiarlo.",
+    "Premi un tasto \xC2\xB7 Esc annulla", "Tasti predefiniti",
 };
 
 const Texts& T() {
@@ -583,6 +591,9 @@ private:
 
     // Panel content: cursor_ moves down.
     void title(const char* str);
+    void page_keyboard_keys(float row_height, float column);
+    void page_system_keys(float row_height);
+    void page_pad_buttons(float row_height, float column);
     void lead(const char* str);
     bool status(bool good, const char* heading, const char* detail, const char* button_label, const char* id,
                 bool pulse = false);
@@ -677,6 +688,11 @@ private:
     bool move_prompt_ = false;  // the page offering to move an earlier version's files, before all else
     int wizard_step_ = 0;
     int rebinding_ = -1;
+    int controls_tab_ = 0;  // the Controls page's tab: 0 the keyboard keys, 1 the controller, 2 the PC keys
+    int pad_rebinding_ = -1;  // the game button waiting for a button of the controller
+    float pad_rebinding_since_ = 0;
+    uint32_t pad_buttons_before_ = 0;  // PadButton bits down at the last poll
+    int pad_captured_ = -1;            // the button pressed while waiting
     float rebinding_since_ = 0;
     bool done_ = false, play_ = false, choose_disc_requested_ = false;
     float start_time_ = 0;
@@ -1582,42 +1598,134 @@ void Launcher::page_controls() {
         g_capturing = false;
         rebinding_ = -1;
     }
-    const float row_height = px(33), column = panel_width_ / 2 + px(10);
-    for (int i = 0; i < kPadInputs; ++i) {
-        const KeyBinding& binding = key_binding(static_cast<PadInput>(i));
+    const float row_height = px(31), column = panel_width_ / 2 + px(10);
+    // Tabs: the page is taller than the window with all the lists.
+    const char* tab_labels[] = {t.keyboard_keys, t.pad_tab, t.pc_keys};
+    const int tab_before = controls_tab_;
+    tabs(tab_labels, 3, &controls_tab_);
+    if (controls_tab_ != tab_before) {
+        rebinding_ = pad_rebinding_ = -1;
+        g_capturing = false;
+    }
+    if (controls_tab_ == 0) {
+        page_keyboard_keys(row_height, column);
+    } else if (controls_tab_ == 1) {
+        page_pad_buttons(row_height, column);
+    } else {
+        page_system_keys(row_height);
+    }
+}
+
+void Launcher::page_keyboard_keys(float row_height, float column) {
+    const Texts& t = T();
+    // In groups, two columns each.
+    struct Group {
+        const char* heading;
+        std::vector<PadInput> inputs;
+    };
+    const Group groups[] = {
+        {t.group_move, {PadInput::kMoveUp, PadInput::kMoveDown, PadInput::kMoveLeft, PadInput::kMoveRight}},
+        {t.group_camera, {PadInput::kLookUp, PadInput::kLookDown, PadInput::kLookLeft, PadInput::kLookRight}},
+        {t.group_actions, {PadInput::kA, PadInput::kX, PadInput::kB, PadInput::kY, PadInput::kRightTrigger,
+                           PadInput::kLeftTrigger, PadInput::kBlack, PadInput::kWhite, PadInput::kLeftThumb,
+                           PadInput::kRightThumb}},
+        {t.group_menu, {PadInput::kStart, PadInput::kBack, PadInput::kDpadUp, PadInput::kDpadDown, PadInput::kDpadLeft,
+                        PadInput::kDpadRight}},
+    };
+    for (const Group& group : groups) {
+        text(body_bold_, px(14), ImVec2(origin_.x, origin_.y + cursor_ + px(4)), kDim, group.heading);
+        cursor_ += px(24);
+        const int count = static_cast<int>(group.inputs.size());
+        for (int n = 0; n < count; ++n) {
+            const int i = static_cast<int>(group.inputs[n]);
+            const KeyBinding& binding = key_binding(group.inputs[n]);
+            const float x = origin_.x + (n % 2 ? column : 0.0f), y = origin_.y + cursor_ + row_height * static_cast<float>(n / 2);
+            const float cell = panel_width_ / 2 - px(10);
+            const float icon_h = px(22), icon_w = pad_icon(list_, binding.button, ImVec2(0, 0), icon_h, false);
+            pad_icon(list_, binding.button, ImVec2(x + (px(70) - icon_w) / 2, y + (row_height - icon_h) / 2), icon_h);
+            const bool waiting = rebinding_ == i;
+            const std::string key = waiting ? t.press_key : key_name(bound_key(static_cast<PadInput>(i)));
+            const ImVec2 key_size = measure(body_bold_, px(16), key.c_str());
+            const ImVec2 box_a(x + cell - std::max(px(60), key_size.x + px(18)), y + px(3)), box_b(x + cell, y + row_height - px(3));
+            list_->PushClipRect(ImVec2(x + px(80), y), ImVec2(box_a.x - px(6), y + row_height), true);  // never under the key box
+            text(body_, px(15), ImVec2(x + px(80), y + px(8)), kInk, italian() ? binding.italian : binding.english);
+            list_->PopClipRect();
+            ImGui::SetCursorScreenPos(box_a);
+            ImGui::PushID(i);
+            claim_focus();
+            if (ImGui::InvisibleButton("##key", ImVec2(box_b.x - box_a.x, box_b.y - box_a.y), kNavigable)) {
+                rebinding_ = i;
+                rebinding_since_ = static_cast<float>(ImGui::GetTime());
+                g_captured_key = 0;
+                g_capturing = true;
+            }
+            const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused() || waiting);
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            ImGui::PopID();
+            list_->AddRectFilled(box_a, box_b, fade(mix(IM_COL32(255, 255, 255, 14), kRed, hot * (waiting ? 0.8f : 0.35f))));
+            text(body_bold_, px(16), ImVec2(box_b.x - key_size.x - px(9), y + (row_height - key_size.y) / 2), kInk, key.c_str());
+        }
+        cursor_ += row_height * static_cast<float>((count + 1) / 2) + px(4);
+    }
+    cursor_ += px(8);
+    if (small_button(t.reset_keys, ImVec2(origin_.x, origin_.y + cursor_), "##reset_keys")) reset_key_bindings();
+    cursor_ += px(52);
+}
+
+// The controller's buttons: each game button with the button of the PC's controller that gives it, chosen by pressing
+// it (poll_gamepads catches the press).
+void Launcher::page_pad_buttons(float row_height, float column) {
+    const Texts& t = T();
+    const ImVec2 lead_size = measure(body_, px(16), t.pad_lead, panel_width_);
+    text(body_, px(16), ImVec2(origin_.x, origin_.y + cursor_), kDim, t.pad_lead, panel_width_);
+    cursor_ += lead_size.y + px(12);
+    if (pad_rebinding_ >= 0 && pad_captured_ >= 0) {
+        bind_pad_button(static_cast<PadButton>(pad_rebinding_), static_cast<PadButton>(pad_captured_));
+        pad_rebinding_ = -1;
+    }
+    if (pad_rebinding_ >= 0 && (ImGui::IsKeyPressed(ImGuiKey_Escape) || ImGui::GetTime() - pad_rebinding_since_ > 6)) {
+        pad_rebinding_ = -1;
+    }
+    for (int i = 0; i < kPadButtons; ++i) {
+        const PadButtonBinding& game = pad_button_binding(static_cast<PadButton>(i));
+        const PadButtonBinding& source = pad_button_binding(pad_button_source(static_cast<PadButton>(i)));
         const float x = origin_.x + (i % 2 ? column : 0.0f), y = origin_.y + cursor_ + row_height * static_cast<float>(i / 2);
         const float cell = panel_width_ / 2 - px(10);
-        const float icon_h = px(22), icon_w = pad_icon(list_, binding.button, ImVec2(0, 0), icon_h, false);
-        pad_icon(list_, binding.button, ImVec2(x + (px(70) - icon_w) / 2, y + (row_height - icon_h) / 2), icon_h);
-        const bool waiting = rebinding_ == i;
-        const std::string key = waiting ? t.press_key : key_name(bound_key(static_cast<PadInput>(i)));
-        const ImVec2 key_size = measure(body_bold_, px(16), key.c_str());
-        const ImVec2 box_a(x + cell - std::max(px(60), key_size.x + px(18)), y + px(3)), box_b(x + cell, y + row_height - px(3));
-        list_->PushClipRect(ImVec2(x + px(80), y), ImVec2(box_a.x - px(6), y + row_height), true);  // never under the key box
-        text(body_, px(15), ImVec2(x + px(80), y + px(8)), kInk, italian() ? binding.italian : binding.english);
+        const float icon_h = px(22), icon_w = pad_icon(list_, game.icon, ImVec2(0, 0), icon_h, false);
+        pad_icon(list_, game.icon, ImVec2(x + (px(70) - icon_w) / 2, y + (row_height - icon_h) / 2), icon_h);
+        const bool waiting = pad_rebinding_ == i;
+        const float source_w = waiting ? measure(body_bold_, px(14), t.press_pad).x : pad_icon(list_, source.icon, ImVec2(0, 0), icon_h, false);
+        const ImVec2 box_a(x + cell - std::max(px(60), source_w + px(18)), y + px(3)), box_b(x + cell, y + row_height - px(3));
+        list_->PushClipRect(ImVec2(x + px(80), y), ImVec2(box_a.x - px(6), y + row_height), true);
+        text(body_, px(15), ImVec2(x + px(80), y + px(7)), kInk, italian() ? game.italian : game.english);
         list_->PopClipRect();
         ImGui::SetCursorScreenPos(box_a);
-        ImGui::PushID(i);
+        ImGui::PushID(1000 + i);
         claim_focus();
-        if (ImGui::InvisibleButton("##key", ImVec2(box_b.x - box_a.x, box_b.y - box_a.y), kNavigable)) {
-            rebinding_ = i;
-            rebinding_since_ = static_cast<float>(ImGui::GetTime());
-            g_captured_key = 0;
-            g_capturing = true;
+        if (ImGui::InvisibleButton("##pad", ImVec2(box_b.x - box_a.x, box_b.y - box_a.y), kNavigable)) {
+            pad_rebinding_ = i;
+            pad_rebinding_since_ = static_cast<float>(ImGui::GetTime());
+            pad_captured_ = -1;
         }
         const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused() || waiting);
         if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
         ImGui::PopID();
         list_->AddRectFilled(box_a, box_b, fade(mix(IM_COL32(255, 255, 255, 14), kRed, hot * (waiting ? 0.8f : 0.35f))));
-        text(body_bold_, px(16), ImVec2(box_b.x - key_size.x - px(9), y + (row_height - key_size.y) / 2), kInk, key.c_str());
+        if (waiting) {
+            const ImVec2 size = measure(body_bold_, px(14), t.press_pad);
+            text(body_bold_, px(14), ImVec2(box_b.x - size.x - px(9), y + (row_height - size.y) / 2), kInk, t.press_pad);
+        } else {
+            pad_icon(list_, source.icon, ImVec2(box_b.x - source_w - px(9), y + (row_height - icon_h) / 2), icon_h);
+        }
     }
-    cursor_ += row_height * static_cast<float>((kPadInputs + 1) / 2) + px(12);
-    if (small_button(t.reset_keys, ImVec2(origin_.x, origin_.y + cursor_), "##reset_keys")) reset_key_bindings();
+    cursor_ += row_height * static_cast<float>((kPadButtons + 1) / 2) + px(12);
+    if (small_button(t.reset_pad, ImVec2(origin_.x, origin_.y + cursor_), "##reset_pad")) reset_pad_buttons();
     cursor_ += px(52);
+}
 
-    // The port's own keys, not rebindable.
-    text(heading_, px(20), ImVec2(origin_.x, origin_.y + cursor_), kInk, t.system_keys);
-    cursor_ += px(32);
+// The port's own keys, not rebindable.
+void Launcher::page_system_keys(float row_height) {
+    const Texts& t = T();
     const char* enter = italian() ? "Invio" : "Enter";
     char alt_enter[32];
     std::snprintf(alt_enter, sizeof(alt_enter), "F11 \xC2\xB7 Alt+%s", enter);
@@ -2184,6 +2292,27 @@ void Launcher::poll_gamepads(float now) {
         pad.sThumbRY = larger(pad.sThumbRY, g.sThumbRY);
     }
     pad_connected_ = any;
+    // The Controls page waiting for a button: a button that goes down is the answer, and the menus see nothing.
+    static constexpr WORD kBits[kPadButtons] = {
+        XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_LEFT_SHOULDER,
+        XINPUT_GAMEPAD_RIGHT_SHOULDER, 0, 0, XINPUT_GAMEPAD_LEFT_THUMB, XINPUT_GAMEPAD_RIGHT_THUMB, XINPUT_GAMEPAD_START,
+        XINPUT_GAMEPAD_BACK, XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT,
+        XINPUT_GAMEPAD_DPAD_RIGHT};
+    uint32_t down = 0;
+    for (int i = 0; i < kPadButtons; ++i) {
+        const bool on = static_cast<PadButton>(i) == PadButton::kLeftTrigger    ? pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
+                        : static_cast<PadButton>(i) == PadButton::kRightTrigger ? pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
+                                                                                : (pad.wButtons & kBits[i]) != 0;
+        if (on) down |= 1u << i;
+    }
+    const uint32_t pressed = down & ~pad_buttons_before_;
+    pad_buttons_before_ = down;
+    if (pad_rebinding_ >= 0) {
+        for (int i = 0; i < kPadButtons && pad_captured_ < 0; ++i) {
+            if (pressed & (1u << i)) pad_captured_ = i;
+        }
+        pad = {};
+    }
     if (!any) {
         io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;  // ImGui then clears the gamepad keys
         stick_x_ = stick_y_ = 0;

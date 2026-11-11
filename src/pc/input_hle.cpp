@@ -42,7 +42,7 @@ constexpr uint32_t kErrorDeviceNotConnected = 1167;
 enum : uint32_t { kAnalogA, kAnalogB, kAnalogX, kAnalogY, kAnalogBlack, kAnalogWhite, kAnalogLeftTrigger,
                   kAnalogRightTrigger };
 constexpr uint16_t kDpadUp = 0x01, kDpadDown = 0x02, kDpadLeft = 0x04, kDpadRight = 0x08, kStart = 0x10,
-                   kBack = 0x20, kLeftThumb = 0x40;
+                   kBack = 0x20, kLeftThumb = 0x40, kRightThumb = 0x80;
 
 #pragma pack(push, 1)
 struct XboxGamepad {
@@ -270,6 +270,7 @@ bool virtual_pad(XboxGamepad& pad) {
         }
         if (down(PadInput::kBack)) pad.buttons |= kBack;
         if (down(PadInput::kLeftThumb)) pad.buttons |= kLeftThumb;  // the special ability
+        if (down(PadInput::kRightThumb)) pad.buttons |= kRightThumb;
         if (down(PadInput::kA)) pad.analog[kAnalogA] = 255;
         if (down(PadInput::kB)) pad.analog[kAnalogB] = 255;
         if (down(PadInput::kX)) pad.analog[kAnalogX] = 255;
@@ -291,17 +292,37 @@ bool virtual_pad(XboxGamepad& pad) {
     return true;  // controller 1 is always there
 }
 
+// How far a button of the PC's controller is down: 0 or 255, the triggers in between.
+uint8_t host_button(const XINPUT_GAMEPAD& in, PadButton button) {
+    static constexpr WORD kBits[kPadButtons] = {
+        XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_LEFT_SHOULDER,
+        XINPUT_GAMEPAD_RIGHT_SHOULDER, 0, 0, XINPUT_GAMEPAD_LEFT_THUMB, XINPUT_GAMEPAD_RIGHT_THUMB, XINPUT_GAMEPAD_START,
+        XINPUT_GAMEPAD_BACK, XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT,
+        XINPUT_GAMEPAD_DPAD_RIGHT};
+    if (button == PadButton::kLeftTrigger) return in.bLeftTrigger;
+    if (button == PadButton::kRightTrigger) return in.bRightTrigger;
+    return (in.wButtons & kBits[static_cast<int>(button)]) ? 255 : 0;
+}
+
+// The PC's controller as the Xbox one, each button taken from the one the player chose (keyboard_bindings.h).
 XboxGamepad from_xinput(const XINPUT_GAMEPAD& in) {
     XboxGamepad pad{};
-    pad.buttons = in.wButtons & 0xFF;  // d-pad, start, back, thumb clicks
-    pad.analog[kAnalogA] = (in.wButtons & XINPUT_GAMEPAD_A) ? 255 : 0;
-    pad.analog[kAnalogB] = (in.wButtons & XINPUT_GAMEPAD_B) ? 255 : 0;
-    pad.analog[kAnalogX] = (in.wButtons & XINPUT_GAMEPAD_X) ? 255 : 0;
-    pad.analog[kAnalogY] = (in.wButtons & XINPUT_GAMEPAD_Y) ? 255 : 0;
-    pad.analog[kAnalogBlack] = (in.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? 255 : 0;
-    pad.analog[kAnalogWhite] = (in.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) ? 255 : 0;
-    pad.analog[kAnalogLeftTrigger] = in.bLeftTrigger;
-    pad.analog[kAnalogRightTrigger] = in.bRightTrigger;
+    const auto value = [&](PadButton game) { return host_button(in, pad_button_source(game)); };
+    const auto bit = [&](PadButton game, uint16_t mask) {
+        if (value(game) > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) pad.buttons |= mask;
+    };
+    bit(PadButton::kDpadUp, kDpadUp), bit(PadButton::kDpadDown, kDpadDown);
+    bit(PadButton::kDpadLeft, kDpadLeft), bit(PadButton::kDpadRight, kDpadRight);
+    bit(PadButton::kStart, kStart), bit(PadButton::kBack, kBack);
+    bit(PadButton::kLeftThumb, kLeftThumb), bit(PadButton::kRightThumb, kRightThumb);
+    pad.analog[kAnalogA] = value(PadButton::kA);
+    pad.analog[kAnalogB] = value(PadButton::kB);
+    pad.analog[kAnalogX] = value(PadButton::kX);
+    pad.analog[kAnalogY] = value(PadButton::kY);
+    pad.analog[kAnalogBlack] = value(PadButton::kBlack);
+    pad.analog[kAnalogWhite] = value(PadButton::kWhite);
+    pad.analog[kAnalogLeftTrigger] = value(PadButton::kLeftTrigger);
+    pad.analog[kAnalogRightTrigger] = value(PadButton::kRightTrigger);
     pad.thumb_lx = in.sThumbLX;
     pad.thumb_ly = in.sThumbLY;
     pad.thumb_rx = in.sThumbRX;

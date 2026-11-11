@@ -10,12 +10,18 @@
   third too wide. Setting "Round HUD in 16:9" in Graphics, on by default.
 - **Field of view**, from 75% to 130% of the game's own (Graphics); the camera still widens and narrows it as it goes.
 - **F7 hides the HUD** and shows it again, for photos and videos.
+- **The controller's buttons can be moved around** (Controls, Controller tab): each button of the game comes from the
+  one of your pad you choose.
+- **The right stick click on the keyboard** (middle mouse button by default).
 
 ### Improved
 
 - The ambient occlusion (one of the modern effects) no longer leaves a fine grain on bright surfaces in the areas it
   darkens: it uses the same directions for every pixel.
 - "Sharp HUD pictures" now covers the health ring and the tutorials' boxes too.
+- The HUD keeps its shape in 16:9 also for the minimap and the grey tab beside the health ring.
+- The Controls page in tabs (keyboard, controller, PC keys), the keyboard keys in groups: the PC keys were below the
+  window's edge. "Down" in Italian and the arrows of the key names showed as odd characters.
 
 ### Fixed
 
