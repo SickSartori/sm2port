@@ -22,6 +22,8 @@ struct KeyBinding {
     const char* button;  // the controller part, as printed on the pad
     const char* english;
     const char* italian;
+    const char* portuguese;
+    const char* spanish;
     int default_key;
 };
 
@@ -46,6 +48,8 @@ struct PadButtonBinding {
     const char* icon;  // as printed on the pad (the launcher draws it)
     const char* english;
     const char* italian;
+    const char* portuguese;
+    const char* spanish;
 };
 
 const PadButtonBinding& pad_button_binding(PadButton button);
