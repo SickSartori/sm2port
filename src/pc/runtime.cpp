@@ -8,6 +8,7 @@
 #include <dxgi1_4.h>
 #include <intrin.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <wrl/client.h>
 
 #include <algorithm>
@@ -21,6 +22,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "core/xbe.h"
 #include "core/xdvdfs.h"
@@ -37,6 +39,7 @@
 #include "pc/launcher_ui.h"
 #include "pc/log.h"
 #include "pc/nv2a.h"
+#include "pc/other_saves.h"
 #include "pc/paths.h"
 #include "pc/physical_memory.h"
 #include "pc/privileged.h"
@@ -552,6 +555,17 @@ DWORD WINAPI xbox_main_thread(void* parameter) {
 }
 
 }  // namespace
+// The folders the game keeps its files in, one or the other by how it is installed and started (paths.h).
+std::optional<OtherSaves> pending_other_saves() {
+    std::vector<std::filesystem::path> others{program_directory()};
+    for (const KNOWNFOLDERID* id : {&FOLDERID_Documents, &FOLDERID_LocalAppData}) {
+        PWSTR folder = nullptr;
+        if (SUCCEEDED(SHGetKnownFolderPath(*id, 0, nullptr, &folder))) others.push_back(std::filesystem::path(folder) / "sm2port");
+        CoTaskMemFree(folder);
+    }
+    return find_other_saves(data_directory(), others);
+}
+
 }  // namespace xport::pc
 
 // Called by the launcher; never returns, because the launcher's code no longer exists once the XBE is mapped.
@@ -607,11 +621,15 @@ extern "C" __declspec(dllexport) __declspec(noreturn) void __cdecl sm2_run(void*
     // or SM2_NO_DIALOG is set. SM2_SHOW_LAUNCHER (the game menu's "Back to the launcher") shows it even with a disc on
     // the command line.
     const bool show_launcher = GetEnvironmentVariableW(L"SM2_SHOW_LAUNCHER", nullptr, 0) != 0;
-    const bool skip_launcher = GetEnvironmentVariableW(L"SM2_NO_DIALOG", nullptr, 0) ||
-                               (!show_launcher && (!command_line_disc().empty() ||
-                                                   GetEnvironmentVariableW(L"SM2_SKIP_LAUNCHER", nullptr, 0)));
-    std::optional<GameDisc> disc =
-        skip_launcher ? open_game_disc(exe_directory) : run_launcher(nv2a_open_window(), exe_directory);
+    const bool straight_to_game = !show_launcher && (!command_line_disc().empty() ||
+                                                     GetEnvironmentVariableW(L"SM2_SKIP_LAUNCHER", nullptr, 0));
+    // Saves in another folder (other_saves.h): the launcher opens all the same, on that question alone, and the game
+    // starts after the answer. Asked before the game, so that it never starts without the player having seen it.
+    const bool no_dialog = GetEnvironmentVariableW(L"SM2_NO_DIALOG", nullptr, 0) != 0;
+    const bool ask_about_saves = straight_to_game && !no_dialog && pending_other_saves().has_value();
+    const bool skip_launcher = no_dialog || (straight_to_game && !ask_about_saves);
+    std::optional<GameDisc> disc = skip_launcher ? open_game_disc(exe_directory)
+                                                 : run_launcher(nv2a_open_window(), exe_directory, ask_about_saves);
     if (!disc) {
         log_line("no game disc: exiting");
         ExitProcess(command_line_disc().empty() ? 0 : 2);  // 2: the disc given was refused (recomplauncher.json explains it)

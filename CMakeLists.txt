@@ -69,6 +69,7 @@ if(WIN32)
         src/pc/launcher_ui.cpp
         src/pc/launcher_web.cpp
         src/pc/nv2a.cpp
+        src/pc/other_saves.cpp
         src/pc/nv2a_kelvin.cpp
         src/pc/renderer_game.cpp
         src/pc/runtime.cpp
@@ -116,6 +117,7 @@ if(WIN32)
         sm2_test(test_point_quads)
         sm2_test(test_game_disc src/pc/game_disc.cpp)
         sm2_test(test_settings src/pc/settings.cpp ${XPORT_DIR}/src/pc/log.cpp)
+        sm2_test(test_other_saves src/pc/other_saves.cpp)
         xport_add_tests(sm2port SM2PORT SM2_)
         target_link_libraries(test_game_disc PRIVATE bcrypt comdlg32 shell32 user32)
         add_test(NAME disc_real COMMAND test_game_disc real)

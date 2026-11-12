@@ -13,10 +13,12 @@
 #include <algorithm>
 #include <atomic>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -43,6 +45,7 @@
 #include "pc/launcher_web.h"
 #include "pc/log.h"
 #include "pc/nv2a.h"
+#include "pc/other_saves.h"
 #include "pc/paths.h"
 #include "pc/renderer_d3d11.h"
 #include "pc/settings.h"
@@ -97,6 +100,7 @@ struct Texts {
     const char *keyboard_keys, *pc_keys, *pad_tab, *group_move, *group_camera, *group_actions, *group_menu,
         *pad_lead, *press_pad, *reset_pad;
     const char *back_to_launcher, *back_to_launcher_sub, *back_to_launcher_button, *menu_launcher;
+    const char *saves_title, *saves_lead, *saves_backup_note, *saves_there, *saves_here, *saves_use, *saves_keep, *saves_failed;
 };
 
 const Texts kEnglish = {
@@ -159,6 +163,9 @@ const Texts kEnglish = {
     "BACK TO THE LAUNCHER",
     "The game closes and the launcher opens again, as at the start: every setting and the disc can be changed there. Progress since the last save is lost.",
     "OPEN THE LAUNCHER", "LAUNCHER",
+    "Saves found", "Your saves from before are in another folder, and the game does not see them from here. Copy them here to go on from where you were; the other folder stays as it is.",
+    "The saves already here are kept in the saves_backup folder.", "Last played there", "Last played here",
+    "Copy my saves", "Go on without them", "They could not be copied: close what uses them and try again.",
 };
 
 const Texts kItalian = {
@@ -225,6 +232,9 @@ const Texts kItalian = {
     "TORNA AL LAUNCHER",
     "Il gioco si chiude e si riapre il launcher, come all'avvio: l\xC3\xAC si cambiano tutte le impostazioni e il disco. I progressi dall'ultimo salvataggio andranno persi.",
     "APRI IL LAUNCHER", "LAUNCHER",
+    "Salvataggi trovati", "I tuoi salvataggi di prima sono in un'altra cartella, e da qui il gioco non li vede. Copiali qui per continuare da dove eri; l'altra cartella resta com'\xC3\xA8.",
+    "I salvataggi gi\xC3\xA0 presenti qui vengono conservati nella cartella saves_backup.", "Ultima partita l\xC3\xAC", "Ultima partita qui",
+    "Copia i miei salvataggi", "Continua senza", "Non \xC3\xA8 stato possibile copiarli: chiudi ci\xC3\xB2 che li usa e riprova.",
 };
 
 // Portuguese (Brazil). The game itself has no Portuguese: its own menus stay in English.
@@ -288,6 +298,9 @@ const Texts kPortuguese = {
     "VOLTAR AO LAUNCHER",
     "O jogo fecha e o launcher abre de novo, como no início: lá se mudam todas as configurações e o disco. O progresso desde o último save será perdido.",
     "ABRIR O LAUNCHER", "LAUNCHER",
+    "Saves encontrados", "Seus saves de antes estão em outra pasta, e daqui o jogo não os vê. Copie-os para cá para continuar de onde parou; a outra pasta fica como está.",
+    "Os saves que já estão aqui ficam guardados na pasta saves_backup.", "Último jogo lá", "Último jogo aqui",
+    "Copiar meus saves", "Continuar sem eles", "Não foi possível copiá-los: feche o que os usa e tente de novo.",
 };
 
 const Texts kSpanish = {
@@ -350,6 +363,9 @@ const Texts kSpanish = {
     "VOLVER AL LAUNCHER",
     "El juego se cierra y el launcher se abre de nuevo, como al empezar: allí se cambian todos los ajustes y el disco. Se perderá el progreso desde la última partida guardada.",
     "ABRIR EL LAUNCHER", "LAUNCHER",
+    "Partidas encontradas", "Tus partidas de antes están en otra carpeta, y desde aquí el juego no las ve. Cópialas aquí para seguir donde lo dejaste; la otra carpeta se queda como está.",
+    "Las partidas que ya están aquí se conservan en la carpeta saves_backup.", "Última partida allí", "Última partida aquí",
+    "Copiar mis partidas", "Seguir sin ellas", "No se pudieron copiar: cierra lo que las usa y vuelve a intentarlo.",
 };
 
 // The launcher's language: Windows', or SM2_LAUNCHER_LANGUAGE=en|it|pt|es for test screenshots.
@@ -696,7 +712,7 @@ class Launcher {
 public:
     Launcher(HWND window, const std::filesystem::path& exe_directory, bool in_game = false)
         : window_(window), exe_directory_(exe_directory), in_game_(in_game) {}
-    std::optional<GameDisc> run();
+    std::optional<GameDisc> run(bool questions_only = false);
 
     // In game: the same pages over the paused game, drawn by the renderer (overlay, on the GPU thread) into its back
     // buffer. Opening pauses the game; closing resumes it once the keys and buttons used are let go.
@@ -794,6 +810,8 @@ private:
     Page update_prompt_page_ = Page::kPlay;                      // another page from the menu closes it
     void move_data_row();
     void page_move_data();
+    void page_other_saves();
+    void other_saves_done(const char* answer);
     bool update_available();
     void page_wizard();
     void page_paused();
@@ -863,6 +881,10 @@ private:
     int cancel_frame_ = -1;               // the frame a rebinding was cancelled on: B does nothing else then
     bool wizard_ = false;
     bool move_prompt_ = false;  // the page offering to move an earlier version's files, before all else
+    // The page offering to copy the saves found in another folder (other_saves.h), before the game can start.
+    std::optional<OtherSaves> other_saves_;
+    bool other_saves_failed_ = false;
+    bool questions_only_ = false;  // opened for that page alone: the game starts after the answer
     int wizard_step_ = 0;
     int rebinding_ = -1;
     int controls_tab_ = 0;  // the Controls page's tab: 0 the keyboard keys, 1 the controller, 2 the PC keys
@@ -1547,10 +1569,57 @@ void Launcher::page_move_data() {
     if (big_button(t.move_now, "##move_now", true)) restart_to_move_old_data();
     if (small_button(t.move_later, ImVec2(origin_.x, origin_.y + cursor_), "##move_later")) {
         move_prompt_ = false;
-        wizard_ = !disc_;
+        wizard_ = !disc_ || other_saves_;
         page_since_ = static_cast<float>(ImGui::GetTime());
     }
     cursor_ += px(52);
+}
+
+// Saves in another data folder, asked once: nothing else is on the screen, so the game never starts without an answer.
+void Launcher::page_other_saves() {
+    const Texts& t = T();
+    const OtherSaves& other = *other_saves_;
+    const auto when = [](std::filesystem::file_time_type time) {
+        const std::time_t seconds = std::chrono::system_clock::to_time_t(
+            std::chrono::time_point_cast<std::chrono::system_clock::duration>(std::chrono::clock_cast<std::chrono::system_clock>(time)));
+        std::tm local{};
+        localtime_s(&local, &seconds);
+        char text[32] = {};
+        std::strftime(text, sizeof(text), "%Y-%m-%d %H:%M", &local);
+        return std::string(text);
+    };
+    title(t.saves_title);
+    lead(other_saves_failed_ ? t.saves_failed : t.saves_lead);
+    const std::u8string folder = other.folder.u8string();
+    std::string facts = std::string(folder.begin(), folder.end()) + "\n" + t.saves_there + ": " + when(other.newest);
+    if (other.any_here) facts += std::string("\n") + t.saves_here + ": " + when(other.newest_here);
+    if (other.also_here) facts += std::string("\n") + t.saves_backup_note;
+    lead(facts.c_str());
+    if (big_button(t.saves_use, "##saves_use", true)) {
+        if (use_other_saves(data_directory(), other)) {
+            log_line("launcher: %zu saves copied from %s (%d were here too: kept in saves_backup)", other.saves.size(),
+                     reinterpret_cast<const char*>(folder.c_str()), other.also_here);
+            other_saves_done("The saves were copied from");
+            return;
+        }
+        log_line("launcher: the saves in %s could not be copied", reinterpret_cast<const char*>(folder.c_str()));
+        other_saves_failed_ = true;
+    }
+    if (small_button(t.saves_keep, ImVec2(origin_.x, origin_.y + cursor_), "##saves_keep")) {
+        log_line("launcher: the saves in %s are left there", reinterpret_cast<const char*>(folder.c_str()));
+        other_saves_done("The player went on without the saves in");
+        return;
+    }
+    cursor_ += px(52);
+}
+
+void Launcher::other_saves_done(const char* answer) {
+    const std::u8string folder = other_saves_->folder.u8string();
+    other_saves_answered(data_directory(), std::string(answer) + " " + std::string(folder.begin(), folder.end()));
+    other_saves_.reset();
+    wizard_ = !disc_;
+    page_since_ = static_cast<float>(ImGui::GetTime());
+    if (questions_only_ && disc_) play_ = done_ = true;
 }
 
 void Launcher::page_play() {
@@ -2136,6 +2205,10 @@ void Launcher::page_about() {
 void Launcher::page_wizard() {
     if (move_prompt_) {
         page_move_data();
+        return;
+    }
+    if (other_saves_) {
+        page_other_saves();
         return;
     }
     const Texts& t = T();
@@ -3030,7 +3103,8 @@ void Launcher::overlay(ID3D11Device* device, ID3D11DeviceContext* context, ID3D1
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-std::optional<GameDisc> Launcher::run() {
+std::optional<GameDisc> Launcher::run(bool questions_only) {
+    questions_only_ = questions_only;
     if (!start_graphics()) {
         log_line("launcher: Direct3D 11 is not available; asking for the disc with dialogs");
         stop_graphics();
@@ -3039,8 +3113,9 @@ std::optional<GameDisc> Launcher::run() {
     nv2a_set_window_hook(window_hook);
     disc_ = find_game_disc(exe_directory_, disc_problem_);
     move_prompt_ = old_data_in_use();
-    wizard_ = !disc_ || move_prompt_;
-    focus_panel_ = move_prompt_;  // Move now already selected: one press of A
+    other_saves_ = pending_other_saves();
+    wizard_ = !disc_ || move_prompt_ || other_saves_;
+    focus_panel_ = move_prompt_ || other_saves_;  // Move now, or Copy my saves, already selected: one press of A
     if (setting("check_updates") != 0) update_thread_ = std::thread(check_for_updates, &updates_);
     char page[16] = {};  // SM2_LAUNCHER_PAGE=settings|controls|about: test screenshots
     if (GetEnvironmentVariableA("SM2_LAUNCHER_PAGE", page, sizeof(page)) && !wizard_) {
@@ -3048,7 +3123,7 @@ std::optional<GameDisc> Launcher::run() {
                 : !std::strcmp(page, "about") ? Page::kAbout : Page::kPlay;
     }
     music_ = std::make_unique<LauncherMusic>();
-    log_line("launcher: open (%s)", disc_ ? "disc found" : "first-run guide");
+    log_line("launcher: open (%s)%s", disc_ ? "disc found" : "first-run guide", other_saves_ ? ", saves found in another folder" : "");
 
     LARGE_INTEGER frequency, start, now;
     QueryPerformanceFrequency(&frequency);
@@ -3116,9 +3191,9 @@ void draw_game_menu(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Re
 
 }  // namespace
 
-std::optional<GameDisc> run_launcher(HWND window, const std::filesystem::path& exe_directory) {
+std::optional<GameDisc> run_launcher(HWND window, const std::filesystem::path& exe_directory, bool questions_only) {
     Launcher launcher(window, exe_directory);
-    return launcher.run();
+    return launcher.run(questions_only);
 }
 
 void start_game_menu(HWND window, const std::filesystem::path& disc_path) {

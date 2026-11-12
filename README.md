@@ -93,6 +93,10 @@ move them: the launcher offers to, and moving never overwrites anything. To keep
 (a USB stick, say), create an empty file named `portable.txt` there. Started by RecompLauncher, the game always keeps
 them next to `sm2.exe`.
 
+If your saves are in one of these folders and the game now uses another (you moved from the installer to RecompLauncher,
+say), it tells you before starting and offers to copy them: the saves already in use go to `saves_backup`, nothing is
+deleted, and the question comes only once (delete `other_saves.txt` to be asked again).
+
 ## First start
 
 The launcher opens and asks for your disc image. Choose the `.iso` (or `.cci`) file: sm2port checks it and remembers

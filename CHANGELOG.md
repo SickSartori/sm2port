@@ -10,6 +10,14 @@
 - With "Round HUD in 16:9" the minimap's markers were off the map: the player's arrow away from the centre, the
   objectives elsewhere. The minimap is now left as the game draws it.
 
+### New
+
+- **Saves left in another folder are found**: the game keeps its files in `Documents\sm2port`, or next to `sm2.exe` for a
+  portable copy and when RecompLauncher starts it, so after changing the way you install or start it your saves seemed
+  lost. Now, before the game starts, it tells you where they are and offers to copy them (also when RecompLauncher
+  starts the game directly). Saves already there are kept in `saves_backup`, the other folder stays as it is, and it
+  asks only once.
+
 ## 0.1.4
 
 ### New
