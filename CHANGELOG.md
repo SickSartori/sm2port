@@ -9,6 +9,8 @@
   0.1.4 and earlier were written whole and load again.
 - With "Round HUD in 16:9" the minimap's markers were off the map: the player's arrow away from the centre, the
   objectives elsewhere. The minimap is now left as the game draws it.
+- **A harsh, ringing sound**: a call the game makes for every voice, its volume envelope, was read as a filter, which
+  put a strong peak around 8 kHz on every sound and made the limiter turn the whole mix down.
 
 ### New
 
