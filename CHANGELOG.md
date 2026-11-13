@@ -20,6 +20,11 @@
 - **Support the project** from the About page of the launcher and of the in-game menu: a row with the links to GitHub
   Sponsors and Ko-fi. It is never needed to play and it unlocks nothing; there are no reminders.
 
+### Improved
+
+- Choosing a file that is not a disc image (one of sm2port's own files, for example) now says that the game is not
+  included and that your own `.iso` or `.cci` is needed, instead of only "not an Xbox disc image".
+
 ## 0.1.4
 
 ### New
