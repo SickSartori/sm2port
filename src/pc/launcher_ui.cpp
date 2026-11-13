@@ -101,6 +101,7 @@ struct Texts {
         *pad_lead, *press_pad, *reset_pad;
     const char *back_to_launcher, *back_to_launcher_sub, *back_to_launcher_button, *menu_launcher;
     const char *saves_title, *saves_lead, *saves_backup_note, *saves_there, *saves_here, *saves_use, *saves_keep, *saves_failed;
+    const char *support, *support_sub;
 };
 
 const Texts kEnglish = {
@@ -166,6 +167,7 @@ const Texts kEnglish = {
     "Saves found", "Your saves from before are in another folder, and the game does not see them from here. Copy them here to go on from where you were; the other folder stays as it is.",
     "The saves already here are kept in the saves_backup folder.", "Last played there", "Last played here",
     "Copy my saves", "Go on without them", "They could not be copied: close what uses them and try again.",
+    "Support the project", "Free, and always will be. A thank-you gives more time for fixes and new ports.",
 };
 
 const Texts kItalian = {
@@ -235,6 +237,7 @@ const Texts kItalian = {
     "Salvataggi trovati", "I tuoi salvataggi di prima sono in un'altra cartella, e da qui il gioco non li vede. Copiali qui per continuare da dove eri; l'altra cartella resta com'\xC3\xA8.",
     "I salvataggi gi\xC3\xA0 presenti qui vengono conservati nella cartella saves_backup.", "Ultima partita l\xC3\xAC", "Ultima partita qui",
     "Copia i miei salvataggi", "Continua senza", "Non \xC3\xA8 stato possibile copiarli: chiudi ci\xC3\xB2 che li usa e riprova.",
+    "Sostieni il progetto", "Gratis, e lo rester\xC3\xA0. Un grazie d\xC3\xA0 pi\xC3\xB9 tempo per correzioni e nuovi port.",
 };
 
 // Portuguese (Brazil). The game itself has no Portuguese: its own menus stay in English.
@@ -301,6 +304,7 @@ const Texts kPortuguese = {
     "Saves encontrados", "Seus saves de antes estão em outra pasta, e daqui o jogo não os vê. Copie-os para cá para continuar de onde parou; a outra pasta fica como está.",
     "Os saves que já estão aqui ficam guardados na pasta saves_backup.", "Último jogo lá", "Último jogo aqui",
     "Copiar meus saves", "Continuar sem eles", "Não foi possível copiá-los: feche o que os usa e tente de novo.",
+    "Apoie o projeto", "Gratuito, e sempre será. Um obrigado dá mais tempo para correções e novos ports.",
 };
 
 const Texts kSpanish = {
@@ -366,6 +370,7 @@ const Texts kSpanish = {
     "Partidas encontradas", "Tus partidas de antes están en otra carpeta, y desde aquí el juego no las ve. Cópialas aquí para seguir donde lo dejaste; la otra carpeta se queda como está.",
     "Las partidas que ya están aquí se conservan en la carpeta saves_backup.", "Última partida allí", "Última partida aquí",
     "Copiar mis partidas", "Seguir sin ellas", "No se pudieron copiar: cierra lo que las usa y vuelve a intentarlo.",
+    "Apoya el proyecto", "Gratis, y siempre lo será. Un gracias da más tiempo para correcciones y nuevos ports.",
 };
 
 // The launcher's language: Windows', or SM2_LAUNCHER_LANGUAGE=en|it|pt|es for test screenshots.
@@ -781,8 +786,10 @@ private:
     void page_system_keys(float row_height);
     void page_pad_buttons(float row_height, float column);
     void lead(const char* str);
+    // `second_label`: one more button on the row, to the left of the first; `second_pressed` tells when it is pressed.
     bool status(bool good, const char* heading, const char* detail, const char* button_label, const char* id,
-                bool pulse = false);
+                bool pulse = false, const char* second_label = nullptr, const char* second_id = nullptr,
+                bool* second_pressed = nullptr);
     bool small_button(const char* label, ImVec2 at, const char* id, ImVec2* size_out = nullptr);
     bool big_button(const char* label, const char* id, bool pulse);
     bool tabs(const char* const* labels, int count, int* current);
@@ -1241,7 +1248,7 @@ bool Launcher::small_button(const char* label, ImVec2 at, const char* id, ImVec2
 }
 
 bool Launcher::status(bool good, const char* heading, const char* detail, const char* button_label, const char* id,
-                      bool pulse) {
+                      bool pulse, const char* second_label, const char* second_id, bool* second_pressed) {
     const float height = px(64);
     const ImVec2 a(origin_.x, origin_.y + cursor_), b(origin_.x + panel_width_, a.y + height);
     const ImU32 accent = good ? kGreen : kAmber;
@@ -1255,10 +1262,14 @@ bool Launcher::status(bool good, const char* heading, const char* detail, const 
         list_->AddCircle(dot, px(12) + px(14) * p, fade(accent, 0.6f * (1 - p)), 0, px(2));
     }
     const float button_x = button_label ? b.x - measure(body_bold_, px(18), button_label).x - px(28) - px(14) : b.x;
-    list_->PushClipRect(a, ImVec2(button_x - px(12), b.y), true);  // texts stop before the button
+    const float second_x = second_label ? button_x - measure(body_bold_, px(18), second_label).x - px(28) - px(10) : button_x;
+    list_->PushClipRect(a, ImVec2(second_x - px(12), b.y), true);  // texts stop before the buttons
     text(body_bold_, px(21), ImVec2(a.x + px(46), a.y + px(9)), kInk, heading);
     text(body_, px(17), ImVec2(a.x + px(46), a.y + px(35)), kDim, detail);
     list_->PopClipRect();
+    if (second_label && small_button(second_label, ImVec2(second_x, a.y + px(14)), second_id) && second_pressed) {
+        *second_pressed = true;
+    }
     const bool pressed = button_label && small_button(button_label, ImVec2(button_x, a.y + px(14)), id);
     cursor_ += height + px(10);
     return pressed;
@@ -2196,6 +2207,12 @@ void Launcher::page_about() {
     }
     if (status(true, t.logs, t.logs_sub, t.open, "##logs")) show_log();
     if (status(true, t.report, t.report_sub, t.open, "##report")) report_problem();
+    // Never needed to play, and it buys nothing (README, "Supporting the project"): a row among the others, no reminders.
+    bool sponsors = false;
+    if (status(true, t.support, t.support_sub, "Ko-fi", "##kofi", false, "GitHub Sponsors", "##sponsors", &sponsors)) {
+        ShellExecuteA(nullptr, "open", "https://ko-fi.com/sicksartori", nullptr, nullptr, SW_SHOWNORMAL);
+    }
+    if (sponsors) ShellExecuteA(nullptr, "open", "https://github.com/sponsors/SickSartori", nullptr, nullptr, SW_SHOWNORMAL);
     cursor_ += px(8);
     const ImVec2 size = measure(body_, px(16), t.legal, panel_width_);
     text(body_, px(16), ImVec2(origin_.x, origin_.y + cursor_), kDim, t.legal, panel_width_);

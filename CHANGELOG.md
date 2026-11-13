@@ -17,6 +17,8 @@
   lost. Now, before the game starts, it tells you where they are and offers to copy them (also when RecompLauncher
   starts the game directly). Saves already there are kept in `saves_backup`, the other folder stays as it is, and it
   asks only once.
+- **Support the project** from the About page of the launcher and of the in-game menu: a row with the links to GitHub
+  Sponsors and Ko-fi. It is never needed to play and it unlocks nothing; there are no reminders.
 
 ## 0.1.4
 
