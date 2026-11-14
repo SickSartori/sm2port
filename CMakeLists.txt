@@ -76,7 +76,7 @@ if(WIN32)
         src/pc/settings.cpp
         res/launcher.rc
     )
-    target_link_libraries(sm2runtime PRIVATE xportcore shell32 user32 gdi32 winmm ole32 xaudio2 d3d11 dxgi d3dcompiler dbghelp dwmapi bcrypt comdlg32 winhttp windowscodecs imgui mfplat mfreadwrite mfuuid shlwapi SDL3::SDL3-static)
+    target_link_libraries(sm2runtime PRIVATE xportcore shell32 user32 gdi32 version winmm ole32 xaudio2 d3d11 dxgi d3dcompiler dbghelp dwmapi bcrypt comdlg32 winhttp windowscodecs imgui mfplat mfreadwrite mfuuid shlwapi SDL3::SDL3-static)
     target_compile_definitions(sm2runtime PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE
                                SM2PORT_VERSION="${PROJECT_VERSION}" ${SM2_VERSION_DEFINES})
     target_compile_options(sm2runtime PRIVATE /utf-8)
