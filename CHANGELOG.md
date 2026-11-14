@@ -21,6 +21,11 @@
   asks only once.
 - **Support the project** from the About page of the launcher and of the in-game menu: a row with the links to GitHub
   Sponsors and Ko-fi. It is never needed to play and it unlocks nothing; there are no reminders.
+- **When Direct3D 11 does not start**, sm2port says so and what to do (the graphics driver on Windows, the 32-bit
+  Vulkan libraries under Wine) instead of showing a black window.
+- **A Linux package** (`sm2port-<version>-linux.tar.gz`), with a script that installs the game under Wine and checks
+  that Direct3D 11 starts there. Not tried on Linux yet. The log says which Direct3D is in use (Windows', Wine's or
+  DXVK's) and whether Steam started the game.
 
 ### Improved
 

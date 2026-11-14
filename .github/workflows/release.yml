@@ -57,3 +57,4 @@ jobs:
           name: sm2port-windows
           path: |
             dist/*.zip
+            dist/*.tar.gz

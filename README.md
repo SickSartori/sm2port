@@ -97,6 +97,20 @@ If your saves are in one of these folders and the game now uses another (you mov
 say), it tells you before starting and offers to copy them: the saves already in use go to `saves_backup`, nothing is
 deleted, and the question comes only once (delete `other_saves.txt` to be asked again).
 
+### Linux (experimental, not tried yet)
+
+sm2port is a Windows program; like [mc3port](https://github.com/SickSartori/mc3port#linux-experimental), which uses the
+same runtime, it should run on Linux through **Wine**. **Nobody has tried this game there yet**: if you do, please
+[tell us how it went](https://github.com/SickSartori/sm2port/issues), with `sm2port.log`.
+
+- **A recent Wine with 32-bit support** (sm2port is a 32-bit program), with the 32-bit Vulkan and OpenGL libraries of
+  your distribution: without them Wine has no Direct3D 11.
+- **The Linux package**, `sm2port-<version>-linux.tar.gz`: extract it and run `sh sm2port/install.sh`. It copies
+  sm2port to `~/.local/share/sm2port`, makes a Wine prefix of its own there, checks that Direct3D 11 starts (and says
+  what to install if it does not), and adds the `sm2port` command and an applications menu entry. Run it again to
+  update. Settings and saves are in that one folder; the script says how to remove it.
+- **Or the portable zip**: extract it and run `wine sm2.exe` from its folder.
+
 ## First start
 
 The launcher opens and asks for your disc image. Choose the `.iso` (or `.cci`) file: sm2port checks it and remembers
@@ -160,7 +174,7 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
 - Online play (Xbox Live) is not available. Only the Italian, the European (French, German, Spanish) and the World releases are supported.
 - On monitors wider than 16:9 there are thin black bars at the sides.
-- Linux (Wine, Proton) has not been tried with this game.
+- Linux (Wine, Proton) has not been tried with this game: see [Linux](#linux-experimental-not-tried-yet).
 
 ## Troubleshooting
 
