@@ -237,12 +237,12 @@ void apply_script(XboxGamepad& pad, uint32_t port) {
 }
 
 // Mouse look: the mouse moves the camera (right stick) while the game window is in front and the game runs. Its
-// movement comes from raw input (nv2a.cpp), so the cursor is free to go anywhere; while the game runs it is hidden
-// after 3 s without moving, and shown again as soon as the mouse moves.
+// movement comes from raw input (nv2a.cpp), so the cursor is free to go anywhere; while the game runs it is hidden,
+// at once with mouse look (the mouse is always moving then: issue 3), otherwise after 3 s without moving.
 void mouse_look(XboxGamepad& pad) {
     static bool hidden = false;
     const bool running = game_has_focus() && !game_paused();
-    const bool hide = running && nv2a_mouse_idle_ms() > 3000;
+    const bool hide = running && (setting("mouse_look") != 0 || nv2a_mouse_idle_ms() > 3000);
     if (hide != hidden) nv2a_hide_cursor(hidden = hide);
     int dx = 0, dy = 0;
     nv2a_take_mouse_motion(dx, dy);
