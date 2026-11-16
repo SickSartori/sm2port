@@ -48,6 +48,7 @@ constexpr uint32_t kFileOverwriteIf = 5;
 constexpr uint32_t kFileSupersede = 0;
 
 constexpr uint32_t kFileDirectoryFile = 0x1;
+constexpr uint32_t kFileSynchronousIo = 0x10 | 0x20;  // FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT
 constexpr uint32_t kFileNonDirectoryFile = 0x40;
 constexpr uint32_t kFileDeleteOnClose = 0x1000;
 
@@ -112,6 +113,7 @@ struct FileObject {
     fs::path host_path;
     uint64_t position = 0;
     bool delete_on_close = false;
+    bool asynchronous = false;  // opened without FILE_SYNCHRONOUS_IO_*: its reads answer "pending" (see NtReadFile)
     std::mutex mutex;
 
     std::vector<DirectoryItem> listing;
@@ -589,6 +591,7 @@ NTSTATUS __stdcall NtCreateFile(uint32_t* file_handle, uint32_t desired_access, 
     }
     auto file = std::make_shared<FileObject>();
     file->location = *location;
+    file->asynchronous = !(options & kFileSynchronousIo);
     uint32_t information = 0;
     NTSTATUS status = location->device == Device::Disc
                           ? open_disc(*location, disposition, options, *file, &information)
@@ -674,6 +677,10 @@ NTSTATUS __stdcall NtReadFile(uint32_t handle, uint32_t event, uint32_t apc_rout
     mark_physical_written(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(buffer)), read);
     complete(io_status, status, read);
     finish_request(event, apc_routine, apc_context, io_status);
+    // On the Xbox a read from an asynchronous hard disk file never completes inside the call, and Spider-Man 2's save
+    // loader counts on it: ReadFile returning TRUE there means "whole file read", so it stopped after two sectors and
+    // called every save damaged (issue 2). The request is already complete (io_status and event), as after a real wait.
+    if (status >= 0 && file->asynchronous && file->kind == FileObject::Kind::HostFile) return kStatusPending;
     return status;
 }
 
