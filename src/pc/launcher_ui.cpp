@@ -168,7 +168,7 @@ const Texts kEnglish = {
     "Saves found", "Your saves from before are in another folder, and the game does not see them from here. Copy them here to go on from where you were; the other folder stays as it is.",
     "The saves already here are kept in the saves_backup folder.", "Last played there", "Last played here",
     "Copy my saves", "Go on without them", "They could not be copied: close what uses them and try again.",
-    "Support the project", "Free, and always will be. A thank-you gives more time for fixes and new ports.",
+    "Support the project", "Free, and always will be. A thank-you keeps it going.",
     "Mouse look", "The mouse moves the camera", "Mouse speed", "How fast the camera turns with the mouse",
 };
 
@@ -239,7 +239,7 @@ const Texts kItalian = {
     "Salvataggi trovati", "I tuoi salvataggi di prima sono in un'altra cartella, e da qui il gioco non li vede. Copiali qui per continuare da dove eri; l'altra cartella resta com'\xC3\xA8.",
     "I salvataggi gi\xC3\xA0 presenti qui vengono conservati nella cartella saves_backup.", "Ultima partita l\xC3\xAC", "Ultima partita qui",
     "Copia i miei salvataggi", "Continua senza", "Non \xC3\xA8 stato possibile copiarli: chiudi ci\xC3\xB2 che li usa e riprova.",
-    "Sostieni il progetto", "Gratis, e lo rester\xC3\xA0. Un grazie d\xC3\xA0 pi\xC3\xB9 tempo per correzioni e nuovi port.",
+    "Sostieni il progetto", "Gratis, e lo rester\xC3\xA0. Un grazie lo fa andare avanti.",
     "Visuale col mouse", "Il mouse muove la telecamera", "Velocit\xC3\xA0 del mouse",
     "Quanto in fretta gira la telecamera col mouse",
 };
@@ -308,7 +308,7 @@ const Texts kPortuguese = {
     "Saves encontrados", "Seus saves de antes estão em outra pasta, e daqui o jogo não os vê. Copie-os para cá para continuar de onde parou; a outra pasta fica como está.",
     "Os saves que já estão aqui ficam guardados na pasta saves_backup.", "Último jogo lá", "Último jogo aqui",
     "Copiar meus saves", "Continuar sem eles", "Não foi possível copiá-los: feche o que os usa e tente de novo.",
-    "Apoie o projeto", "Gratuito, e sempre será. Um obrigado dá mais tempo para correções e novos ports.",
+    "Apoie o projeto", "Gratuito, e sempre será. Um obrigado o mantém vivo.",
     "C\xC3\xA2mera com o mouse", "O mouse move a c\xC3\xA2mera", "Velocidade do mouse",
     "Qu\xC3\xA3o r\xC3\xA1pido a c\xC3\xA2mera gira com o mouse",
 };
@@ -376,7 +376,7 @@ const Texts kSpanish = {
     "Partidas encontradas", "Tus partidas de antes están en otra carpeta, y desde aquí el juego no las ve. Cópialas aquí para seguir donde lo dejaste; la otra carpeta se queda como está.",
     "Las partidas que ya están aquí se conservan en la carpeta saves_backup.", "Última partida allí", "Última partida aquí",
     "Copiar mis partidas", "Seguir sin ellas", "No se pudieron copiar: cierra lo que las usa y vuelve a intentarlo.",
-    "Apoya el proyecto", "Gratis, y siempre lo será. Un gracias da más tiempo para correcciones y nuevos ports.",
+    "Apoya el proyecto", "Gratis, y siempre lo será. Un gracias lo mantiene vivo.",
     "C\xC3\xA1mara con el rat\xC3\xB3n", "El rat\xC3\xB3n mueve la c\xC3\xA1mara", "Velocidad del rat\xC3\xB3n",
     "Lo r\xC3\xA1pido que gira la c\xC3\xA1mara con el rat\xC3\xB3n",
 };
