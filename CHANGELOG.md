@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.5
+
+### Fixed
+
+- **Every save was "damaged" when loaded** (issue 2): the game reads a save a sector at a time and waits for each read
+  to be pending, as on the Xbox; the port finished it at once and the game stopped after two sectors. Saves made with
+  0.1.4 and earlier were written whole and load again.
+- With "Round HUD in 16:9" the minimap's markers were off the map: the player's arrow away from the centre, the
+  objectives elsewhere. The minimap is now left as the game draws it.
+
 ## 0.1.4
 
 ### New

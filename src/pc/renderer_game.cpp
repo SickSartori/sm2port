@@ -49,11 +49,10 @@ RendererNarrowing narrowing(const SurfaceState& surface, float left, float right
         return n;
     }
     // Setting hud_aspect. In 16:9 the game draws its HUD with the pixels of 4:3, so the ring and the minimap come out a
-    // third too wide. While the ring is up, what lies wholly in a corner is narrowed back towards its side: the top
-    // ones (the ring, with its grey tab) and the lower right one from 0.67 of the width (the minimap); not the lower
-    // left one, as the pieces of one box must share a column and the tutorials' box there reaches past the middle
-    // (narrowing its pieces each towards its own side would tear it apart). What counts is the part inside the scissor
-    // rectangle: the minimap's map is tiles cut to its window.
+    // third too wide. While the ring is up, what lies wholly in a top corner is narrowed back towards its side (the
+    // ring, with its grey tab); not the lower left one, as the pieces of one box must share a column and the tutorials'
+    // box there reaches past the middle (narrowing its pieces each towards its own side would tear it apart), nor the
+    // lower right one (below). What counts is the part inside the scissor rectangle.
     const float narrow = (4.0f / 3.0f) / renderer_aspect();
     if (setting("hud_aspect") == 0 || !ring || narrow >= 0.99f) return n;
     left = std::max(left, static_cast<float>(surface.clip_x));
@@ -61,9 +60,12 @@ RendererNarrowing narrowing(const SurfaceState& surface, float left, float right
     top = std::max(top, static_cast<float>(surface.clip_y));
     bottom = std::min(bottom, static_cast<float>(surface.clip_y + surface.clip_height));
     if (left > right || top > bottom) return n;
+    // Not the lower right: the minimap's map and border start at 0.63 of the width, left of where the tutorials' box
+    // ends (0.66), so they stayed wide while the markers right of 0.67 were narrowed, off the map (the player's arrow
+    // away from the centre, the objectives elsewhere; seen 16 November 2026). Left as the game draws it, it is right.
     if (bottom <= 0.45f * height && right <= 0.35f * width) {
         n.factor = narrow;
-    } else if ((bottom <= 0.45f * height && left >= 0.65f * width) || (top >= 0.45f * height && left >= 0.67f * width)) {
+    } else if (bottom <= 0.45f * height && left >= 0.65f * width) {
         n.factor = narrow;
         n.anchor = width;
     }
