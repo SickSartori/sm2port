@@ -11,8 +11,15 @@
   objectives elsewhere. The minimap is now left as the game draws it.
 - **A harsh, ringing sound**: a call the game makes for every voice, its volume envelope, was read as a filter, which
   put a strong peak around 8 kHz on every sound and made the limiter turn the whole mix down.
+- **The display went to sleep while playing** with a controller (issue 3): Windows saw no input. sm2port now tells it a
+  game is running.
+- **The mouse cursor stayed on screen** with mouse look (issue 3): it was hidden only after 3 s without moving, and with
+  mouse look the mouse is always moving. It is hidden at once now.
 
 ### New
+
+- **Mouse look and its speed in the launcher** (issue 4), in Settings, Game, and in the in-game menu: the speed was only
+  in `sm2port.ini`.
 
 - **Saves left in another folder are found**: the game keeps its files in `Documents\sm2port`, or next to `sm2.exe` for a
   portable copy and when RecompLauncher starts it, so after changing the way you install or start it your saves seemed

@@ -102,6 +102,7 @@ struct Texts {
     const char *back_to_launcher, *back_to_launcher_sub, *back_to_launcher_button, *menu_launcher;
     const char *saves_title, *saves_lead, *saves_backup_note, *saves_there, *saves_here, *saves_use, *saves_keep, *saves_failed;
     const char *support, *support_sub;
+    const char *mouse_look, *mouse_look_sub, *mouse_speed, *mouse_speed_sub;
 };
 
 const Texts kEnglish = {
@@ -168,6 +169,7 @@ const Texts kEnglish = {
     "The saves already here are kept in the saves_backup folder.", "Last played there", "Last played here",
     "Copy my saves", "Go on without them", "They could not be copied: close what uses them and try again.",
     "Support the project", "Free, and always will be. A thank-you gives more time for fixes and new ports.",
+    "Mouse look", "The mouse moves the camera", "Mouse speed", "How fast the camera turns with the mouse",
 };
 
 const Texts kItalian = {
@@ -238,6 +240,8 @@ const Texts kItalian = {
     "I salvataggi gi\xC3\xA0 presenti qui vengono conservati nella cartella saves_backup.", "Ultima partita l\xC3\xAC", "Ultima partita qui",
     "Copia i miei salvataggi", "Continua senza", "Non \xC3\xA8 stato possibile copiarli: chiudi ci\xC3\xB2 che li usa e riprova.",
     "Sostieni il progetto", "Gratis, e lo rester\xC3\xA0. Un grazie d\xC3\xA0 pi\xC3\xB9 tempo per correzioni e nuovi port.",
+    "Visuale col mouse", "Il mouse muove la telecamera", "Velocit\xC3\xA0 del mouse",
+    "Quanto in fretta gira la telecamera col mouse",
 };
 
 // Portuguese (Brazil). The game itself has no Portuguese: its own menus stay in English.
@@ -305,6 +309,8 @@ const Texts kPortuguese = {
     "Os saves que já estão aqui ficam guardados na pasta saves_backup.", "Último jogo lá", "Último jogo aqui",
     "Copiar meus saves", "Continuar sem eles", "Não foi possível copiá-los: feche o que os usa e tente de novo.",
     "Apoie o projeto", "Gratuito, e sempre será. Um obrigado dá mais tempo para correções e novos ports.",
+    "C\xC3\xA2mera com o mouse", "O mouse move a c\xC3\xA2mera", "Velocidade do mouse",
+    "Qu\xC3\xA3o r\xC3\xA1pido a c\xC3\xA2mera gira com o mouse",
 };
 
 const Texts kSpanish = {
@@ -371,6 +377,8 @@ const Texts kSpanish = {
     "Las partidas que ya están aquí se conservan en la carpeta saves_backup.", "Última partida allí", "Última partida aquí",
     "Copiar mis partidas", "Seguir sin ellas", "No se pudieron copiar: cierra lo que las usa y vuelve a intentarlo.",
     "Apoya el proyecto", "Gratis, y siempre lo será. Un gracias da más tiempo para correcciones y nuevos ports.",
+    "C\xC3\xA1mara con el rat\xC3\xB3n", "El rat\xC3\xB3n mueve la c\xC3\xA1mara", "Velocidad del rat\xC3\xB3n",
+    "Lo r\xC3\xA1pido que gira la c\xC3\xA1mara con el rat\xC3\xB3n",
 };
 
 // The launcher's language: Windows', or SM2_LAUNCHER_LANGUAGE=en|it|pt|es for test screenshots.
@@ -1733,6 +1741,13 @@ void Launcher::page_settings() {
         const char* toggle[] = {t.off, t.on};
         int pause = setting("pause_in_background") != 0 ? 1 : 0;
         if (segmented("##background_pause", toggle, 2, &pause)) set_setting("pause_in_background", static_cast<float>(pause));
+        // Mouse look and its speed (issue 4: the speed was only in sm2port.ini).
+        row(t.mouse_look, t.mouse_look_sub);
+        int look = setting("mouse_look") != 0 ? 1 : 0;
+        if (segmented("##mouse_look", toggle, 2, &look)) set_setting("mouse_look", static_cast<float>(look));
+        row(t.mouse_speed, t.mouse_speed_sub);
+        float speed = setting("mouse_sensitivity");
+        if (slider("##mouse_sensitivity", &speed, 0.25f, 3, "%.2fx")) set_setting("mouse_sensitivity", std::round(speed * 20) / 20);
     } else if (settings_tab_ == 1) {
         row(t.aspect, t.aspect_sub, true);
         const char* aspects[] = {"4:3", "16:9"};
@@ -1839,6 +1854,7 @@ void Launcher::page_settings() {
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
         for (const char* key : {"game_language", "frame_rate", "time_of_day", "volume", "launcher_music", "pause_in_background",
+                                "mouse_look", "mouse_sensitivity",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
                                 "anisotropy", "gpu_vertices", "sharp_2d", "hud_aspect", "field_of_view",
                                 "letterbox", "effects", "sharpen", "bloom",
