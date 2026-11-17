@@ -6,6 +6,8 @@
 
 - **RecompLauncher** marks a disc image as verified when it is a Redump copy of a supported release: `recomplauncher.json`
   lists their size and CRC32. Other images (trimmed ones, for example) play as before.
+- **The installer says what sm2port connects to**: its first page explains that the only connection is the update
+  check, and a box turns it off from the first start. The README has a Privacy section and the code signing policy.
 
 ## 0.1.5
 

@@ -50,8 +50,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 
 [Messages]
-english.WelcomeLabel2=This will install [name/ver], an unofficial native Windows port of Spider-Man 2.%n%nNo game files are included: on the first start you choose the disc image (ISO) of your own Xbox copy (Italy, Europe in French, German or Spanish, or World).%n%nYour settings and saves are kept in your user folder and stay when you update or uninstall.
-italian.WelcomeLabel2=Verrà installato [name/ver], un port nativo non ufficiale per Windows di Spider-Man 2.%n%nNessun file del gioco è incluso: al primo avvio scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa in francese, tedesco o spagnolo, oppure World).%n%nImpostazioni e salvataggi restano nella tua cartella utente e non si perdono con aggiornamenti o disinstallazione.
+english.WelcomeLabel2=This will install [name/ver], an unofficial native Windows port of Spider-Man 2.%n%nNo game files are included: on the first start you choose the disc image (ISO) of your own Xbox copy (Italy, Europe in French, German or Spanish, or World).%n%nYour settings and saves are kept in your user folder and stay when you update or uninstall.%n%nPrivacy: sm2port collects no personal data. The only connection it makes on its own is the update check, which asks GitHub for the latest release when the launcher opens. You can turn it off on the next pages.
+italian.WelcomeLabel2=Verrà installato [name/ver], un port nativo non ufficiale per Windows di Spider-Man 2.%n%nNessun file del gioco è incluso: al primo avvio scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa in francese, tedesco o spagnolo, oppure World).%n%nImpostazioni e salvataggi restano nella tua cartella utente e non si perdono con aggiornamenti o disinstallazione.%n%nPrivacy: sm2port non raccoglie dati personali. L'unica connessione che fa da solo è il controllo degli aggiornamenti, che chiede a GitHub l'ultima versione quando si apre il launcher. Puoi disattivarlo nelle pagine successive.
 
 [CustomMessages]
 english.DesktopShortcut=Create a desktop shortcut
@@ -60,9 +60,17 @@ english.ShortcutName=Spider-Man 2 (sm2port)
 italian.ShortcutName=Spider-Man 2 (sm2port)
 english.StartNow=Start sm2port
 italian.StartNow=Avvia sm2port
+english.CheckUpdates=Check for updates on GitHub when the launcher opens
+italian.CheckUpdates=Controlla gli aggiornamenti su GitHub quando si apre il launcher
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:DesktopShortcut}"
+Name: "checkupdates"; Description: "{cm:CheckUpdates}"
+
+[INI]
+; The update check box: sm2.exe reads it on the first start only (runtime.cpp), then sm2port.ini's check_updates.
+Filename: "{app}\setup_choices.ini"; Section: "sm2port"; Key: "check_updates"; String: "1"; Tasks: checkupdates; Flags: uninsdeletesection
+Filename: "{app}\setup_choices.ini"; Section: "sm2port"; Key: "check_updates"; String: "0"; Tasks: not checkupdates; Flags: uninsdeletesection
 
 [Files]
 Source: "{#SourceDir}\sm2.exe"; DestDir: "{app}"; Flags: ignoreversion

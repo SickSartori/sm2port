@@ -654,7 +654,17 @@ extern "C" __declspec(dllexport) __declspec(noreturn) void __cdecl sm2_run(void*
     if (GetEnvironmentVariableW(L"RECOMPLAUNCHER_MODE", launcher_mode, 16) && std::wcscmp(launcher_mode, L"bigpicture") == 0) {
         SetEnvironmentVariableW(L"SM2_FULLSCREEN", L"1");
     }
-    settings_load(data_directory() / "sm2port.ini");
+    const std::filesystem::path settings_file = data_directory() / "sm2port.ini";
+    std::error_code no_file;
+    const bool first_settings = !std::filesystem::exists(settings_file, no_file);
+    settings_load(settings_file);
+    // The installer's "Check for updates" box (installer/sm2port.iss writes setup_choices.ini beside sm2.exe): it
+    // counts only on the first start, before sm2port.ini exists; after that the file's own value decides.
+    if (first_settings && GetPrivateProfileIntW(L"sm2port", L"check_updates", 1,
+                                                (exe_directory / L"setup_choices.ini").c_str()) == 0) {
+        setting_save("check_updates", 0);
+        log_line("settings: update check off, as chosen in the installer");
+    }
     if (!data_folder_note().empty()) log_line("files: %s", data_folder_note().c_str());
     log_line("files: program in %s, data in %s%s", reinterpret_cast<const char*>(exe_directory.u8string().c_str()),
              reinterpret_cast<const char*>(data_directory().u8string().c_str()), portable_mode() ? " (portable)" : "");
