@@ -12,6 +12,9 @@ licences:
 
 The Barlow fonts and the music are built into `sm2runtime.dll` as resources; SDL is linked into it.
 
+The launcher music was made with ElevenLabs Music: if you reuse it, the [ElevenLabs Music Terms](https://elevenlabs.io/music-terms)
+apply too (for example, no film, TV, radio or commercial games, and no music libraries).
+
 Not included, and never distributed: anything from Spider-Man 2. The game is read from the player's own disc image at run time. It
 belongs to its owners (Marvel, Activision, Treyarch).
 
