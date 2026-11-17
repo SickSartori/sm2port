@@ -27,6 +27,9 @@
   game is running.
 - **The mouse cursor stayed on screen** with mouse look (issue 3): it was hidden only after 3 s without moving, and with
   mouse look the mouse is always moving. It is hidden at once now.
+- **Mouse look turns as far as the mouse goes** (issues 3 and 4): it moves the camera through the right stick, and a
+  fast swipe past the stick's full deflection was cut short, so a half turn took a swipe across the desk. What goes
+  past it is now spent in the next moments (a quarter of a second at most; moving back drops it).
 
 ### New
 
