@@ -13,8 +13,10 @@
 
 namespace xport::pc {
 
-// Runs until the player starts the game (returns the verified disc) or quits (returns nothing).
-std::optional<GameDisc> run_launcher(HWND window, const std::filesystem::path& exe_directory);
+// Runs until the player starts the game (returns the verified disc) or quits (returns nothing). With `questions_only`
+// (a start that would skip the launcher) it shows only what the player must answer first, the saves found in another
+// folder, and then starts the game by itself if the disc is good.
+std::optional<GameDisc> run_launcher(HWND window, const std::filesystem::path& exe_directory, bool questions_only = false);
 
 // The in-game menu: the launcher's settings and controls over the paused game, opened with F1 or a controller's
 // Back+Start, and when the window goes to the background (setting pause_in_background). Also draws the frame

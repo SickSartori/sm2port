@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(sm2port VERSION 0.1.4 LANGUAGES C CXX)
+project(sm2port VERSION 0.1.5 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -69,13 +69,14 @@ if(WIN32)
         src/pc/launcher_ui.cpp
         src/pc/launcher_web.cpp
         src/pc/nv2a.cpp
+        src/pc/other_saves.cpp
         src/pc/nv2a_kelvin.cpp
         src/pc/renderer_game.cpp
         src/pc/runtime.cpp
         src/pc/settings.cpp
         res/launcher.rc
     )
-    target_link_libraries(sm2runtime PRIVATE xportcore shell32 user32 gdi32 winmm ole32 xaudio2 d3d11 dxgi d3dcompiler dbghelp dwmapi bcrypt comdlg32 winhttp windowscodecs imgui mfplat mfreadwrite mfuuid shlwapi SDL3::SDL3-static)
+    target_link_libraries(sm2runtime PRIVATE xportcore shell32 user32 gdi32 version winmm ole32 xaudio2 d3d11 dxgi d3dcompiler dbghelp dwmapi bcrypt comdlg32 winhttp windowscodecs imgui mfplat mfreadwrite mfuuid shlwapi SDL3::SDL3-static)
     target_compile_definitions(sm2runtime PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE
                                SM2PORT_VERSION="${PROJECT_VERSION}" ${SM2_VERSION_DEFINES})
     target_compile_options(sm2runtime PRIVATE /utf-8)
@@ -114,8 +115,10 @@ if(WIN32)
             add_test(NAME ${name} COMMAND ${name})
         endfunction()
         sm2_test(test_point_quads)
+        sm2_test(test_mouse_stick)
         sm2_test(test_game_disc src/pc/game_disc.cpp)
         sm2_test(test_settings src/pc/settings.cpp ${XPORT_DIR}/src/pc/log.cpp)
+        sm2_test(test_other_saves src/pc/other_saves.cpp)
         xport_add_tests(sm2port SM2PORT SM2_)
         target_link_libraries(test_game_disc PRIVATE bcrypt comdlg32 shell32 user32)
         add_test(NAME disc_real COMMAND test_game_disc real)

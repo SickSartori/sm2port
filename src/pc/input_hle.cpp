@@ -25,6 +25,7 @@
 #include "pc/game_pause.h"
 #include "pc/launcher_ui.h"
 #include "pc/log.h"
+#include "pc/mouse_stick.h"
 #include "pc/settings.h"
 
 namespace xport::pc {
@@ -237,22 +238,20 @@ void apply_script(XboxGamepad& pad, uint32_t port) {
 }
 
 // Mouse look: the mouse moves the camera (right stick) while the game window is in front and the game runs. Its
-// movement comes from raw input (nv2a.cpp), so the cursor is free to go anywhere; while the game runs it is hidden
-// after 3 s without moving, and shown again as soon as the mouse moves.
+// movement comes from raw input (nv2a.cpp), so the cursor is free to go anywhere; while the game runs it is hidden,
+// at once with mouse look (the mouse is always moving then: issue 3), otherwise after 3 s without moving.
 void mouse_look(XboxGamepad& pad) {
     static bool hidden = false;
     const bool running = game_has_focus() && !game_paused();
-    const bool hide = running && nv2a_mouse_idle_ms() > 3000;
+    const bool hide = running && (setting("mouse_look") != 0 || nv2a_mouse_idle_ms() > 3000);
     if (hide != hidden) nv2a_hide_cursor(hidden = hide);
     int dx = 0, dy = 0;
     nv2a_take_mouse_motion(dx, dy);
     if (!running || setting("mouse_look") == 0) return;
     const float gain = 1500.0f * setting("mouse_sensitivity");  // stick units per mickey moved between two polls
-    const auto push = [](int16_t stick, float movement) {
-        return static_cast<int16_t>(std::clamp(stick + movement, -32768.0f, 32767.0f));
-    };
-    pad.thumb_rx = push(pad.thumb_rx, dx * gain);
-    pad.thumb_ry = push(pad.thumb_ry, -dy * gain);
+    static float carry_x = 0, carry_y = 0;  // past full deflection, for the next polls (mouse_stick.h)
+    pad.thumb_rx = mouse_to_stick(pad.thumb_rx, dx * gain, carry_x);
+    pad.thumb_ry = mouse_to_stick(pad.thumb_ry, -dy * gain, carry_y);
 }
 
 // Controller 1 without a pad: the keyboard and mouse (only while the game window is in front) and the test script.

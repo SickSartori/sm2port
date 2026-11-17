@@ -1,0 +1,87 @@
+#!/bin/sh
+# Installs sm2port for the current user on Linux, through Wine: copies this folder to ~/.local/share/sm2port, makes
+# a Wine prefix of its own there, and adds the "sm2port" command (~/.local/bin) and an entry in the applications
+# menu. Needs a recent Wine with 32-bit support: README.md, "Linux". Run it again to update: settings and saves stay.
+set -eu
+
+here=$(cd "$(dirname "$0")" && pwd)
+dest=${XDG_DATA_HOME:-$HOME/.local/share}/sm2port
+bin=$HOME/.local/bin
+apps=${XDG_DATA_HOME:-$HOME/.local/share}/applications
+export WINEDEBUG=${WINEDEBUG:--all}
+
+command -v wine >/dev/null 2>&1 || { echo "wine not found: install Wine first (README.md, section Linux)." >&2; exit 1; }
+echo "Using $(wine --version 2>/dev/null || echo 'a Wine that does not say its version')."
+
+mkdir -p "$dest" "$bin" "$apps"
+cp -f "$here/sm2.exe" "$here/sm2runtime.dll" "$here/sm2port.png" "$here/README.txt" "$here/README.md" \
+    "$here/CHANGELOG.md" "$here/LICENSE" "$here/THIRD_PARTY.md" "$dest/"
+rm -rf "$dest/licenses" && cp -r "$here/licenses" "$dest/"
+# Settings, saves, log and shader cache next to sm2.exe (README.md, "Portable"): everything in one folder.
+: > "$dest/portable.txt"
+
+export WINEPREFIX=$dest/prefix
+if [ ! -f "$WINEPREFIX/system.reg" ]; then
+    echo "Making the Wine prefix in $WINEPREFIX (about a minute)..."
+    # No Mono and no Gecko: sm2port does not use them, and Wine would offer to download them.
+    WINEDLLOVERRIDES="mscoree,mshtml=" wineboot -i
+    wineserver -w
+fi
+
+# Whether Direct3D 11 starts in this Wine: sm2.exe --check-graphics ends with code 3 when it does not (any other
+# result, an older sm2.exe included, says nothing). Without it the game's window stays black: said here, with what
+# to install, and the installation goes on all the same.
+graphics=0
+if command -v timeout >/dev/null 2>&1; then
+    (cd "$dest" && timeout 120 wine sm2.exe --check-graphics) >/dev/null 2>&1 || graphics=$?
+else
+    (cd "$dest" && wine sm2.exe --check-graphics) >/dev/null 2>&1 || graphics=$?
+fi
+if [ "$graphics" -eq 3 ]; then
+    echo ""
+    echo "WARNING: Direct3D 11 does not start in this Wine, so the game's window would stay black."
+    echo "sm2port is a 32-bit program: it needs the 32-bit Vulkan and OpenGL libraries, and a graphics driver with Vulkan."
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "On Debian and Ubuntu:"
+        echo "  sudo dpkg --add-architecture i386 && sudo apt-get update"
+        echo "  sudo apt-get install libvulkan1:i386 libgl1:i386 libegl1:i386 mesa-vulkan-drivers:i386"
+    elif command -v dnf >/dev/null 2>&1; then
+        echo "On Fedora:"
+        echo "  sudo dnf install vulkan-loader.i686 mesa-dri-drivers.i686 mesa-vulkan-drivers.i686"
+    elif command -v pacman >/dev/null 2>&1; then
+        echo "On Arch (with the multilib repository enabled):"
+        echo "  sudo pacman -S lib32-vulkan-icd-loader lib32-mesa   # and the lib32 Vulkan driver of your card"
+    else
+        echo "Install them with your distribution's package manager."
+    fi
+    echo "With an NVIDIA card and its own driver, install the driver's 32-bit libraries instead of Mesa's."
+    echo "Then run this script again. More in README.md, section Linux."
+    echo ""
+fi
+
+cat > "$bin/sm2port" <<SCRIPT
+#!/bin/sh
+# Starts sm2port (installed by install.sh) in its own Wine prefix.
+export WINEPREFIX="$dest/prefix"
+export WINEDEBUG=\${WINEDEBUG:--all}
+cd "$dest" && exec wine sm2.exe "\$@"
+SCRIPT
+chmod +x "$bin/sm2port"
+
+cat > "$apps/sm2port.desktop" <<ENTRY
+[Desktop Entry]
+Type=Application
+Name=Spider-Man 2 (sm2port)
+Comment=Unofficial native Windows port of Spider-Man 2, through Wine
+Exec="$bin/sm2port"
+Icon=$dest/sm2port.png
+Terminal=false
+Categories=Game;
+ENTRY
+update-desktop-database "$apps" >/dev/null 2>&1 || true
+
+echo "sm2port is installed in $dest."
+echo "Start it from the applications menu, or with: $bin/sm2port"
+echo "(if the command is not found, add $bin to your PATH, or run it with its full path)"
+echo "Your settings and saves are in $dest. To remove everything:"
+echo "  rm -rf \"$dest\" \"$bin/sm2port\" \"$apps/sm2port.desktop\""

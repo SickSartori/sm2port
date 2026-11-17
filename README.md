@@ -1,12 +1,33 @@
-<p align="center"><img src="docs/logo.png" alt="sm2port logo" width="160"></p>
+<div align="center">
 
-# sm2port
+<img src="docs/logo.png" alt="sm2port logo" width="150">
 
-[![Get it on RecompLauncher](https://recomplauncher.com/assets/press/launcher/badge-dark.svg)](https://recomplauncher.com/game/sm2port)
+# sm2port · Spider-Man 2 PC Port
 
-An unofficial native Windows port of **Spider-Man 2** for the original Xbox (the Italian, the European
-French/German/Spanish and the World releases). It runs the game from **your own disc image**, with 16:9 widescreen, up to
-60 fps, a higher internal resolution, keyboard and mouse, and optional modern effects.
+**An unofficial native Windows port of Spider-Man 2 for the original Xbox** (the Italian, the European
+French/German/Spanish and the World releases).<br>
+16:9 widescreen, up to 60 fps, a higher internal resolution, keyboard and mouse and optional modern effects, running
+from your own disc image.
+
+<a href="https://recomplauncher.com/game/sm2port"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
+
+[![Latest release](https://img.shields.io/github/v/release/SickSartori/sm2port?label=release)](https://github.com/SickSartori/sm2port/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/SickSartori/sm2port/total)](https://github.com/SickSartori/sm2port/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows-blue)](#requirements)
+[![Licence](https://img.shields.io/github/license/SickSartori/sm2port)](LICENSE)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-support-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/SickSartori)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/sicksartori)
+
+[Download](https://github.com/SickSartori/sm2port/releases/latest) ·
+[How to play](#how-to-play) ·
+[Install](#installing) ·
+[Controls](#controls) ·
+[Settings](#settings) ·
+[Known issues](#known-issues) ·
+[Troubleshooting](#troubleshooting) ·
+[Changelog](CHANGELOG.md)
+
+</div>
 
 > [!IMPORTANT]
 > sm2port is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by or sponsored by Marvel,
@@ -20,6 +41,17 @@ French/German/Spanish and the World releases). It runs the game from **your own 
 > **sm2port is in early development.** The game can be played from the title screen to the missions, but it has been
 > tested for minutes, not hours, and may still have problems (see [Known issues](#known-issues)). If you find one,
 > please [open an issue on GitHub](https://github.com/SickSartori/sm2port/issues).
+
+## How to play
+
+1. You need a disc image (`.iso` or `.cci`) of your own copy of **Spider-Man 2 for the Xbox**, the Italian, the
+   European (French, German, Spanish) or the World release ([which ones work](#requirements)). It can stay wherever it
+   is: nothing is copied.
+2. Get sm2port from [RecompLauncher](https://recomplauncher.com/game/sm2port), or download the installer or the
+   portable zip from the [latest release](https://github.com/SickSartori/sm2port/releases/latest)
+   ([Installing](#installing)).
+3. Start it and choose your disc image (in RecompLauncher, on the game's page): sm2port checks it and remembers it.
+   Press **PLAY**.
 
 ## What it is
 
@@ -72,6 +104,24 @@ played an earlier version (0.1.1 or before), your files are in `%LOCALAPPDATA%\s
 move them: the launcher offers to, and moving never overwrites anything. To keep everything next to `sm2.exe` instead
 (a USB stick, say), create an empty file named `portable.txt` there. Started by RecompLauncher, the game always keeps
 them next to `sm2.exe`.
+
+If your saves are in one of these folders and the game now uses another (you moved from the installer to RecompLauncher,
+say), it tells you before starting and offers to copy them: the saves already in use go to `saves_backup`, nothing is
+deleted, and the question comes only once (delete `other_saves.txt` to be asked again).
+
+### Linux (experimental, not tried yet)
+
+sm2port is a Windows program; like [mc3port](https://github.com/SickSartori/mc3port#linux-experimental), which uses the
+same runtime, it should run on Linux through **Wine**. **Nobody has tried this game there yet**: if you do, please
+[tell us how it went](https://github.com/SickSartori/sm2port/issues), with `sm2port.log`.
+
+- **A recent Wine with 32-bit support** (sm2port is a 32-bit program), with the 32-bit Vulkan and OpenGL libraries of
+  your distribution: without them Wine has no Direct3D 11.
+- **The Linux package**, `sm2port-<version>-linux.tar.gz`: extract it and run `sh sm2port/install.sh`. It copies
+  sm2port to `~/.local/share/sm2port`, makes a Wine prefix of its own there, checks that Direct3D 11 starts (and says
+  what to install if it does not), and adds the `sm2port` command and an applications menu entry. Run it again to
+  update. Settings and saves are in that one folder; the script says how to remove it.
+- **Or the portable zip**: extract it and run `wine sm2.exe` from its folder.
 
 ## First start
 
@@ -136,7 +186,7 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
 - Online play (Xbox Live) is not available. Only the Italian, the European (French, German, Spanish) and the World releases are supported.
 - On monitors wider than 16:9 there are thin black bars at the sides.
-- Linux (Wine, Proton) has not been tried with this game.
+- Linux (Wine, Proton) has not been tried with this game: see [Linux](#linux-experimental-not-tried-yet).
 
 ## Troubleshooting
 

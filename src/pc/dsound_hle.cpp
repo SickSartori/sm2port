@@ -564,6 +564,20 @@ HRESULT32 __stdcall VoiceSetFilter(uint32_t self, const XDsFilterDesc* desc) {
     }
     return kOk;
 }
+// The one voice method Spider-Man 2 links between SetVolume and SetMixBinVolumes (0x4384BB; the stream's at 0x4385B0).
+// In the library those two have SetPitch, SetLFO, SetEG, SetFilter and SetHeadroom between them, in that order
+// (mc3port's table), and which one this is was a guess: SetFilter. But the game calls it once for each voice with
+// {1, 2, 0, 9, 0, 0, ...}, which as a DSFILTERDESC is a low-pass at its highest cutoff with a resonance no table
+// gives (32768 / 9), and as a DSENVELOPEDESC is the amplitude envelope, starting with an attack of 9 units (96 ms):
+// what a game does so that its sounds do not click. Read as a filter it put a peak of some 26 dB at 8 kHz on every
+// sound (the "bad sound quality" of a report of 13 November 2026, with the limiter turning the mix down for minutes).
+// SM2_SETEG_AS_FILTER=1 reads it as before, to compare by ear.
+HRESULT32 __stdcall VoiceSetEnvelopeNotFilter(uint32_t self, const void* desc) {
+    static const bool as_filter = GetEnvironmentVariableW(L"SM2_SETEG_AS_FILTER", nullptr, 0) != 0;
+    return as_filter ? VoiceSetFilter(self, static_cast<const XDsFilterDesc*>(desc))
+                     : VoiceSetEnvelope(self, static_cast<const XDsEnvelopeDesc*>(desc));
+}
+
 HRESULT32 __stdcall VoiceSetHeadroom(uint32_t self, uint32_t headroom) {
     static uint32_t logged = 0;
     if (logged++ < 40) log_line("dsound: voice %p headroom %u", static_cast<void*>(voice_of(self)), headroom);
@@ -826,7 +840,7 @@ const Redirect kRedirects[] = {
     R(0x43852F, BufferStopEx),
     R(0x43856F, BufferSetLoopRegion),
     R(0x43858F, BufferGetStatus),
-    R(0x4384BB, VoiceSetFilter),
+    R(0x4384BB, VoiceSetEnvelopeNotFilter),
     R(0x4384D7, VoiceSetMixBinVolumes),
     R(0x438F16, VoiceSetFrequency),
     R(0x438F32, VoiceSetMixBins),
@@ -835,7 +849,7 @@ const Redirect kRedirects[] = {
     R(0x439626, BufferSetBufferData),
     // IDirectSoundStream (the XMediaObject methods go through the stream's vtable).
     R(0x4385AB, VoiceSetVolume),
-    R(0x4385B0, VoiceSetFilter),
+    R(0x4385B0, VoiceSetEnvelopeNotFilter),
     R(0x4385B5, VoiceSetMixBinVolumes),
     R(0x4385BA, StreamPause),
     R(0x4385BF, StreamFlushEx),
