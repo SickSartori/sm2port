@@ -855,6 +855,7 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
     // fill of the tutorials' box), and the scene is not "under" them for the renderer.
     g_k.draw.screen_left = 1, g_k.draw.screen_right = 0;
     renderer_game_note_screen_space(false);
+    renderer_game_note_extent(1, 0, 0, 0);
     // Also small draws while the HUD is up: the ring's dark lower half is the first draw after the depth clear that ends
     // the scene, before any draw "over" it, and stayed wide beside the narrowed ring (a dark half-disc).
     const bool hud_draw = (!target.zeta_address || count <= 8) && renderer_game_hud_up() &&
@@ -885,6 +886,14 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
         if (flat) {
             g_k.draw.screen_left = left, g_k.draw.screen_right = right;
             g_k.draw.screen_top = top, g_k.draw.screen_bottom = bottom;
+        } else if (count <= 8 && hud_draw) {
+            // The minimap's tilted disc and its "N": projected, they are where the HUD is.
+            for (uint32_t i = 1; i < count; ++i) {  // positions are already in pixels (see to_render_vertex)
+                const Vec4 p = position(i);
+                left = std::min(left, p[0]), right = std::max(right, p[0]);
+                top = std::min(top, p[1]), bottom = std::max(bottom, p[1]);
+            }
+            if (std::isfinite(left + right + top + bottom)) renderer_game_note_extent(left, right, top, bottom);
         }
     }
 

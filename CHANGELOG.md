@@ -12,7 +12,7 @@
   to be pending, as on the Xbox; the port finished it at once and the game stopped after two sectors. Saves made with
   0.1.4 and earlier were written whole and load again.
 - With "Round HUD in 16:9" the minimap's markers were off the map: the player's arrow away from the centre, the
-  objectives elsewhere. The minimap is now left as the game draws it.
+  objectives elsewhere. The minimap keeps the game's shape and its markers stay on it.
 - **A dark half-disc beside the health ring** with "Round HUD in 16:9": the ring's dark lower half is drawn first, right
   after the 3D scene, and was the one piece of the ring left wide. It is narrowed with the rest now.
 - The stencil shadows are faded with the depth of what they fall on, as the game asks: it reads the depth buffer as a
@@ -44,6 +44,7 @@
 
 ### Improved
 
+- **The minimap is a little smaller** (85%), with the same shape, its "N" and its markers, around its own centre.
 - Choosing a file that is not a disc image (one of sm2port's own files, for example) now says that the game is not
   included and that your own `.iso` or `.cci` is needed, instead of only "not an Xbox disc image".
 

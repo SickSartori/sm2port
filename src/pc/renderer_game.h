@@ -7,6 +7,8 @@ void renderer_game_toggle_hud();
 
 // Before each draw, from nv2a_kelvin.cpp on the GPU thread: whether its first vertex is in screen space (w 1).
 void renderer_game_note_screen_space(bool screen_space);
+// The same: the extent on the surface of a small draw that is not flat (the minimap's tilted disc), left > right if none.
+void renderer_game_note_extent(float left, float right, float top, float bottom);
 
 // Whether the game's HUD is on screen (its health ring was drawn in the last few frames).
 bool renderer_game_hud_up();

@@ -28,6 +28,37 @@ constexpr uint32_t kRingAtlasFormat = 0x08810E29;
 
 bool ring_on_screen() { return g_frames.load() - g_ring_frame.load() <= 3; }
 
+// The minimap, a bit smaller: its map is a 128x128 render target that the game clears with
+// a depth buffer (renderer_game_clear), drawn as a tilted disc; the disc's border, its "N", the player's arrow and the
+// objectives' markers are drawn around it, before and after. Whatever is centred on the map's ellipse (from the frame
+// before, as its border comes first) is scaled with it, around its centre. GPU thread only.
+constexpr float kMinimapScale = 0.85f;
+std::atomic<uint32_t> g_minimap_target{0};
+float g_extent[4] = {1, 0, 0, 0};  // renderer_game_note_extent: the current draw's, when it is not flat
+struct Box {
+    float left = 1, right = 0, top = 0, bottom = 0;
+};
+Box g_map;                   // where the map was last drawn
+uint64_t g_map_frame = ~0ull >> 1;
+
+void minimap(RendererNarrowing& n, const SurfaceState& surface, Box b, uint32_t texture) {
+    if (b.left > b.right || !g_minimap_target || !renderer_surface_shown(surface.color_address)) return;
+    if (texture == g_minimap_target) g_map = b, g_map_frame = g_frames.load();
+    if (g_frames.load() - g_map_frame > 3 || n.factor != 1 || !ring_on_screen()) return;
+    constexpr float kMargin = 16;  // the border and the markers on it lie just outside the map
+    const float cx = (g_map.left + g_map.right) / 2, cy = (g_map.top + g_map.bottom) / 2;
+    const float rx = (g_map.right - g_map.left) / 2 + kMargin, ry = (g_map.bottom - g_map.top) / 2 + kMargin;
+    const float dx = ((b.left + b.right) / 2 - cx) / rx, dy = ((b.top + b.bottom) / 2 - cy) / ry;
+    if (dx * dx + dy * dy > 1) return;
+    // shortcut: a flat piece ending left of the map is taken for the tutorials' box (which ends there) and left as drawn,
+    // also an objective's marker on the map's west edge; tell them apart if the box ever turns out to reach further.
+    if (texture != g_minimap_target && b.right <= g_map.left && g_extent[0] > g_extent[1]) return;
+    n.factor = kMinimapScale;  // not narrowed in 16:9 too: the tilted disc is 3D, drawn with the wide projection
+    n.anchor = cx;
+    n.factor_y = kMinimapScale;
+    n.anchor_y = cy;
+}
+
 // Flat draws over the 3D scene on a shown frame (nv2a_kelvin.cpp measures them). Narrowed to nothing (factor 0 at
 // column 0: no pixel is covered and the scissor rectangle is empty) when they are to go; towards a side for the HUD.
 RendererNarrowing narrowing(const SurfaceState& surface, float left, float right, float top, float bottom) {
@@ -84,11 +115,17 @@ void renderer_game_toggle_hud() {
 
 void renderer_game_note_screen_space(bool screen_space) { g_screen_space = screen_space; }
 
+void renderer_game_note_extent(float left, float right, float top, float bottom) {
+    g_extent[0] = left, g_extent[1] = right, g_extent[2] = top, g_extent[3] = bottom;
+}
+
 bool renderer_game_hud_up() { return ring_on_screen(); }
 
 RendererNarrowing renderer_game_narrowing(const SurfaceState& surface, float left, float right, float top, float bottom,
                                           uint32_t texture) {
-    const RendererNarrowing n = narrowing(surface, left, right, top, bottom);
+    RendererNarrowing n = narrowing(surface, left, right, top, bottom);
+    minimap(n, surface, left <= right ? Box{left, right, top, bottom} : Box{g_extent[0], g_extent[1], g_extent[2], g_extent[3]},
+            texture);
     if (g_debug_hud > 0 && left <= right) {
         --g_debug_hud;
         log_line("hud: %.0f..%.0f x %.0f..%.0f on %08X, texture %08X -> %.3f towards %.0f", left, right, top, bottom,
@@ -97,7 +134,11 @@ RendererNarrowing renderer_game_narrowing(const SurfaceState& surface, float lef
     return n;
 }
 
-void renderer_game_clear(const SurfaceState&, uint32_t, int&, int&, int&, int&) {}
+void renderer_game_clear(const SurfaceState& surface, uint32_t channels, int&, int&, int&, int&) {
+    if (!channels && surface.width == 128 && surface.height == 128 && surface.zeta_address) {
+        g_minimap_target = surface.color_address;
+    }
+}
 
 bool renderer_game_enlarge(const TextureDescriptor&) { return false; }
 
