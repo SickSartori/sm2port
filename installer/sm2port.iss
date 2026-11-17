@@ -67,6 +67,7 @@ Name: "desktopicon"; Description: "{cm:DesktopShortcut}"
 [Files]
 Source: "{#SourceDir}\sm2.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\sm2runtime.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\recomplauncher.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\README.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "{#SourceDir}\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
