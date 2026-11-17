@@ -1536,6 +1536,18 @@ std::string pad_text(const char* text) {
     }
 }
 
+// A Controls row named only after its Xbox button ("Y button", "Black button", "LB (White)"), named after PlayStation's
+// button instead with a PlayStation pad ("triangle button", "R1 button"); other rows as they are.
+std::string row_label(const char* button, const char* label) {
+    const std::string b = button;
+    const bool named_after_button = b == "Y" || b == "Black" || b == "White" || b == "LB" || b == "RB";
+    if (!named_after_button || !playstation_pad()) return label;
+    char named[64];
+    std::snprintf(named, sizeof(named), in_language("%s button", "Pulsante %s", "Bot\xC3\xA3o %s", "Bot\xC3\xB3n %s"),
+                  playstation_name(b));
+    return named;
+}
+
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
@@ -2023,7 +2035,8 @@ void Launcher::page_keyboard_keys(float row_height, float column) {
             const ImVec2 key_size = measure(body_bold_, px(16), key.c_str());
             const ImVec2 box_a(x + cell - std::max(px(60), key_size.x + px(18)), y + px(3)), box_b(x + cell, y + row_height - px(3));
             list_->PushClipRect(ImVec2(x + px(80), y), ImVec2(box_a.x - px(6), y + row_height), true);  // never under the key box
-            text(body_, px(15), ImVec2(x + px(80), y + px(8)), kInk, in_language(binding.english, binding.italian, binding.portuguese, binding.spanish));
+            text(body_, px(15), ImVec2(x + px(80), y + px(8)), kInk,
+                 row_label(binding.button, in_language(binding.english, binding.italian, binding.portuguese, binding.spanish)).c_str());
             list_->PopClipRect();
             ImGui::SetCursorScreenPos(box_a);
             ImGui::PushID(i);
@@ -2072,7 +2085,8 @@ void Launcher::page_pad_buttons(float row_height, float column) {
         const float source_w = waiting ? measure(body_bold_, px(14), t.press_pad).x : pad_icon(list_, source.icon, ImVec2(0, 0), icon_h, false);
         const ImVec2 box_a(x + cell - std::max(px(60), source_w + px(18)), y + px(3)), box_b(x + cell, y + row_height - px(3));
         list_->PushClipRect(ImVec2(x + px(80), y), ImVec2(box_a.x - px(6), y + row_height), true);
-        text(body_, px(15), ImVec2(x + px(80), y + px(7)), kInk, in_language(game.english, game.italian, game.portuguese, game.spanish));
+        text(body_, px(15), ImVec2(x + px(80), y + px(7)), kInk,
+             row_label(game.icon, in_language(game.english, game.italian, game.portuguese, game.spanish)).c_str());
         list_->PopClipRect();
         ImGui::SetCursorScreenPos(box_a);
         ImGui::PushID(1000 + i);

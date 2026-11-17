@@ -31,7 +31,8 @@
 
 - **PlayStation buttons**: with a DualSense, DualShock 4 or DualShock 3 connected (or RecompLauncher's PlayStation
   pad when none is), the launcher and the in-game menu show the cross, circle, square and triangle, L1, R1, L2, R2,
-  Options and Create (Share, Select) instead of the Xbox's buttons. The game's own prompts stay the Xbox's.
+  Options and Create (Share, Select) instead of the Xbox's buttons, and the Controls rows named after a button (Y,
+  Black, White) take its PlayStation name. The game's own prompts stay the Xbox's.
 - **Mouse look and its speed in the launcher** (issue 4), in Settings, Game, and in the in-game menu: the speed was only
   in `sm2port.ini`.
 
