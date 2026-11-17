@@ -8,6 +8,9 @@
   Language; it also comes with the installer. Started by RecompLauncher, sm2port uses only the disc the launcher
   gives: no other disc in its place and no file dialog, but exit code 2, so the launcher asks for it again. Quitting
   the launcher reopened by "Back to the launcher" no longer ends with code 2.
+- Started by RecompLauncher, the game's restarts (the in-game menu's restart, "Back to the launcher", moving the old
+  data folder) no longer look to the launcher like the game had ended: `sm2.exe` stays as the process it started,
+  starts each new one itself and ends with the game's exit code.
 - **Every save was "damaged" when loaded** (issue 2): the game reads a save a sector at a time and waits for each read
   to be pending, as on the Xbox; the port finished it at once and the game stopped after two sectors. Saves made with
   0.1.4 and earlier were written whole and load again.
@@ -26,6 +29,9 @@
 
 ### New
 
+- **PlayStation buttons**: with a DualSense, DualShock 4 or DualShock 3 connected (or RecompLauncher's PlayStation
+  pad when none is), the launcher and the in-game menu show the cross, circle, square and triangle, L1, R1, L2, R2,
+  Options and Create (Share, Select) instead of the Xbox's buttons. The game's own prompts stay the Xbox's.
 - **Mouse look and its speed in the launcher** (issue 4), in Settings, Game, and in the in-game menu: the speed was only
   in `sm2port.ini`.
 

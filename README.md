@@ -19,6 +19,7 @@ from your own disc image.
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/sicksartori)
 
 [Download](https://github.com/SickSartori/sm2port/releases/latest) ·
+[How to play](#how-to-play) ·
 [Install](#installing) ·
 [Controls](#controls) ·
 [Settings](#settings) ·
@@ -40,6 +41,17 @@ from your own disc image.
 > **sm2port is in early development.** The game can be played from the title screen to the missions, but it has been
 > tested for minutes, not hours, and may still have problems (see [Known issues](#known-issues)). If you find one,
 > please [open an issue on GitHub](https://github.com/SickSartori/sm2port/issues).
+
+## How to play
+
+1. You need a disc image (`.iso` or `.cci`) of your own copy of **Spider-Man 2 for the Xbox**, the Italian, the
+   European (French, German, Spanish) or the World release ([which ones work](#requirements)). It can stay wherever it
+   is: nothing is copied.
+2. Get sm2port from [RecompLauncher](https://recomplauncher.com/game/sm2port), or download the installer or the
+   portable zip from the [latest release](https://github.com/SickSartori/sm2port/releases/latest)
+   ([Installing](#installing)).
+3. Start it and choose your disc image (in RecompLauncher, on the game's page): sm2port checks it and remembers it.
+   Press **PLAY**.
 
 ## What it is
 
