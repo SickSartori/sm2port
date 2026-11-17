@@ -24,11 +24,37 @@
     {
       "id": "main",
       "format": "ini",
-      "file": "{install}/sm2port.ini",
+      "file": [
+        { "path": "{install}/sm2port.ini" }
+      ],
       "game_path": "disc_image"
     }
   ],
   "settings": [
+    {
+      "id": "window",
+      "label": "Window",
+      "help": "Full screen or a window. Big Picture mode always starts full screen.",
+      "choices": [
+        { "label": "Windowed", "set": { "fullscreen": "0" } },
+        { "label": "Fullscreen", "set": { "fullscreen": "1" } }
+      ],
+      "defaults": { "fullscreen": "0" }
+    },
+    {
+      "id": "language",
+      "label": "Language",
+      "help": "The game's language. Automatic follows Windows.",
+      "choices": [
+        { "label": "Automatic", "set": { "game_language": "0" } },
+        { "label": "English", "set": { "game_language": "1" } },
+        { "label": "Deutsch", "set": { "game_language": "3" } },
+        { "label": "Français", "set": { "game_language": "4" } },
+        { "label": "Español", "set": { "game_language": "5" } },
+        { "label": "Italiano", "set": { "game_language": "6" } }
+      ],
+      "defaults": { "game_language": "0" }
+    },
     {
       "id": "frame_rate",
       "label": "Frame rate",
@@ -165,11 +191,15 @@
     }
   ],
   "folders": {
-    "saves": "{install}/xbox_hdd",
-    "logs": "{install}/logs"
+    "saves": [
+      { "path": "{install}/xbox_hdd" }
+    ],
+    "logs": [
+      { "path": "{install}/logs" }
+    ]
   },
   "exit_codes": {
-    "2": "sm2port could not use your disc image. It needs the Italian, the European (French, German, Spanish) or the World release of Spider-Man 2 for the Xbox, as a complete .iso: pick it again on the game's page.",
+    "2": "sm2port could not use your disc image: it is missing, incomplete, or another version or region. It needs the Italian, the European (French, German, Spanish) or the World release of Spider-Man 2 for the Xbox, as a complete .iso: pick it again on the game's page.",
     "3": "sm2port could not start Direct3D 11, which it needs to draw the game. Update the graphics driver; on Linux, install the 32-bit Vulkan and OpenGL libraries (see the README, Linux)."
   }
 }

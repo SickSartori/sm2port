@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- **RecompLauncher**: `recomplauncher.json` follows the schema again (the launcher skipped it) and adds Window and
+  Language; it also comes with the installer. Started by RecompLauncher, sm2port uses only the disc the launcher
+  gives: no other disc in its place and no file dialog, but exit code 2, so the launcher asks for it again. Quitting
+  the launcher reopened by "Back to the launcher" no longer ends with code 2.
+
 - **Every save was "damaged" when loaded** (issue 2): the game reads a save a sector at a time and waits for each read
   to be pending, as on the Xbox; the port finished it at once and the game stopped after two sectors. Saves made with
   0.1.4 and earlier were written whole and load again.

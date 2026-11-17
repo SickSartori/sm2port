@@ -9,7 +9,7 @@ French/German/Spanish and the World releases).<br>
 16:9 widescreen, up to 60 fps, a higher internal resolution, keyboard and mouse and optional modern effects, running
 from your own disc image.
 
-[![Get it on RecompLauncher](https://recomplauncher.com/assets/press/launcher/badge-dark.svg)](https://recomplauncher.com/game/sm2port)
+<a href="https://recomplauncher.com/game/sm2port"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
 
 [![Latest release](https://img.shields.io/github/v/release/SickSartori/sm2port?label=release)](https://github.com/SickSartori/sm2port/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/SickSartori/sm2port/total)](https://github.com/SickSartori/sm2port/releases)
