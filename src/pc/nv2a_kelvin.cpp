@@ -1104,10 +1104,10 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
         static const bool additive_only = GetEnvironmentVariableA("SM2_DEBUG_ADDITIVE", nullptr, 0) != 0;
         if (additive_only && !(d.blend_enable && d.blend_destination == 1)) return;
         log_line("frame rect %llu: %.0f %.0f %.0f %.0f uv %.3f %.3f %.3f %.3f texmatrix %d texgen %X address %08X "
-                 "filter %08X flat %.0f..%.0f x %.0f..%.0f",
+                 "filter %08X tex1 address %08X filter %08X flat %.0f..%.0f x %.0f..%.0f",
                  static_cast<unsigned long long>(g_draws), x0, y0, x1, y1, u0, v0, u1, v1,
                  g_k.texture_matrix_enable[0], g_k.texgen[0][0], g_k.draw.textures[0].address_mode,
-                 g_k.draw.textures[0].filter, g_k.draw.screen_left, g_k.draw.screen_right, g_k.draw.screen_top,
+                 g_k.draw.textures[0].filter, g_k.draw.textures[1].address_mode, g_k.draw.textures[1].filter, g_k.draw.screen_left, g_k.draw.screen_right, g_k.draw.screen_top,
                  g_k.draw.screen_bottom);
         if (fixed_function && lighting_on() && g_k.light_enable_mask) {  // the lights on this draw, for missing glows
             char lights[512];
@@ -1135,7 +1135,7 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
                  "blend %d %X %X | z %d %X w %d | "
                  "atest %d %X ref %02X | mask %08X | clip (%.3g %.3g %.3g %.3g) d0 (%.2f %.2f %.2f %.2f) | comb %08X %08X %08X"
                  " | stages %05X ctl %08X | alpha %08X %08X out %08X | stencil %d %X ref %02X rm %02X wm %02X ops %X %X %X"
-                 " | cull %d %X front %X eq %X",
+                 " | cull %d %X front %X eq %X | offset %d %g %g",
                  static_cast<unsigned long long>(g_draws), fixed_function ? "ff" : "vp", g_k.primitive, count,
                  target.color_address, d.textures[0].enabled ? "on" : "off", d.textures[0].descriptor.address,
                  d.textures[0].descriptor.format, d.textures[1].enabled ? "on" : "off", d.textures[1].descriptor.address,
@@ -1147,7 +1147,7 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
                  d.program.control, d.program.alpha_input[0], d.program.alpha_output[0], d.program.color_output[0],
                  d.stencil_test, d.stencil_function, d.stencil_reference, d.stencil_read_mask, d.stencil_write_mask,
                  d.stencil_fail, d.stencil_depth_fail, d.stencil_pass, d.cull_enable, d.cull_face, d.front_face,
-                 d.blend_equation);
+                 d.blend_equation, d.offset_fill, d.offset_scale, d.offset_bias);
     }
 }
 
@@ -1403,7 +1403,8 @@ __declspec(noinline) static bool kelvin_other_method(uint32_t method, uint32_t a
         case 0x0390: return true;
         case 0x043C: g_k.point_size = static_cast<float>(argument) / 8; return true;
         case 0x0308: d.cull_enable = argument != 0; return true;
-        case 0x0380: d.offset_fill = argument != 0; return true;
+        case 0x0338: d.offset_fill = argument != 0; return true;  // NV097_SET_POLY_OFFSET_FILL_ENABLE
+        case 0x0380: return true;  // line width
         case 0x0384: d.offset_scale = as_float(argument); return true;
         case 0x0388: d.offset_bias = as_float(argument); return true;
         case 0x039C: d.cull_face = argument; return true;

@@ -7,6 +7,12 @@
 - **A little lighter on the PC**: the work that turns each frame's Xbox drawing commands into Direct3D takes about 5%
   less time (more in Midnight Club 3, whose port shares this code).
 
+### Fixed
+
+- **Decals on surfaces seen at an angle** (marks laid on walls and pavements) get the whole depth offset the game asks
+  for: above 480 lines it was too weak, by up to 2.25 times at 1080. The offset is also switched on and off by the
+  game's own setting, not by the line width.
+
 ## 0.1.6
 
 ### Improved
