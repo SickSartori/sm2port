@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7
+
+### Improved
+
+- **A little lighter on the PC**: the work that turns each frame's Xbox drawing commands into Direct3D takes about 5%
+  less time (more in Midnight Club 3, whose port shares this code).
+
 ## 0.1.6
 
 ### Improved
