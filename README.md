@@ -97,7 +97,7 @@ Compared with the console:
 administrator rights) and adds Start menu and desktop shortcuts.
 
 **Portable**: download `sm2port-<version>-windows-x86.zip`, extract it where you like and start `sm2.exe`. The
-files are not code signed, so Windows SmartScreen may ask once whether you trust them ("More info", then "Run anyway").
+files are not code signed yet (see [Code signing policy](#code-signing-policy)), so Windows SmartScreen may ask once whether you trust them ("More info", then "Run anyway").
 To check a download, compare its SHA-256 with the `SHA256SUMS` file of the release.
 
 Your settings (`sm2port.ini`), saves (`xbox_hdd`), logs (`logs`) and shader cache live in your `Documents\sm2port` folder
@@ -230,7 +230,29 @@ xemu and other open-source Xbox projects were studied as references only; no cod
 - [Dear ImGui](https://github.com/ocornut/imgui) by Omar Cornut, MIT licence: the launcher's interface.
 - [Barlow](https://github.com/jpt/barlow) by Jeremy Tribby, SIL Open Font License: the launcher's font.
 - The launcher's background music and its background pictures were generated for the project with ElevenLabs Music and
-  Magnific. The program icon and logo are the project's own (`tools/make_icon.py`).
+  Magnific, and are under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The program icon and logo are the
+  project's own (`tools/make_icon.py`).
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by
+[SignPath Foundation](https://signpath.org). The application is under review: until it is approved, the releases are
+not signed yet.
+
+- Committers and reviewers: [SickSartori](https://github.com/SickSartori)
+- Approvers: [SickSartori](https://github.com/SickSartori)
+
+The Windows files are built from this repository and [xport](https://github.com/SickSartori/xport) by GitHub Actions
+([release workflow](.github/workflows/release.yml)); each release lists their SHA-256 in `SHA256SUMS`.
+
+## Privacy
+
+sm2port collects no personal data and has no telemetry. The only connection it makes on its own is the update check:
+when the launcher opens, it asks `api.github.com` for this project's latest release. You can turn it off in the
+installer, or at any time with `check_updates = 0` in `Documents\sm2port\sm2port.ini`; started from RecompLauncher, it
+is always off. If you accept an update, the launcher downloads the new installer and `SHA256SUMS` from this project's
+GitHub releases. **Report a problem** only opens GitHub's bug form in your browser, filled in for you to read and send
+yourself.
 
 ## Supporting the project
 

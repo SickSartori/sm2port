@@ -21,5 +21,6 @@ $notes = $section.Trim() + @"
 - **Installer**: ``sm2port-$Version-windows-x86-setup.exe`` (installs for your user, no administrator rights).
 - **Portable**: ``sm2port-$Version-windows-x86.zip`` (extract anywhere and start ``sm2.exe``).
 - Check a download against ``SHA256SUMS``. You need your own disc image of the Italian, the European (French, German, Spanish) or the World Xbox release: see the README.
+- [Code signing policy](https://github.com/SickSartori/sm2port#code-signing-policy) and [Privacy](https://github.com/SickSartori/sm2port#privacy).
 "@
 Set-Content -Path $Out -Value $notes -Encoding utf8NoBOM

@@ -14,7 +14,9 @@
 #endif
 
 [Setup]
-AppId={{8C3E1B2A-5D4F-4E7A-9B61-3F2D7A0C5E91}
+; Up to 0.1.6 sm2port had mc3port's AppId by mistake, so Windows took the two for one program; [Code] moves an old
+; sm2port install over to this one.
+AppId={{AC0BD8E5-7296-45BD-A648-D7D4C23F3700}
 AppName=sm2port
 AppVersion={#AppVersion}
 AppVerName=sm2port {#AppVersion}
@@ -25,7 +27,7 @@ AppUpdatesURL=https://github.com/SickSartori/sm2port/releases
 AppComments=Unofficial native Windows port of Spider-Man 2 (Xbox: Italy, Europe or World). No game files included.
 VersionInfoVersion={#AppVersion}
 VersionInfoDescription=sm2port setup
-DefaultDirName={autopf}\sm2port
+DefaultDirName={code:DefaultInstallDir}
 DefaultGroupName=sm2port
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -50,8 +52,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 
 [Messages]
-english.WelcomeLabel2=This will install [name/ver], an unofficial native Windows port of Spider-Man 2.%n%nNo game files are included: on the first start you choose the disc image (ISO) of your own Xbox copy (Italy, Europe in French, German or Spanish, or World).%n%nYour settings and saves are kept in your user folder and stay when you update or uninstall.
-italian.WelcomeLabel2=Verrà installato [name/ver], un port nativo non ufficiale per Windows di Spider-Man 2.%n%nNessun file del gioco è incluso: al primo avvio scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa in francese, tedesco o spagnolo, oppure World).%n%nImpostazioni e salvataggi restano nella tua cartella utente e non si perdono con aggiornamenti o disinstallazione.
+english.WelcomeLabel2=This will install [name/ver], an unofficial native Windows port of Spider-Man 2.%n%nNo game files are included: on the first start you choose the disc image (ISO) of your own Xbox copy (Italy, Europe in French, German or Spanish, or World).%n%nYour settings and saves are kept in your user folder and stay when you update or uninstall.%n%nPrivacy: sm2port collects no personal data. The only connection it makes on its own is the update check, which asks GitHub for the latest release when the launcher opens. You can turn it off on the next pages.
+italian.WelcomeLabel2=Verrà installato [name/ver], un port nativo non ufficiale per Windows di Spider-Man 2.%n%nNessun file del gioco è incluso: al primo avvio scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa in francese, tedesco o spagnolo, oppure World).%n%nImpostazioni e salvataggi restano nella tua cartella utente e non si perdono con aggiornamenti o disinstallazione.%n%nPrivacy: sm2port non raccoglie dati personali. L'unica connessione che fa da solo è il controllo degli aggiornamenti, che chiede a GitHub l'ultima versione quando si apre il launcher. Puoi disattivarlo nelle pagine successive.
 
 [CustomMessages]
 english.DesktopShortcut=Create a desktop shortcut
@@ -60,9 +62,23 @@ english.ShortcutName=Spider-Man 2 (sm2port)
 italian.ShortcutName=Spider-Man 2 (sm2port)
 english.StartNow=Start sm2port
 italian.StartNow=Avvia sm2port
+english.CheckUpdates=Check for updates on GitHub when the launcher opens
+italian.CheckUpdates=Controlla gli aggiornamenti su GitHub quando si apre il launcher
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:DesktopShortcut}"
+Name: "checkupdates"; Description: "{cm:CheckUpdates}"
+
+[INI]
+; The update check box: sm2.exe reads it on the first start only (runtime.cpp), then sm2port.ini's check_updates.
+Filename: "{app}\setup_choices.ini"; Section: "sm2port"; Key: "check_updates"; String: "1"; Tasks: checkupdates; Flags: uninsdeletesection
+Filename: "{app}\setup_choices.ini"; Section: "sm2port"; Key: "check_updates"; String: "0"; Tasks: not checkupdates; Flags: uninsdeletesection
+
+[UninstallDelete]
+; uninsdeletesection leaves the file, empty, and so the folder.
+Type: files; Name: "{app}\setup_choices.ini"
+; A folder installed by 0.1.6 or earlier is not this AppId's, so it would stay behind, empty.
+Type: dirifempty; Name: "{app}"
 
 [Files]
 Source: "{#SourceDir}\sm2.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -101,8 +117,42 @@ end;
 procedure SHChangeNotify(wEventId: Integer; uFlags: Cardinal; dwItem1, dwItem2: Cardinal);
   external 'SHChangeNotify@shell32.dll stdcall';
 
-procedure CurStepChanged(CurStep: TSetupStep);
+// The uninstall entry of 0.1.6 and earlier, under the AppId shared with mc3port: sm2port's only when its name says so
+// (otherwise it is mc3port's, and stays).
+const
+  OldUninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8C3E1B2A-5D4F-4E7A-9B61-3F2D7A0C5E91}_is1';
+
+function OldInstallDir: String;
+var
+  Name: String;
 begin
+  Result := '';
+  if RegQueryStringValue(HKCU, OldUninstallKey, 'DisplayName', Name) and (Pos('sm2port', Name) = 1) then
+    RegQueryStringValue(HKCU, OldUninstallKey, 'InstallLocation', Result);
+  Result := RemoveBackslashUnlessRoot(Result);
+end;
+
+// An update of an old install goes to its folder, not a second one.
+function DefaultInstallDir(Param: String): String;
+begin
+  Result := OldInstallDir;
+  if Result = '' then
+    Result := ExpandConstant('{autopf}\sm2port');
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  OldDir: String;
+begin
+  if CurStep = ssInstall then begin
+    // The old entry and its uninstaller go when installing over them: this install's own replace them.
+    OldDir := OldInstallDir;
+    if (OldDir <> '') and (CompareText(OldDir, RemoveBackslashUnlessRoot(ExpandConstant('{app}'))) = 0) then begin
+      RegDeleteKeyIncludingSubkeys(HKCU, OldUninstallKey);
+      DeleteFile(AddBackslash(OldDir) + 'unins000.exe');
+      DeleteFile(AddBackslash(OldDir) + 'unins000.dat');
+    end;
+  end;
   if CurStep = ssPostInstall then
     SHChangeNotify($08000000, 0, 0, 0);  { SHCNE_ASSOCCHANGED, SHCNF_IDLIST }
 end;
