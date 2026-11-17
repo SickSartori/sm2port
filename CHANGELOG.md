@@ -2,35 +2,6 @@
 
 ## 0.1.5
 
-### Fixed
-
-- **RecompLauncher**: `recomplauncher.json` follows the schema again (the launcher skipped it) and adds Window and
-  Language; it also comes with the installer. Started by RecompLauncher, sm2port uses only the disc the launcher
-  gives: no other disc in its place and no file dialog, but exit code 2, so the launcher asks for it again. Quitting
-  the launcher reopened by "Back to the launcher" no longer ends with code 2.
-- Started by RecompLauncher, the game's restarts (the in-game menu's restart, "Back to the launcher", moving the old
-  data folder, a lost graphics card) no longer look to the launcher like the game had ended: `sm2.exe` stays as the
-  process it started, starts each new one itself and ends with the game's exit code. In Big Picture mode the lost
-  graphics card's message is not shown (a controller could not close it), only logged.
-- **Every save was "damaged" when loaded** (issue 2): the game reads a save a sector at a time and waits for each read
-  to be pending, as on the Xbox; the port finished it at once and the game stopped after two sectors. Saves made with
-  0.1.4 and earlier were written whole and load again.
-- With "Round HUD in 16:9" the minimap's markers were off the map: the player's arrow away from the centre, the
-  objectives elsewhere. The minimap keeps the game's shape and its markers stay on it.
-- **A dark half-disc beside the health ring** with "Round HUD in 16:9": the ring's dark lower half is drawn first, right
-  after the 3D scene, and was the one piece of the ring left wide. It is narrowed with the rest now.
-- The stencil shadows are faded with the depth of what they fall on, as the game asks: it reads the depth buffer as a
-  picture and looks up a ramp with it, which the port did not do (the shadow was at full strength everywhere).
-- **A harsh, ringing sound**: a call the game makes for every voice, its volume envelope, was read as a filter, which
-  put a strong peak around 8 kHz on every sound and made the limiter turn the whole mix down.
-- **The display went to sleep while playing** with a controller (issue 3): Windows saw no input. sm2port now tells it a
-  game is running.
-- **The mouse cursor stayed on screen** with mouse look (issue 3): it was hidden only after 3 s without moving, and with
-  mouse look the mouse is always moving. It is hidden at once now.
-- **Mouse look turns as far as the mouse goes** (issues 3 and 4): it moves the camera through the right stick, and a
-  fast swipe past the stick's full deflection was cut short, so a half turn took a swipe across the desk. What goes
-  past it is now spent in the next moments (a quarter of a second at most; moving back drops it).
-
 ### New
 
 - **PlayStation buttons**: with a DualSense, DualShock 4 or DualShock 3 connected (or RecompLauncher's PlayStation
@@ -39,7 +10,6 @@
   Black, White) take its PlayStation name. The game's own prompts stay the Xbox's.
 - **Mouse look and its speed in the launcher** (issue 4), in Settings, Game, and in the in-game menu: the speed was only
   in `sm2port.ini`.
-
 - **Saves left in another folder are found**: the game keeps its files in `Documents\sm2port`, or next to `sm2.exe` for a
   portable copy and when RecompLauncher starts it, so after changing the way you install or start it your saves seemed
   lost. Now, before the game starts, it tells you where they are and offers to copy them (also when RecompLauncher
@@ -58,6 +28,35 @@
 - **The minimap is a little smaller** (85%), with the same shape, its "N" and its markers, around its own centre.
 - Choosing a file that is not a disc image (one of sm2port's own files, for example) now says that the game is not
   included and that your own `.iso` or `.cci` is needed, instead of only "not an Xbox disc image".
+
+### Fixed
+
+- **Every save was "damaged" when loaded** (issue 2): the game reads a save a sector at a time and waits for each read
+  to be pending, as on the Xbox; the port finished it at once and the game stopped after two sectors. Saves made with
+  0.1.4 and earlier were written whole and load again.
+- **A harsh, ringing sound**: a call the game makes for every voice, its volume envelope, was read as a filter, which
+  put a strong peak around 8 kHz on every sound and made the limiter turn the whole mix down.
+- **The display went to sleep while playing** with a controller (issue 3): Windows saw no input. sm2port now tells it a
+  game is running.
+- **The mouse cursor stayed on screen** with mouse look (issue 3): it was hidden only after 3 s without moving, and with
+  mouse look the mouse is always moving. It is hidden at once now.
+- **Mouse look turns as far as the mouse goes** (issues 3 and 4): it moves the camera through the right stick, and a
+  fast swipe past the stick's full deflection was cut short, so a half turn took a swipe across the desk. What goes
+  past it is now spent in the next moments (a quarter of a second at most; moving back drops it).
+- With "Round HUD in 16:9" the minimap's markers were off the map: the player's arrow away from the centre, the
+  objectives elsewhere. The minimap keeps the game's shape and its markers stay on it.
+- **A dark half-disc beside the health ring** with "Round HUD in 16:9": the ring's dark lower half is drawn first, right
+  after the 3D scene, and was the one piece of the ring left wide. It is narrowed with the rest now.
+- The stencil shadows are faded with the depth of what they fall on, as the game asks: it reads the depth buffer as a
+  picture and looks up a ramp with it, which the port did not do (the shadow was at full strength everywhere).
+- **RecompLauncher**: `recomplauncher.json` follows the schema again (the launcher skipped it) and adds Window and
+  Language; it also comes with the installer. Started by RecompLauncher, sm2port uses only the disc the launcher
+  gives: no other disc in its place and no file dialog, but exit code 2, so the launcher asks for it again. Quitting
+  the launcher reopened by "Back to the launcher" no longer ends with code 2.
+- Started by RecompLauncher, the game's restarts (the in-game menu's restart, "Back to the launcher", moving the old
+  data folder, a lost graphics card) no longer look to the launcher like the game had ended: `sm2.exe` stays as the
+  process it started, starts each new one itself and ends with the game's exit code. In Big Picture mode the lost
+  graphics card's message is not shown (a controller could not close it), only logged.
 
 ## 0.1.4
 
