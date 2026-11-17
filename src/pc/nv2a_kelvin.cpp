@@ -855,9 +855,11 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
     // fill of the tutorials' box), and the scene is not "under" them for the renderer.
     g_k.draw.screen_left = 1, g_k.draw.screen_right = 0;
     renderer_game_note_screen_space(false);
-    const bool hud_without_depth =
-        !target.zeta_address && renderer_game_hud_up() && renderer_surface_shown(target.color_address);
-    if (target.width >= 640 && count <= 1024 && (renderer_over_shown_scene(target) || hud_without_depth)) {
+    // Also small draws while the HUD is up: the ring's dark lower half is the first draw after the depth clear that ends
+    // the scene, before any draw "over" it, and stayed wide beside the narrowed ring (a dark half-disc).
+    const bool hud_draw = (!target.zeta_address || count <= 8) && renderer_game_hud_up() &&
+                          renderer_surface_shown(target.color_address);
+    if (target.width >= 640 && count <= 1024 && (renderer_over_shown_scene(target) || hud_draw)) {
         Vec4 inputs[kVshAttributes];
         Vec4 outputs[kVshOutputs];
         const auto position = [&](uint32_t i) {
@@ -1093,10 +1095,11 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
         static const bool additive_only = GetEnvironmentVariableA("SM2_DEBUG_ADDITIVE", nullptr, 0) != 0;
         if (additive_only && !(d.blend_enable && d.blend_destination == 1)) return;
         log_line("frame rect %llu: %.0f %.0f %.0f %.0f uv %.3f %.3f %.3f %.3f texmatrix %d texgen %X address %08X "
-                 "filter %08X",
+                 "filter %08X flat %.0f..%.0f x %.0f..%.0f",
                  static_cast<unsigned long long>(g_draws), x0, y0, x1, y1, u0, v0, u1, v1,
                  g_k.texture_matrix_enable[0], g_k.texgen[0][0], g_k.draw.textures[0].address_mode,
-                 g_k.draw.textures[0].filter);
+                 g_k.draw.textures[0].filter, g_k.draw.screen_left, g_k.draw.screen_right, g_k.draw.screen_top,
+                 g_k.draw.screen_bottom);
         if (fixed_function && lighting_on() && g_k.light_enable_mask) {  // the lights on this draw, for missing glows
             char lights[512];
             const Vec4& normal = g_k.attribute[kInNormal];
@@ -1119,13 +1122,15 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
             }
             log_line("%s", lights);
         }
-        log_line("frame draw %llu: %s prim %u n %u surf %08X | tex0 %s %08X fmt %08X | blend %d %X %X | z %d %X w %d | "
+        log_line("frame draw %llu: %s prim %u n %u surf %08X | tex0 %s %08X fmt %08X | tex1 %s %08X fmt %08X rect %08X | "
+                 "blend %d %X %X | z %d %X w %d | "
                  "atest %d %X ref %02X | mask %08X | clip (%.3g %.3g %.3g %.3g) d0 (%.2f %.2f %.2f %.2f) | comb %08X %08X %08X"
                  " | stages %05X ctl %08X | alpha %08X %08X out %08X | stencil %d %X ref %02X rm %02X wm %02X ops %X %X %X"
                  " | cull %d %X front %X eq %X",
                  static_cast<unsigned long long>(g_draws), fixed_function ? "ff" : "vp", g_k.primitive, count,
                  target.color_address, d.textures[0].enabled ? "on" : "off", d.textures[0].descriptor.address,
-                 d.textures[0].descriptor.format, d.blend_enable, d.blend_source, d.blend_destination, d.depth_test,
+                 d.textures[0].descriptor.format, d.textures[1].enabled ? "on" : "off", d.textures[1].descriptor.address,
+                 d.textures[1].descriptor.format, d.textures[1].descriptor.rect, d.blend_enable, d.blend_source, d.blend_destination, d.depth_test,
                  d.depth_function, d.depth_write, g_k.alpha_test, g_k.alpha_function, g_k.alpha_reference,
                  d.color_mask, v.position[0] / v.position[3], v.position[1] / v.position[3],
                  v.position[2] / v.position[3], v.position[3], v.diffuse[0], v.diffuse[1], v.diffuse[2],

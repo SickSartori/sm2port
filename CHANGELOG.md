@@ -13,9 +13,10 @@
   0.1.4 and earlier were written whole and load again.
 - With "Round HUD in 16:9" the minimap's markers were off the map: the player's arrow away from the centre, the
   objectives elsewhere. The minimap is now left as the game draws it.
-- **Shadows at full strength everywhere**: dark blocks on far walls and floors, and a dark half-disc beside the health
-  ring. The game fades the shadows with distance by reading the depth buffer as a
-  picture, which the port did not give it.
+- **A dark half-disc beside the health ring** with "Round HUD in 16:9": the ring's dark lower half is drawn first, right
+  after the 3D scene, and was the one piece of the ring left wide. It is narrowed with the rest now.
+- The stencil shadows are faded with the depth of what they fall on, as the game asks: it reads the depth buffer as a
+  picture and looks up a ramp with it, which the port did not do (the shadow was at full strength everywhere).
 - **A harsh, ringing sound**: a call the game makes for every voice, its volume envelope, was read as a filter, which
   put a strong peak around 8 kHz on every sound and made the limiter turn the whole mix down.
 - **The display went to sleep while playing** with a controller (issue 3): Windows saw no input. sm2port now tells it a
