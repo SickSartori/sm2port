@@ -230,7 +230,8 @@ xemu and other open-source Xbox projects were studied as references only; no cod
 - [Dear ImGui](https://github.com/ocornut/imgui) by Omar Cornut, MIT licence: the launcher's interface.
 - [Barlow](https://github.com/jpt/barlow) by Jeremy Tribby, SIL Open Font License: the launcher's font.
 - The launcher's background music and its background pictures were generated for the project with ElevenLabs Music and
-  Magnific. The program icon and logo are the project's own (`tools/make_icon.py`).
+  Magnific, and are under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The program icon and logo are the
+  project's own (`tools/make_icon.py`).
 
 ## Code signing policy
 

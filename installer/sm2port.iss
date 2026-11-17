@@ -14,7 +14,9 @@
 #endif
 
 [Setup]
-AppId={{8C3E1B2A-5D4F-4E7A-9B61-3F2D7A0C5E91}
+; Up to 0.1.6 sm2port had mc3port's AppId by mistake, so Windows took the two for one program; [Code] moves an old
+; sm2port install over to this one.
+AppId={{AC0BD8E5-7296-45BD-A648-D7D4C23F3700}
 AppName=sm2port
 AppVersion={#AppVersion}
 AppVerName=sm2port {#AppVersion}
@@ -25,7 +27,7 @@ AppUpdatesURL=https://github.com/SickSartori/sm2port/releases
 AppComments=Unofficial native Windows port of Spider-Man 2 (Xbox: Italy, Europe or World). No game files included.
 VersionInfoVersion={#AppVersion}
 VersionInfoDescription=sm2port setup
-DefaultDirName={autopf}\sm2port
+DefaultDirName={code:DefaultInstallDir}
 DefaultGroupName=sm2port
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -72,6 +74,12 @@ Name: "checkupdates"; Description: "{cm:CheckUpdates}"
 Filename: "{app}\setup_choices.ini"; Section: "sm2port"; Key: "check_updates"; String: "1"; Tasks: checkupdates; Flags: uninsdeletesection
 Filename: "{app}\setup_choices.ini"; Section: "sm2port"; Key: "check_updates"; String: "0"; Tasks: not checkupdates; Flags: uninsdeletesection
 
+[UninstallDelete]
+; uninsdeletesection leaves the file, empty, and so the folder.
+Type: files; Name: "{app}\setup_choices.ini"
+; A folder installed by 0.1.6 or earlier is not this AppId's, so it would stay behind, empty.
+Type: dirifempty; Name: "{app}"
+
 [Files]
 Source: "{#SourceDir}\sm2.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\sm2runtime.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -109,8 +117,42 @@ end;
 procedure SHChangeNotify(wEventId: Integer; uFlags: Cardinal; dwItem1, dwItem2: Cardinal);
   external 'SHChangeNotify@shell32.dll stdcall';
 
-procedure CurStepChanged(CurStep: TSetupStep);
+// The uninstall entry of 0.1.6 and earlier, under the AppId shared with mc3port: sm2port's only when its name says so
+// (otherwise it is mc3port's, and stays).
+const
+  OldUninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8C3E1B2A-5D4F-4E7A-9B61-3F2D7A0C5E91}_is1';
+
+function OldInstallDir: String;
+var
+  Name: String;
 begin
+  Result := '';
+  if RegQueryStringValue(HKCU, OldUninstallKey, 'DisplayName', Name) and (Pos('sm2port', Name) = 1) then
+    RegQueryStringValue(HKCU, OldUninstallKey, 'InstallLocation', Result);
+  Result := RemoveBackslashUnlessRoot(Result);
+end;
+
+// An update of an old install goes to its folder, not a second one.
+function DefaultInstallDir(Param: String): String;
+begin
+  Result := OldInstallDir;
+  if Result = '' then
+    Result := ExpandConstant('{autopf}\sm2port');
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  OldDir: String;
+begin
+  if CurStep = ssInstall then begin
+    // The old entry and its uninstaller go when installing over them: this install's own replace them.
+    OldDir := OldInstallDir;
+    if (OldDir <> '') and (CompareText(OldDir, RemoveBackslashUnlessRoot(ExpandConstant('{app}'))) = 0) then begin
+      RegDeleteKeyIncludingSubkeys(HKCU, OldUninstallKey);
+      DeleteFile(AddBackslash(OldDir) + 'unins000.exe');
+      DeleteFile(AddBackslash(OldDir) + 'unins000.dat');
+    end;
+  end;
   if CurStep = ssPostInstall then
     SHChangeNotify($08000000, 0, 0, 0);  { SHCNE_ASSOCCHANGED, SHCNF_IDLIST }
 end;
