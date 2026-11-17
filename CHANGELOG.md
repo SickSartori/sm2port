@@ -8,12 +8,14 @@
   Language; it also comes with the installer. Started by RecompLauncher, sm2port uses only the disc the launcher
   gives: no other disc in its place and no file dialog, but exit code 2, so the launcher asks for it again. Quitting
   the launcher reopened by "Back to the launcher" no longer ends with code 2.
-
 - **Every save was "damaged" when loaded** (issue 2): the game reads a save a sector at a time and waits for each read
   to be pending, as on the Xbox; the port finished it at once and the game stopped after two sectors. Saves made with
   0.1.4 and earlier were written whole and load again.
 - With "Round HUD in 16:9" the minimap's markers were off the map: the player's arrow away from the centre, the
   objectives elsewhere. The minimap is now left as the game draws it.
+- **Shadows at full strength everywhere**: dark blocks on far walls and floors, and a dark half-disc beside the health
+  ring. The game fades the shadows with distance by reading the depth buffer as a
+  picture, which the port did not give it.
 - **A harsh, ringing sound**: a call the game makes for every voice, its volume envelope, was read as a filter, which
   put a strong peak around 8 kHz on every sound and made the limiter turn the whole mix down.
 - **The display went to sleep while playing** with a controller (issue 3): Windows saw no input. sm2port now tells it a
