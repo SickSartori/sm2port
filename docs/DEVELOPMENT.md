@@ -125,7 +125,7 @@ Variabili d'ambiente:
 | `SM2_DUMP_FRAMES=<n>` | salva un frame presentato ogni `n` come `frame-NNNNN.bmp` nella cartella di lavoro |
 | `SM2_DEBUG_DRAWS=<n>` | descrive nel log i primi `n` draw (vertici, combiner, texture, stati); con `SM2_DEBUG_DRAWS_FF=1` solo quelli fixed-function |
 | `SM2_DUMP_TARGET=<indirizzo hex>` | con ogni frame salvato, anche la render target a quell'indirizzo fisico (`target-NNNNN.bmp`) |
-| `SM2_DEBUG_FRAME_AT=<s>[+<durata>]` | una riga per draw (e per clear) durante 1 s, o `durata` secondi, a partire da `s` secondi dopo il primo draw (rettangolo a schermo, coordinate di texture, stati) |
+| `SM2_DEBUG_FRAME_AT=<s>[+<durata>]` | una riga per draw (e per clear) durante 1 s, o `durata` secondi, a partire da `s` secondi dopo il primo draw (rettangolo a schermo, coordinate di texture, stati); il tasto F9 nel gioco apre la stessa finestra per 1 s da quel momento |
 | `SM2_DEBUG_PROBE=<x>,<y>` | con il precedente, registra il pixel (x, y) ogni volta che un draw lo cambia |
 | `SM2_DEBUG_HUD=<n>` | a ogni F7, i successivi `n` draw piatti nel log con la decisione del renderer (HUD stretto, nascosto, bande nere) |
 | `SM2_DEBUG_FULLSCREEN=1` | con `SM2_DEBUG_FRAME_AT`, solo i draw che coprono quasi tutta la superficie (gli effetti a schermo intero), così la finestra può durare a lungo |
@@ -140,7 +140,7 @@ Variabili d'ambiente:
 | `SM2_TRACE_WAITS=1` | registra le attese del kernel che durano più di 5 s, con gli ultimi eventi segnalati |
 | `SM2_AUDIO_DUMP=<s>` | i primi `s` secondi dell'audio in uscita in `audio.wav` (cartella di lavoro) |
 | `SM2_AUDIO_VOICES=1` | ogni 10 s, l'elenco delle voci audio attive con formato, volume, tono, regioni, età e uscite |
-| `SM2_SKIP=<texture>:<superficie>:<fusione>` / `SM2_DUMP_DRAW=...` | salta, o salva prima e dopo, i draw corrispondenti (per isolare un difetto grafico) |
+| `SM2_SKIP=<texture>:<superficie>:<fusione>` / `SM2_DUMP_DRAW=...` | salta, o salva prima e dopo, i draw corrispondenti (per isolare un difetto grafico); `SM2_DUMP_DRAW` agisce solo nella finestra di `SM2_DEBUG_FRAME_AT` o di F9 (il primo draw corrispondente) e fuori lascia i vertici alla GPU |
 | `SM2_WATCHDOG=<s>` | ogni `s` secondi, dove si trovano i thread del gioco (cambia la temporizzazione) |
 
 ## Prove automatiche

@@ -114,6 +114,7 @@ uint64_t g_draws = 0;
 int g_debug_draws = -1;  // SM2_DEBUG_DRAWS=<n>: describe the first n draws in the log
 bool g_debug_window_open = false;  // inside the SM2_DEBUG_FRAME_AT window (as of the previous draw)
 ULONGLONG g_window_start = 0, g_window_end = 0;
+std::atomic<bool> g_window_requested{false};  // F9
 bool g_draw_dumped = false;  // SM2_DUMP_DRAW done
 int g_probe_x = -1, g_probe_y = -1;
 uint32_t g_last_probe[2] = {0xFFFFFFFF, 0xFFFFFFFF};
@@ -626,6 +627,12 @@ void update_debug_window() {
         const char* plus = std::strchr(value, '+');
         g_window_end = g_window_start + static_cast<ULONGLONG>((plus ? std::atof(plus + 1) : 1.0) * 1000);
     }
+    if (g_window_requested.exchange(false)) {
+        g_window_start = now;
+        g_window_end = now + 1000;
+        g_draw_dumped = false;  // SM2_DUMP_DRAW: the first matching draw of this window
+        log_line("debug: F9, one second of draws");
+    }
     g_debug_window_open = now >= g_window_start && now < g_window_end;
 }
 
@@ -652,13 +659,13 @@ void debug_vertex_work(int kind, uint64_t elapsed, uint32_t count) {
 }
 
 // Setting gpu_vertices: the fixed-function transform in a vertex shader instead of on the CPU. The debugging
-// switches that look at or filter the transformed vertices (SM2_DEBUG_DRAWS, SM2_SKIP, SM2_DUMP_DRAW) keep the CPU.
+// switches that look at or filter the transformed vertices (SM2_DEBUG_DRAWS, SM2_SKIP) keep the CPU.
 bool gpu_fixed_function() {
     static const bool enabled = [] {
         char value[64];
+        // SM2_DUMP_DRAW acts inside the SM2_DEBUG_FRAME_AT window only, where the CPU does the vertices anyway.
         const bool debugging = GetEnvironmentVariableA("SM2_DEBUG_DRAWS", value, sizeof(value)) ||
-                               GetEnvironmentVariableA("SM2_SKIP", value, sizeof(value)) ||
-                               GetEnvironmentVariableA("SM2_DUMP_DRAW", value, sizeof(value));
+                               GetEnvironmentVariableA("SM2_SKIP", value, sizeof(value));
         const bool on = setting("gpu_vertices") != 0 && !debugging && renderer_has_fixed_function();
         log_line("vertices: fixed-function transform on the %s", on ? "GPU" : "CPU");
         return on;
@@ -1198,6 +1205,8 @@ uint32_t kelvin_drawn_width(uint32_t address) {
     const auto found = g_drawn_widths.find(address & 0x0FFFFFFF);
     return found != g_drawn_widths.end() ? found->second : 0;
 }
+
+void kelvin_request_debug_window() { g_window_requested = true; }
 
 uint32_t kelvin_drawn_height(uint32_t address) {
     const auto found = g_drawn_heights.find(address & 0x0FFFFFFF);

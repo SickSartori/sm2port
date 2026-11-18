@@ -834,6 +834,10 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPAR
         if (!(lparam & (1 << 30))) renderer_game_toggle_hud();
         return 0;
     }
+    if (message == WM_KEYDOWN && wparam == VK_F9) {  // a second of draw lines in the log (SM2_DEBUG_FRAME_AT's)
+        if (!(lparam & (1 << 30))) kelvin_request_debug_window();
+        return 0;
+    }
     return DefWindowProcW(window, message, wparam, lparam);
 }
 
