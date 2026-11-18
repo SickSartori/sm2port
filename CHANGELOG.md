@@ -9,6 +9,10 @@
 
 ### Improved
 
+- **Fewer pauses the first time you reach a place**: the shaders a scene needs the first time are made on two helper
+  threads instead of in the middle of a frame; a frame waits for them at most 8 ms, and what is still missing is
+  drawn a frame or two later (as in mc3port, whose city entry ran at about 42 fps instead of 32 in tests).
+
 - **Shadows fade out smoothly in the distance**: the game takes them from full to none within a short span of
   distance, which showed as a light arc around the camera on walls and pavements (and in 24 visible steps). The fade
   now spreads over about three times the distance, with no edge. This is a change from the original game.
