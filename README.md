@@ -166,12 +166,13 @@ without moving). Settings
 ## Settings
 
 Everything is in the launcher's **Settings** page, in the in-game menu (F1) and in `sm2port.ini` (each key is explained
-there). Language, frame rate, aspect ratio, resolution and filtering apply the next time the game starts.
+there). Language, frame rate, VSync, aspect ratio, resolution and filtering apply the next time the game starts.
 
 | Setting | What it does |
 |---|---|
 | Game language | the game's own languages for your release, by default like Windows |
 | Frames per second | 30 like the Xbox, or 60 |
+| VSync | off by default: frames are shown at once, and the picture can tear (a horizontal line where two frames meet) in fast camera moves. On: it never tears, but a PC that cannot keep up may skip frames |
 | Aspect ratio | 16:9 (the game's widescreen mode) or 4:3 |
 | Time of day | the game's own clock, or always dawn, day, sunset or night |
 | Round HUD in 16:9 | the health ring keeps its shape in 16:9 instead of stretching |

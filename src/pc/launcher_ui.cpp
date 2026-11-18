@@ -106,6 +106,7 @@ struct Texts {
     const char *saves_title, *saves_lead, *saves_backup_note, *saves_there, *saves_here, *saves_use, *saves_keep, *saves_failed;
     const char *support, *support_sub;
     const char *mouse_look, *mouse_look_sub, *mouse_speed, *mouse_speed_sub;
+    const char *vsync, *vsync_sub;
 };
 
 const Texts kEnglish = {
@@ -173,6 +174,7 @@ const Texts kEnglish = {
     "Copy my saves", "Go on without them", "They could not be copied: close what uses them and try again.",
     "Support the project", "Free, and always will be. A thank-you keeps it going.",
     "Mouse look", "The mouse moves the camera", "Mouse speed", "How fast the camera turns with the mouse",
+    "VSync", "On: the picture never tears, but a slow PC may skip frames",
 };
 
 const Texts kItalian = {
@@ -245,6 +247,7 @@ const Texts kItalian = {
     "Sostieni il progetto", "Gratis, e lo rester\xC3\xA0. Un grazie lo fa andare avanti.",
     "Visuale col mouse", "Il mouse muove la telecamera", "Velocit\xC3\xA0 del mouse",
     "Quanto in fretta gira la telecamera col mouse",
+    "VSync", "Acceso: l'immagine non si taglia mai, ma su un PC lento pu\xC3\xB2 saltare dei fotogrammi",
 };
 
 // Portuguese (Brazil). The game itself has no Portuguese: its own menus stay in English.
@@ -314,6 +317,7 @@ const Texts kPortuguese = {
     "Apoie o projeto", "Gratuito, e sempre será. Um obrigado o mantém vivo.",
     "C\xC3\xA2mera com o mouse", "O mouse move a c\xC3\xA2mera", "Velocidade do mouse",
     "Qu\xC3\xA3o r\xC3\xA1pido a c\xC3\xA2mera gira com o mouse",
+    "VSync", "Ligado: a imagem nunca se corta, mas um PC lento pode pular quadros",
 };
 
 const Texts kSpanish = {
@@ -382,6 +386,7 @@ const Texts kSpanish = {
     "Apoya el proyecto", "Gratis, y siempre lo será. Un gracias lo mantiene vivo.",
     "C\xC3\xA1mara con el rat\xC3\xB3n", "El rat\xC3\xB3n mueve la c\xC3\xA1mara", "Velocidad del rat\xC3\xB3n",
     "Lo r\xC3\xA1pido que gira la c\xC3\xA1mara con el rat\xC3\xB3n",
+    "VSync", "Activado: la imagen nunca se corta, pero un PC lento puede saltarse fotogramas",
 };
 
 // The launcher's language: Windows', or SM2_LAUNCHER_LANGUAGE=en|it|pt|es for test screenshots.
@@ -1551,7 +1556,7 @@ std::string row_label(const char* button, const char* label) {
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
-         {"game_language", "frame_rate", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
+         {"game_language", "frame_rate", "vsync", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
         if (setting(key) != setting_at_start(key)) return true;
     }
     return false;
@@ -1813,6 +1818,10 @@ void Launcher::page_settings() {
         const char* rates[] = {"30", "60"};
         int rate = setting("frame_rate") >= 60 ? 1 : 0;
         if (segmented("##fps", rates, 2, &rate)) set_setting("frame_rate", rate ? 60.0f : 30.0f);
+        const char* toggle[] = {t.off, t.on};
+        row(t.vsync, t.vsync_sub, true);
+        int vsync = setting("vsync") != 0 ? 1 : 0;
+        if (segmented("##vsync", toggle, 2, &vsync)) set_setting("vsync", static_cast<float>(vsync));
         row(t.time_of_day, t.time_of_day_sub, false, 450);
         static const float kHours[] = {-1, 6.5f, 12, 18, 22.5f};
         const char* times[] = {t.time_game, t.dawn, t.day, t.sunset, t.night};
@@ -1830,7 +1839,6 @@ void Launcher::page_settings() {
             if (slider("##launcher_music", &music, 0, 100, "%.0f")) set_setting("launcher_music", std::round(music));
         }
         row(t.background_pause, t.background_pause_sub);
-        const char* toggle[] = {t.off, t.on};
         int pause = setting("pause_in_background") != 0 ? 1 : 0;
         if (segmented("##background_pause", toggle, 2, &pause)) set_setting("pause_in_background", static_cast<float>(pause));
         // Mouse look and its speed (issue 4: the speed was only in sm2port.ini).
@@ -1945,7 +1953,7 @@ void Launcher::page_settings() {
     cursor_ += px(8);
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
-        for (const char* key : {"game_language", "frame_rate", "time_of_day", "volume", "launcher_music", "pause_in_background",
+        for (const char* key : {"game_language", "frame_rate", "vsync", "time_of_day", "volume", "launcher_music", "pause_in_background",
                                 "mouse_look", "mouse_sensitivity",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
                                 "anisotropy", "gpu_vertices", "sharp_2d", "hud_aspect", "field_of_view",

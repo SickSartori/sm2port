@@ -28,6 +28,7 @@ const Setting kSettings[] = {
     {"mouse_sensitivity", 1, "Mouse look speed: 1 is the default, 2 twice as fast, 0.5 half as fast."},
     {"widescreen", 1, "16:9 widescreen: 1 = the game's own widescreen mode (wider view, no black bars), 0 = 4:3 like a classic TV."},
     {"frame_rate", 30, "Frames per second: 30 like the Xbox, or 60 (the game's own 59.94 fps mode)."},
+    {"vsync", 0, "Wait for the screen before showing a frame: 1 = the picture never tears (a slow PC may skip frames), 0 = shown at once."},
     {"time_of_day", -1, "Time of day: -1 = the game's own clock, or a fixed hour from 0 to 23.99 (6.5 dawn, 12 day, 18 sunset, 22.5 night)."},
     {"hud_aspect", 1, "In 16:9, the health ring and the rest of the HUD in the top corners keep their shape: 1 = yes, 0 = stretched like the Xbox."},
     {"field_of_view", 100, "Field of view, in percent of the game's own (which the camera changes as it goes): 100 = like the Xbox, more = wider."},

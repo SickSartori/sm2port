@@ -2,6 +2,11 @@
 
 ## 0.1.7
 
+### New
+
+- **VSync** (Settings, Game, off by default), as in mc3port: frames are shown at once, and the picture can tear in fast
+  camera moves. With VSync on it never tears, but a PC that cannot keep up may skip frames. It applies at the next start.
+
 ### Improved
 
 - **Shadows fade out smoothly in the distance**: the game takes them from full to none within a short span of
