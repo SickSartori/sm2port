@@ -9,6 +9,9 @@
 
 ### Fixed
 
+- **Pieces of the city behind the minimap moved**: a door, a sign or a piece of wall at the foot of a building that came
+  out behind the minimap was shrunk towards the map's centre with it, so it seemed to slide out of place. Only the
+  minimap's own pieces, drawn over the scene, are scaled now.
 - **Decals on surfaces seen at an angle** (marks laid on walls and pavements) get the whole depth offset the game asks
   for: above 480 lines it was too weak, by up to 2.25 times at 1080. The offset is also switched on and off by the
   game's own setting, not by the line width.

@@ -894,8 +894,10 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
         if (flat) {
             g_k.draw.screen_left = left, g_k.draw.screen_right = right;
             g_k.draw.screen_top = top, g_k.draw.screen_bottom = bottom;
-        } else if (count <= 8 && hud_draw) {
-            // The minimap's tilted disc and its "N": projected, they are where the HUD is.
+        } else if (count <= 8 && hud_draw && !uses_depth) {
+            // The minimap's tilted disc and its "N": projected, they are where the HUD is. Drawn over the scene (depth
+            // test ALWAYS, no depth write): a small piece of the city behind the minimap (a door, a sign at the foot
+            // of a building) compares depth, and was shrunk towards the map's centre with it.
             for (uint32_t i = 1; i < count; ++i) {  // positions are already in pixels (see to_render_vertex)
                 const Vec4 p = position(i);
                 left = std::min(left, p[0]), right = std::max(right, p[0]);
