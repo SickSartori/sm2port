@@ -4,6 +4,10 @@
 
 ### Improved
 
+- **Shadows fade out smoothly in the distance**: the game takes them from full to none within a short span of
+  distance, which showed as a light arc around the camera on walls and pavements (and in 24 visible steps). The fade
+  now spreads over about three times the distance, with no edge. This is a change from the original game.
+
 - **A little lighter on the PC**: the work that turns each frame's Xbox drawing commands into Direct3D takes about 5%
   less time (more in Midnight Club 3, whose port shares this code).
 
