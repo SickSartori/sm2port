@@ -14,7 +14,7 @@
 - **Sharp textures** (in the settings, next to Sharp HUD pictures, off by default), as in mc3port: the textures of streets, buildings and people
   enlarged two times with their edges kept, as Sharp HUD pictures does for the HUD. It shows from close; from afar the
   picture is the game's own. The textures sharpen a few seconds after a place loads, and take more graphics memory.
-- **VSync** (Settings, Game, off by default), as in mc3port: frames are shown at once, and the picture can tear in fast
+- **VSync** (Settings, Display, off by default), as in mc3port: frames are shown at once, and the picture can tear in fast
   camera moves. With VSync on it never tears, but a PC that cannot keep up may skip frames. It applies at the next start.
 
 ### Improved
@@ -27,6 +27,10 @@
   longer shows Enter twice on the keyboard. With the keys or a controller the selected row is lit, as in mc3port: on a
   choice already made (VSync on, say) nothing showed where the selection was. The internal resolution is a drop-down
   list, like the game language, instead of six narrow buttons.
+- **Settings in five shorter tabs**: Game held nine rows. Game keeps the language, the time of day and the pause in the
+  background; Display has the aspect ratio, field of view, window, frames per second, VSync and the frame counter;
+  Graphics opens with the quality and the internal resolution; a new Audio tab has the two volumes. Mouse look and the
+  mouse's speed are in Controls, in a Mouse tab of their own.
 - **The launcher's webs** stretch towards the mouse pointer, and the spider lowers itself on its thread to the menu's
   selected item instead of going up and down by itself.
 

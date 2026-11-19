@@ -73,7 +73,7 @@ struct Texts {
     const char *play, *settings, *controls, *about, *quit;
     const char *ready, *ready_lead, *disc_ok, *disc_none, *disc_none_sub, *change, *choose_iso;
     const char *pad_on, *pad_on_sub, *pad_off, *pad_off_sub, *edit;
-    const char *tab_game, *tab_display, *tab_graphics, *tab_effects;
+    const char *tab_game, *tab_display, *tab_graphics, *tab_effects, *tab_audio, *tab_mouse;
     const char *game_language, *game_language_sub, *like_windows, *fps, *fps_sub, *volume, *music_volume, *music_volume_sub;
     const char *aspect, *aspect_sub, *window_mode, *window_mode_sub, *windowed, *fullscreen;
     const char *quality, *quality_sub, *original, *balanced, *high, *custom, *scale, *scale_sub;
@@ -114,7 +114,7 @@ const Texts kEnglish = {
     "READY TO SWING", "New York is waiting.", "Disc verified",
     "No disc chosen", "Choose the disc image (ISO) of your Xbox copy (Italy, Europe or World).", "Change", "Choose the ISO",
     "Controller connected", "Xbox, PlayStation and other pads", "No controller", "The keyboard works too", "Edit",
-    "Game", "Display", "Graphics", "Effects",
+    "Game", "Display", "Graphics", "Effects", "Audio", "Mouse",
     "Game language", "The game's text and speech", "Like Windows", "Frames per second", "60 is smoother; 30 like the Xbox; 120 for a fast processor",
     "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
     "Aspect ratio", "16:9 is the game's own widescreen mode; 21:9 fills a wider screen", "Window mode", "Alt+Enter or F11 while playing",
@@ -183,7 +183,7 @@ const Texts kItalian = {
     "PRONTO ALL'AZIONE", "New York ti aspetta.", "Disco verificato",
     "Nessun disco scelto", "Scegli l'immagine del disco (ISO) della tua copia Xbox (Italia, Europa o World).", "Cambia", "Scegli l'ISO",
     "Controller collegato", "Controller Xbox, PlayStation e altri", "Nessun controller", "Anche la tastiera funziona", "Modifica",
-    "Gioco", "Schermo", "Grafica", "Effetti",
+    "Gioco", "Schermo", "Grafica", "Effetti", "Audio", "Mouse",
     "Lingua del gioco", "Testi e voci del gioco", "Come Windows", "Fotogrammi al secondo",
     "60 \xC3\xA8 pi\xC3\xB9 fluido; 30 come l'Xbox; 120 per un processore veloce", "Volume del gioco", "Musica del launcher",
     "La musica di sottofondo di questa schermata; 0 la spegne",
@@ -258,7 +258,7 @@ const Texts kPortuguese = {
     "PRONTO PARA BALANÇAR", "Nova York está esperando.", "Disco verificado",
     "Nenhum disco escolhido", "Escolha a imagem do disco (ISO) da sua cópia de Xbox (Itália, Europa ou World).", "Trocar", "Escolher a ISO",
     "Controle conectado", "Xbox, PlayStation e outros controles", "Nenhum controle", "O teclado também funciona", "Editar",
-    "Jogo", "Tela", "Gráficos", "Efeitos",
+    "Jogo", "Tela", "Gráficos", "Efeitos", "Áudio", "Mouse",
     "Idioma do jogo", "Textos e vozes do jogo (não há português)", "Como o Windows", "Quadros por segundo", "60 é mais fluido; 30 como no Xbox; 120 para um processador rápido",
     "Volume do jogo", "Música do launcher", "A música de fundo desta tela; 0 desliga",
     "Proporção", "16:9 é o modo widescreen do próprio jogo; 21:9 preenche uma tela mais larga", "Modo de janela", "Alt+Enter ou F11 durante o jogo",
@@ -328,7 +328,7 @@ const Texts kSpanish = {
     "LISTO PARA BALANCEARTE", "Nueva York te espera.", "Disco verificado",
     "Ningún disco elegido", "Elige la imagen del disco (ISO) de tu copia de Xbox (Italia, Europa o World).", "Cambiar", "Elegir la ISO",
     "Mando conectado", "Mandos de Xbox, PlayStation y otros", "Ningún mando", "El teclado también funciona", "Editar",
-    "Juego", "Pantalla", "Gráficos", "Efectos",
+    "Juego", "Pantalla", "Gráficos", "Efectos", "Audio", "Ratón",
     "Idioma del juego", "Textos y voces del juego", "Como Windows", "Fotogramas por segundo", "60 es más fluido; 30 como en Xbox; 120 para un procesador rápido",
     "Volumen del juego", "Música del launcher", "La música de fondo de esta pantalla; 0 la apaga",
     "Relación de aspecto", "16:9 es el modo panorámico del propio juego; 21:9 llena una pantalla más ancha", "Modo de ventana", "Alt+Intro o F11 mientras juegas",
@@ -930,7 +930,7 @@ private:
     bool questions_only_ = false;  // opened for that page alone: the game starts after the answer
     int wizard_step_ = 0;
     int rebinding_ = -1;
-    int controls_tab_ = 0;  // the Controls page's tab: 0 the keyboard keys, 1 the controller, 2 the PC keys
+    int controls_tab_ = 0;  // the Controls page's tab: 0 the keyboard keys, 1 the mouse, 2 the controller, 3 the PC keys
     int pad_rebinding_ = -1;  // the game button waiting for a button of the controller
     float pad_rebinding_since_ = 0;
     uint32_t pad_buttons_before_ = 0;  // PadButton bits down at the last poll
@@ -1875,18 +1875,19 @@ void Launcher::page_settings() {
     const float now = static_cast<float>(ImGui::GetTime());
     const int tab_before = settings_tab_;
     title(t.settings);
-    const char* tab_labels[] = {t.tab_game, t.tab_display, t.tab_graphics, t.tab_effects};
+    // Five short tabs: the Game tab held nine rows. The mouse's two are on the Controls page.
+    const char* tab_labels[] = {t.tab_game, t.tab_display, t.tab_graphics, t.tab_effects, t.tab_audio};
     // LB and RB (L1 and R1), Q and E: the previous and next tab.
     if (rebinding_ < 0 && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId)) {
-        const int step = key_pressed({ImGuiKey_GamepadL1, ImGuiKey_Q, ImGuiKey_PageUp})     ? 3
+        const int step = key_pressed({ImGuiKey_GamepadL1, ImGuiKey_Q, ImGuiKey_PageUp})     ? 4
                          : key_pressed({ImGuiKey_GamepadR1, ImGuiKey_E, ImGuiKey_PageDown}) ? 1
                                                                                             : 0;
         if (step) {
-            settings_tab_ = (settings_tab_ + step) % 4;
+            settings_tab_ = (settings_tab_ + step) % 5;
             if (!menu_has_focus_) focus_panel_ = true;
         }
     }
-    tabs(tab_labels, 4, &settings_tab_);
+    tabs(tab_labels, 5, &settings_tab_);
     if (settings_tab_ != tab_before) tab_since_ = now;
     // The tab's content comes in like a page: fading, from a little to the right.
     const float tab_enter = ease_out((now - tab_since_) / 0.3f);
@@ -1904,15 +1905,6 @@ void Launcher::page_settings() {
             if (static_cast<int>(setting("game_language")) == kLanguages[i]) index = i;
         }
         if (combo("##language", names, 6, &index)) set_setting("game_language", static_cast<float>(kLanguages[index]));
-        row(t.fps, t.fps_sub, true);
-        const char* rates[] = {"30", "60", "120"};
-        static const float kRates[] = {30, 60, 120};
-        int rate = setting("frame_rate") >= 120 ? 2 : setting("frame_rate") >= 60 ? 1 : 0;
-        if (segmented("##fps", rates, 3, &rate)) set_setting("frame_rate", kRates[rate]);
-        const char* toggle[] = {t.off, t.on};
-        row(t.vsync, t.vsync_sub, true);
-        int vsync = setting("vsync") != 0 ? 1 : 0;
-        if (segmented("##vsync", toggle, 2, &vsync)) set_setting("vsync", static_cast<float>(vsync));
         row(t.time_of_day, t.time_of_day_sub, false, 450);
         static const float kHours[] = {-1, 6.5f, 12, 18, 22.5f};
         const char* times[] = {t.time_game, t.dawn, t.day, t.sunset, t.night};
@@ -1921,29 +1913,18 @@ void Launcher::page_settings() {
             if (setting("time_of_day") == kHours[i]) time = i;
         }
         if (segmented("##time_of_day", times, 5, &time, nullptr, 450)) set_setting("time_of_day", kHours[time]);
-        row(t.volume, nullptr);
-        float volume = setting("volume");
-        if (slider("##volume", &volume, 0, 100, "%.0f")) set_setting("volume", std::round(volume));
-        if (!in_game_) {  // no launcher music in the game
-            row(t.music_volume, t.music_volume_sub);
-            float music = setting("launcher_music");
-            if (slider("##launcher_music", &music, 0, 100, "%.0f")) set_setting("launcher_music", std::round(music));
-        }
         row(t.background_pause, t.background_pause_sub);
+        const char* toggle[] = {t.off, t.on};
         int pause = setting("pause_in_background") != 0 ? 1 : 0;
         if (segmented("##background_pause", toggle, 2, &pause)) set_setting("pause_in_background", static_cast<float>(pause));
-        // Mouse look and its speed (issue 4: the speed was only in sm2port.ini).
-        row(t.mouse_look, t.mouse_look_sub);
-        int look = setting("mouse_look") != 0 ? 1 : 0;
-        if (segmented("##mouse_look", toggle, 2, &look)) set_setting("mouse_look", static_cast<float>(look));
-        row(t.mouse_speed, t.mouse_speed_sub);
-        float speed = setting("mouse_sensitivity");
-        if (slider("##mouse_sensitivity", &speed, 0.25f, 3, "%.2fx")) set_setting("mouse_sensitivity", std::round(speed * 20) / 20);
     } else if (settings_tab_ == 1) {
         row(t.aspect, t.aspect_sub, true);
         const char* aspects[] = {"4:3", "16:9", "21:9"};
         int aspect = std::clamp(static_cast<int>(setting("widescreen")), 0, 2);
         if (segmented("##aspect", aspects, 3, &aspect)) set_setting("widescreen", static_cast<float>(aspect));
+        row(t.field_of_view, t.field_of_view_sub);
+        float view = setting("field_of_view");
+        if (slider("##field_of_view", &view, 75, 130, "%.0f%%")) set_setting("field_of_view", std::round(view));
         row(t.window_mode, t.window_mode_sub);
         const char* modes[] = {t.windowed, t.fullscreen};
         int mode = setting("fullscreen") != 0 ? 1 : 0;
@@ -1951,6 +1932,19 @@ void Launcher::page_settings() {
             set_setting("fullscreen", static_cast<float>(mode));
             nv2a_set_full_screen(mode != 0);
         }
+        const char* toggle[] = {t.off, t.on};
+        row(t.fps, t.fps_sub, true);
+        const char* rates[] = {"30", "60", "120"};
+        static const float kRates[] = {30, 60, 120};
+        int rate = setting("frame_rate") >= 120 ? 2 : setting("frame_rate") >= 60 ? 1 : 0;
+        if (segmented("##fps", rates, 3, &rate)) set_setting("frame_rate", kRates[rate]);
+        row(t.vsync, t.vsync_sub, true);
+        int vsync = setting("vsync") != 0 ? 1 : 0;
+        if (segmented("##vsync", toggle, 2, &vsync)) set_setting("vsync", static_cast<float>(vsync));
+        row(t.fps_counter, t.fps_counter_sub);
+        int counter = setting("fps_counter") != 0 ? 1 : 0;
+        if (segmented("##fps_counter", toggle, 2, &counter)) set_setting("fps_counter", static_cast<float>(counter));
+    } else if (settings_tab_ == 2) {
         row(t.quality, t.quality_sub, true);
         const char* qualities[] = {t.original, t.balanced, t.high};
         int preset = quality_preset();
@@ -1972,11 +1966,6 @@ void Launcher::page_settings() {
         if (combo("##scale", names, kResolutionCount, &resolution)) {
             set_setting("render_scale", kResolutions[resolution].scale);
         }
-        row(t.fps_counter, t.fps_counter_sub);
-        const char* toggle[] = {t.off, t.on};
-        int counter = setting("fps_counter") != 0 ? 1 : 0;
-        if (segmented("##fps_counter", toggle, 2, &counter)) set_setting("fps_counter", static_cast<float>(counter));
-    } else if (settings_tab_ == 2) {
         row(t.anisotropy, nullptr, true);
         const char* levels[] = {"1x", "4x", "8x", "16x"};
         static const float kLevels[] = {1, 4, 8, 16};
@@ -1998,13 +1987,10 @@ void Launcher::page_settings() {
         row(t.hud_aspect, t.hud_aspect_sub);
         int round_hud = setting("hud_aspect") != 0 ? 1 : 0;
         if (segmented("##hud_aspect", toggle, 2, &round_hud)) set_setting("hud_aspect", static_cast<float>(round_hud));
-        row(t.field_of_view, t.field_of_view_sub);
-        float view = setting("field_of_view");
-        if (slider("##field_of_view", &view, 75, 130, "%.0f%%")) set_setting("field_of_view", std::round(view));
         row(t.letterbox, t.letterbox_sub);
         int bars = setting("letterbox") != 0 ? 1 : 0;
         if (segmented("##letterbox", toggle, 2, &bars)) set_setting("letterbox", static_cast<float>(bars));
-    } else {
+    } else if (settings_tab_ == 3) {
         // Two ready-made looks and a custom one. Original: the Xbox's picture. Enhanced: the modern effects. Custom
         // (setting effects_advanced): every value by itself, in two columns so that the page stays on screen.
         row(t.effects_style, t.effects_style_sub, false, 330);
@@ -2045,6 +2031,15 @@ void Launcher::page_settings() {
             }
         }
         if (shown) cursor_ += px(58);
+    } else {
+        row(t.volume, nullptr);
+        float volume = setting("volume");
+        if (slider("##volume", &volume, 0, 100, "%.0f")) set_setting("volume", std::round(volume));
+        if (!in_game_) {  // no launcher music in the game
+            row(t.music_volume, t.music_volume_sub);
+            float music = setting("launcher_music");
+            if (slider("##launcher_music", &music, 0, 100, "%.0f")) set_setting("launcher_music", std::round(music));
+        }
     }
     cursor_ += px(8);
     ImVec2 defaults_size;
@@ -2091,9 +2086,9 @@ void Launcher::page_controls() {
     }
     const float row_height = px(31), column = panel_width_ / 2 + px(10);
     // Tabs: the page is taller than the window with all the lists.
-    const char* tab_labels[] = {t.keyboard_keys, t.pad_tab, t.pc_keys};
+    const char* tab_labels[] = {t.keyboard_keys, t.tab_mouse, t.pad_tab, t.pc_keys};
     const int tab_before = controls_tab_;
-    tabs(tab_labels, 3, &controls_tab_);
+    tabs(tab_labels, 4, &controls_tab_);
     if (controls_tab_ != tab_before) {
         rebinding_ = pad_rebinding_ = -1;
         g_capturing = false;
@@ -2101,6 +2096,15 @@ void Launcher::page_controls() {
     if (controls_tab_ == 0) {
         page_keyboard_keys(row_height, column);
     } else if (controls_tab_ == 1) {
+        const char* toggle[] = {t.off, t.on};
+        // Mouse look and its speed (issue 4: the speed was only in sm2port.ini).
+        row(t.mouse_look, t.mouse_look_sub);
+        int look = setting("mouse_look") != 0 ? 1 : 0;
+        if (segmented("##mouse_look", toggle, 2, &look)) set_setting("mouse_look", static_cast<float>(look));
+        row(t.mouse_speed, t.mouse_speed_sub);
+        float speed = setting("mouse_sensitivity");
+        if (slider("##mouse_sensitivity", &speed, 0.25f, 3, "%.2fx")) set_setting("mouse_sensitivity", std::round(speed * 20) / 20);
+    } else if (controls_tab_ == 2) {
         page_pad_buttons(row_height, column);
     } else {
         page_system_keys(row_height);
@@ -2590,7 +2594,7 @@ void Launcher::panel(float now, float since) {
     view_top_ = px(3);
     view_bottom_ = bar_y;
     // Another page, tab or guide step starts at its top.
-    const int tab = wizard_ ? 10 + wizard_step_ : page_ == Page::kSettings ? settings_tab_ : 0;
+    const int tab = wizard_ ? 10 + wizard_step_ : page_ == Page::kSettings ? settings_tab_ : page_ == Page::kControls ? controls_tab_ : 0;
     if (page_ != scroll_page_ || tab != scroll_tab_) {
         scroll_page_ = page_;
         scroll_tab_ = tab;
