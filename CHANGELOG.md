@@ -19,6 +19,10 @@
 
 ### Improved
 
+- **Drawing on two threads**, as in mc3port: one reads the game's drawing commands, the other makes the picture with
+  Direct3D. Here the gain is small (59 frames a second instead of 54 at 120 fps in the city, the two ways taking turns
+  in the same flight), since that thread is not what limits Spider-Man 2. It needs four processor threads or more;
+  `render_thread = 0` in `sm2port.ini` goes back to one thread, should the picture or the game misbehave.
 - **A little faster again where the PC works hardest**: for each draw the textures and the vertex state are found
   without being looked up again, a few percent less work on the thread that limits the frame rate.
 - **Replacement pictures for any texture**, as in mc3port: `SM2_DUMP_TEXTURE=all` saves every texture the game

@@ -41,6 +41,7 @@ const Setting kSettings[] = {
     {"fps_counter", 0, "Frames per second shown in a corner while playing: 1 = yes, 0 = no."},
     {"pause_in_background", 1, "Pause the game (in-game menu) when its window goes to the background: 1 = yes, 0 = no."},
     {"check_updates", 1, "Look for a newer sm2port release on GitHub when the launcher opens: 1 = yes, 0 = no."},
+    {"render_thread", 1, "Drawing on a thread of its own, beside the one that reads the game's drawing commands: 1 = yes (faster; needs four processor threads or more), 0 = as before, if the picture or the game misbehaves."},
     {"gpu_vertices", 1, "Vertex processing on the graphics card: 1 = yes (faster), 0 = on the processor."},
     {"render_scale", 0, "Internal resolution, times the game's 480 lines: 0 = like the screen, 1 = like the Xbox (480p), 1.5 = 720p, 2.25 = 1080p, 3 = 1440p, 4.5 = 2160p (4K). Higher = smoother edges."},
     {"anisotropy", 16, "Anisotropic texture filtering: 1 = off, up to 16."},
