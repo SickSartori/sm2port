@@ -33,6 +33,7 @@ const Setting kSettings[] = {
     {"hud_aspect", 1, "In 16:9, the health ring and the rest of the HUD in the top corners keep their shape: 1 = yes, 0 = stretched like the Xbox."},
     {"field_of_view", 100, "Field of view, in percent of the game's own (which the camera changes as it goes): 100 = like the Xbox, more = wider."},
     {"letterbox", 1, "The black bars above and below the cutscenes made with the game's engine: 1 = like the Xbox, 0 = off (the films keep theirs)."},
+    {"sharp_textures", 0, "The textures of the 3D scene (streets, buildings, people) enlarged two times with their edges kept, as sharp_2d does for the HUD: 1 = sharper from close, 0 = as the game's. Needs more graphics memory; they sharpen a few seconds after a place loads."},
     {"sharp_2d", 1,"The HUD's pictures (icons, letters) enlarged with their edges kept: 1 = sharper at high resolutions, 0 = as the game's."},
     {"fullscreen", 0, "Start in full screen: 1 = yes, 0 = in a window (Alt+Enter or F11 switches while playing)."},
     {"volume", 100, "Overall volume, 0 to 100."},

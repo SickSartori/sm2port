@@ -176,6 +176,7 @@ there). Language, frame rate, VSync, aspect ratio, resolution and filtering appl
 | Aspect ratio | 16:9 (the game's widescreen mode), 4:3, or 21:9: your screen's own shape when it is wider than 16:9 (21:9, 32:9), with the view widened to the sides; films and loading screens stay 16:9, with bars at the sides |
 | Time of day | the game's own clock, or always dawn, day, sunset or night |
 | Round HUD in 16:9 | the health ring keeps its shape in 16:9 instead of stretching |
+| Sharp textures | off by default: the textures of streets, buildings and people enlarged two times with their edges kept, sharper from close; they take more graphics memory and sharpen a few seconds after a place loads |
 | Field of view | 75% to 130% of the game's own |
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |

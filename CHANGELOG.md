@@ -8,6 +8,9 @@
   wider than 16:9 (21:9, 32:9) the game takes your screen's shape and sees more to the sides, as it does in 16:9
   compared with 4:3; the health ring and the minimap stay round. Films and loading screens are made for 16:9 and keep
   bars at the sides. The game's menus and texts, and the web counter, come out wider than they should.
+- **Sharp textures** (in the settings, next to Sharp HUD pictures, off by default), as in mc3port: the textures of streets, buildings and people
+  enlarged two times with their edges kept, as Sharp HUD pictures does for the HUD. It shows from close; from afar the
+  picture is the game's own. The textures sharpen a few seconds after a place loads, and take more graphics memory.
 - **VSync** (Settings, Game, off by default), as in mc3port: frames are shown at once, and the picture can tear in fast
   camera moves. With VSync on it never tears, but a PC that cannot keep up may skip frames. It applies at the next start.
 

@@ -93,7 +93,7 @@ struct Texts {
     const char *pad_keys, *pad_menu_keys, *pages_hint, *move_hint, *dpad, *enter_hint;
     const char *effects_style, *effects_style_sub, *enhanced, *original_effects, *custom_effects;
     const char *restart_needed, *restart_lead, *restart_now;
-    const char *sharp_2d, *sharp_2d_sub;
+    const char *sharp_2d, *sharp_2d_sub, *sharp_textures, *sharp_textures_sub;
     const char *crash_heading, *crash_sub, *crash_button, *crash_link;
     const char *move_heading, *move_sub, *move_failed, *move_button;
     const char *move_title, *move_lead, *move_now, *move_later;
@@ -154,6 +154,7 @@ const Texts kEnglish = {
     "Custom",
     "Restart needed", "For the changes that apply at start; unsaved progress is lost", "Restart now",
     "Sharp HUD pictures", "Icons and letters of the HUD enlarged with clean edges",
+    "Sharp textures", "Streets, buildings and people from close: enlarged with clean edges (more graphics memory)",
     "The game crashed last time", "sm2port-crash-report.zip is ready to attach to a report", "Report", "Report the crash",
     "You have files from an earlier version", "Move your saves and settings to Documents\\sm2port",
     "Could not move them: close what uses them, then try again", "Move",
@@ -227,6 +228,7 @@ const Texts kItalian = {
     "Migliorato", "Originale", "Personalizzato",
     "Riavvio necessario", "Per le modifiche che valgono all'avvio; i progressi non salvati si perdono", "Riavvia ora",
     "Immagini dell'HUD nitide", "Icone e lettere dell'HUD ingrandite con bordi puliti",
+    "Texture nitide", "Strade, edifici e persone da vicino: ingranditi con bordi puliti (pi\xC3\xB9 memoria grafica)",
     "L'ultima volta il gioco si \xC3\xA8 chiuso per un errore", "sm2port-crash-report.zip \xC3\xA8 pronto da allegare alla segnalazione", "Segnala", "Segnala il crash",
     "Hai file di una versione precedente", "Sposta salvataggi e impostazioni in Documenti\\sm2port",
     "Spostamento non riuscito: chiudi ci\xC3\xB2 che li usa e riprova", "Sposta",
@@ -296,6 +298,7 @@ const Texts kPortuguese = {
     "Personalizado",
     "Reinício necessário", "Para as mudanças que valem no início; o progresso não salvo é perdido", "Reiniciar agora",
     "Imagens do HUD nítidas", "Ícones e letras do HUD ampliados com bordas limpas",
+    "Texturas nítidas", "Ruas, prédios e pessoas de perto: ampliados com bordas limpas (mais memória gráfica)",
     "O jogo fechou com um erro da última vez", "sm2port-crash-report.zip está pronto para anexar a um relato", "Relatar", "Relatar o erro",
     "Você tem arquivos de uma versão anterior", "Mover seus saves e configurações para Documentos\\sm2port",
     "Não foi possível movê-los: feche o que os usa e tente de novo", "Mover",
@@ -365,6 +368,7 @@ const Texts kSpanish = {
     "Personalizado",
     "Hace falta reiniciar", "Para los cambios que se aplican al empezar; se pierde el progreso no guardado", "Reiniciar ahora",
     "Imágenes del HUD nítidas", "Iconos y letras del HUD ampliados con bordes limpios",
+    "Texturas nítidas", "Calles, edificios y personas de cerca: ampliados con bordes limpios (más memoria gráfica)",
     "La última vez el juego se cerró por un error", "sm2port-crash-report.zip está listo para adjuntar a un informe", "Informar", "Informar del error",
     "Tienes archivos de una versión anterior", "Mover tus partidas y ajustes a Documentos\\sm2port",
     "No se pudieron mover: cierra lo que los usa y vuelve a intentarlo", "Mover",
@@ -1617,7 +1621,7 @@ std::string row_label(const char* button, const char* label) {
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
-         {"game_language", "frame_rate", "vsync", "widescreen", "render_scale", "anisotropy", "sharp_2d"}) {
+         {"game_language", "frame_rate", "vsync", "widescreen", "render_scale", "anisotropy", "sharp_2d", "sharp_textures"}) {
         if (setting(key) != setting_at_start(key)) return true;
     }
     return false;
@@ -1963,6 +1967,9 @@ void Launcher::page_settings() {
         row(t.sharp_2d, t.sharp_2d_sub, true);
         int sharp = setting("sharp_2d") != 0 ? 1 : 0;
         if (segmented("##sharp_2d", toggle, 2, &sharp)) set_setting("sharp_2d", static_cast<float>(sharp));
+        row(t.sharp_textures, t.sharp_textures_sub, true);
+        int sharp_scene = setting("sharp_textures") != 0 ? 1 : 0;
+        if (segmented("##sharp_textures", toggle, 2, &sharp_scene)) set_setting("sharp_textures", static_cast<float>(sharp_scene));
         row(t.hud_aspect, t.hud_aspect_sub);
         int round_hud = setting("hud_aspect") != 0 ? 1 : 0;
         if (segmented("##hud_aspect", toggle, 2, &round_hud)) set_setting("hud_aspect", static_cast<float>(round_hud));
@@ -2020,7 +2027,7 @@ void Launcher::page_settings() {
         for (const char* key : {"game_language", "frame_rate", "vsync", "time_of_day", "volume", "launcher_music", "pause_in_background",
                                 "mouse_look", "mouse_sensitivity",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
-                                "anisotropy", "gpu_vertices", "sharp_2d", "hud_aspect", "field_of_view",
+                                "anisotropy", "gpu_vertices", "sharp_2d", "sharp_textures", "hud_aspect", "field_of_view",
                                 "letterbox", "effects", "sharpen", "bloom",
                                 "bloom_threshold", "saturation", "contrast", "vignette",
                                 "effects_advanced", "ambient_occlusion", "ambient_occlusion_radius"}) {
