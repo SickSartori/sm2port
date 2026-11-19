@@ -175,6 +175,11 @@ const Patch kPatches[] = {
     // interrupt, two threads here where the Xbox had one, so a blank can be counted twice and skip the target: the flip
     // then waits for the count to come round. Retire at or past the target (jl: not yet while count < target).
     {"D3D flip retirement at or past the target", 0x003C7414, {0x75, 0x7F, 0xC7, 0x01, 0x00, 0x00}, {0x7C, 0x7F}},
+    // The game's loader thread (0x38DC30) sleeps 30 ms after every piece of work it does: one 128 KB read of
+    // AMALGA_XB.PAK at start (151 of them, black screen meanwhile) and the city's streaming later. With the game on
+    // one core it also waits for the main thread every round, so the start took 7 to 11 s. Sleep(1) instead:
+    // "push 1Eh; call Sleep" becomes "push 1".
+    {"loader thread sleep", 0x0038DC79, {0x6A, 0x1E, 0xE8}, {0x6A, 0x01}},
 };
 
 // The address where the patch's original bytes are in this build; 0 if they are not there.

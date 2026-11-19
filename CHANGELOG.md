@@ -23,6 +23,9 @@
 
 ### Improved
 
+- **A shorter black screen at start**: the game's loader reads its first 18 MB in 151 pieces and rested 30 ms after
+  each one, waiting for the main thread too. It now rests 1 ms, and the Activision logo comes after about 4 to 6
+  seconds instead of 7 to 11. The same thread loads the city while you play, now with less waiting between pieces.
 - **Drawing on two threads**, as in mc3port: one reads the game's drawing commands, the other makes the picture with
   Direct3D. Here the gain is small (59 frames a second instead of 54 at 120 fps in the city, the two ways taking turns
   in the same flight), since that thread is not what limits Spider-Man 2. It needs four processor threads or more;
