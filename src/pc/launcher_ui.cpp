@@ -2487,7 +2487,10 @@ void Launcher::frame(float now, float dt) {
         if (web_page_since_ >= 0) web_.burst(ImVec2(screen.x - px(644), px(220)), px(110), now);  // the column's edge
         web_page_since_ = page_since_;
     }
-    web_.draw(back, screen, scale_, now, dt, now - start_time_);
+    // The spider hangs by the menu's selected item, past the end of its lit bar (side_menu's rows).
+    const ImVec2 spider_at = wizard_ ? ImVec2(-1, -1) : ImVec2(px(540), px(240) + px(64) * static_cast<float>(menu_cursor_) + px(12));
+    web_.draw(back, screen, scale_, now, dt, now - start_time_, ImGui::IsMousePosValid() ? ImGui::GetMousePos() : ImVec2(-1, -1),
+              spider_at);
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(screen);

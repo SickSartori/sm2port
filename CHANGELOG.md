@@ -15,6 +15,8 @@
   for 16:9 and shrank). A slider's value now sits beside its grab instead of under it, the rows of a page come in one
   after another, a light runs round Play when the game is ready and along the menu's selected item. The bottom bar no
   longer shows Enter twice on the keyboard.
+- **The launcher's webs** stretch towards the mouse pointer, and the spider lowers itself on its thread to the menu's
+  selected item instead of going up and down by itself.
 
 - **Fewer pauses the first time you reach a place**: the shaders a scene needs the first time are made on two helper
   threads instead of in the middle of a frame; a frame waits for them at most 8 ms, and what is still missing is
