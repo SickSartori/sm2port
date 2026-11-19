@@ -253,6 +253,50 @@ void patch_wide_shape(const Xbe& xbe) {
     log_line("HLE: widescreen shape at %08X set to %.3f", address, shape);
 }
 
+// Setting draw_distance (percent; 100 = like the game), applied at start. Two read-only tables of the game, scaled:
+// - Objects (cars, pedestrians, props) fade out by a table of 21 entries {radius, start, end, start², end²,
+//   1 / (end² - start²)} (World 0x4BF308): five by the object's size (20 m for the smallest to 280 m), then one for
+//   each object class (15 to 500 m, the last "never"). It also sets where traffic and pedestrians appear (World
+//   0x19B680, called by the spawners), so they come into view further away rather than popping up closer. The game
+//   still shortens small objects' distances when many are around (World 0x226B10), as on the Xbox.
+// - City regions are drawn in full detail within sqrt(height² + 250²) m of the camera, at most 800 m (World 0x23711E:
+//   250² at 0x474F14, read only by this formula in three places, and 800 at 0x4758C8), the district's lower-detail
+//   meshes beyond.
+constexpr uint32_t kFadeTable = 0x004BF068;          // World 0x4BF308
+constexpr uint32_t kRegionBaseSquare = 0x00474C34;   // World 0x474F14: 250 m, squared
+constexpr uint32_t kRegionMaximum = 0x004755E8;      // World 0x4758C8: 800 m
+
+std::vector<uint8_t> float_bytes(std::initializer_list<float> values) {
+    std::vector<uint8_t> bytes(values.size() * sizeof(float));
+    std::memcpy(bytes.data(), values.begin(), bytes.size());
+    return bytes;
+}
+
+void patch_draw_distance(const Xbe& xbe) {
+    const float s = std::clamp(setting_at_start("draw_distance"), 50.0f, 400.0f) / 100;
+    if (s == 1) return;
+    if (const uint32_t table = find_address(xbe, kFadeTable, float_bytes({1, 20, 20, 400, 400, 1}))) {
+        auto* e = reinterpret_cast<float*>(static_cast<uintptr_t>(table));
+        for (int i = 0; i < 21; ++i, e += 6) {
+            if (e[2] > 100000) continue;  // "never fades"
+            e[1] *= s, e[2] *= s, e[3] *= s * s, e[4] *= s * s;
+            if (e[4] > e[3]) e[5] = 1 / (e[4] - e[3]);
+        }
+        log_line("HLE: object fade distances at %08X times %.2f", table, s);
+    } else {
+        log_line("HLE: object fade distances at %08X do not match this XBE, not changed", kFadeTable);
+    }
+    const uint32_t base_square = find_address(xbe, kRegionBaseSquare, float_bytes({250 * 250}));
+    const uint32_t maximum = find_address(xbe, kRegionMaximum, float_bytes({800}));
+    if (base_square && maximum) {
+        *reinterpret_cast<float*>(static_cast<uintptr_t>(base_square)) *= s * s;
+        *reinterpret_cast<float*>(static_cast<uintptr_t>(maximum)) *= s;
+        log_line("HLE: full-detail region distance at %08X, %08X times %.2f", base_square, maximum, s);
+    } else {
+        log_line("HLE: full-detail region distance at %08X does not match this XBE, not changed", kRegionBaseSquare);
+    }
+}
+
 }  // namespace
 
 bool hle_wide_shape() { return g_wide_shape; }
@@ -306,6 +350,7 @@ void apply_hle_patches(const Xbe& xbe) {
     }
     patch_field_of_view(xbe);
     patch_wide_shape(xbe);
+    patch_draw_distance(xbe);
     g_kick_off_return = build_address(xbe, 0x003C424B);
     g_read_get_return = build_address(xbe, 0x003C4099);
     for (const Patch& patch : kPatches) {

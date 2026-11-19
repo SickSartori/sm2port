@@ -4,6 +4,10 @@
 
 ### New
 
+- **Draw distance** (Settings, Graphics, 100% by default): how far away cars, pedestrians and the buildings' full
+  detail are drawn, up to three times the game's own. On the Xbox, objects fade out between 20 and 280 metres
+  depending on their size, and city blocks lose their detail beyond 250 metres at street level. Traffic and pedestrians also appear
+  further away instead of popping up close. It costs frames: in tests at 60 fps, 200% took about a tenth of them.
 - **21:9**: a third aspect ratio next to 4:3 and 16:9 in the launcher's and the in-game menu's settings. On a screen
   wider than 16:9 (21:9, 32:9) the game takes your screen's shape and sees more to the sides, as it does in 16:9
   compared with 4:3; the health ring and the minimap stay round. Films and loading screens are made for 16:9 and keep
