@@ -1096,7 +1096,8 @@ void nv2a_take_mouse_motion(int& dx, int& dy) {
 
 uint64_t nv2a_mouse_idle_ms() { return GetTickCount64() - g_mouse_moved_at; }
 
-int nv2a_vblank_hz() { return 60; }
+// The game shows a frame every blank (59.94 fps mode) or every second one: 120 Hz blanks for 120 fps (hle_patches.cpp).
+int nv2a_vblank_hz() { return setting_at_start("frame_rate") >= 120 ? 120 : 60; }
 
 void nv2a_set_full_screen(bool full_screen) {
     if (g_window) PostMessageW(g_window, kSetFullScreenMessage, full_screen, 0);

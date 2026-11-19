@@ -171,7 +171,7 @@ there). Language, frame rate, VSync, aspect ratio, resolution and filtering appl
 | Setting | What it does |
 |---|---|
 | Game language | the game's own languages for your release, by default like Windows |
-| Frames per second | 30 like the Xbox, or 60 |
+| Frames per second | 30 like the Xbox, 60, or 120 for a fast processor and a screen of 120 Hz or more (the game keeps its speed; where the PC cannot keep up, fewer frames are shown) |
 | VSync | off by default: frames are shown at once, and the picture can tear (a horizontal line where two frames meet) in fast camera moves. On: it never tears, but a PC that cannot keep up may skip frames |
 | Aspect ratio | 16:9 (the game's widescreen mode), 4:3, or 21:9: your screen's own shape when it is wider than 16:9 (21:9, 32:9), with the view widened to the sides; films and loading screens stay 16:9, with bars at the sides |
 | Time of day | the game's own clock, or always dawn, day, sunset or night |

@@ -8,6 +8,9 @@
   wider than 16:9 (21:9, 32:9) the game takes your screen's shape and sees more to the sides, as it does in 16:9
   compared with 4:3; the health ring and the minimap stay round. Films and loading screens are made for 16:9 and keep
   bars at the sides. The game's menus and texts, and the web counter, come out wider than they should.
+- **120 frames per second**: a third choice next to 30 and 60 in the launcher's and the in-game menu's settings, as in
+  mc3port. The game runs at the same speed, with up to twice the frames of 60. It needs a fast processor and a screen
+  of 120 Hz or more; where the PC cannot keep up, fewer frames are shown and the game keeps its speed.
 - **Sharp textures** (in the settings, next to Sharp HUD pictures, off by default), as in mc3port: the textures of streets, buildings and people
   enlarged two times with their edges kept, as Sharp HUD pictures does for the HUD. It shows from close; from afar the
   picture is the game's own. The textures sharpen a few seconds after a place loads, and take more graphics memory.

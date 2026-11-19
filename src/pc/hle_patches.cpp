@@ -282,6 +282,18 @@ void apply_hle_patches(const Xbe& xbe) {
         if (const uint32_t address = find_address(xbe, 0x004BF698, {1, 0, 0, 0})) {
             *reinterpret_cast<uint32_t*>(static_cast<uintptr_t>(address)) = 0;
             log_line("HLE: frame rate mode at %08X set to 59.94 fps", address);
+            // 120 fps: the blanks come at 120 Hz (nv2a_vblank_hz) and the mode's rate, from which the game takes its
+            // step (blanks since the last frame over the rate), is 119.88: the constant the mode's setter (0x34EA50)
+            // reads for mode 0, its only reader.
+            const float rate = 59.94f;
+            std::vector<uint8_t> original(sizeof(rate));
+            std::memcpy(original.data(), &rate, sizeof(rate));
+            if (const uint32_t constant = setting_at_start("frame_rate") >= 120 ? find_address(xbe, 0x0048F158, original) : 0) {
+                *reinterpret_cast<float*>(static_cast<uintptr_t>(constant)) = rate * 2;
+                log_line("HLE: frame rate at %08X set to 119.88 fps", constant);
+            } else if (setting_at_start("frame_rate") >= 120) {
+                log_line("HLE: frame rate constant not found, the game would run at double speed at 120 fps");
+            }
         } else {
             log_line("HLE: frame rate mode not found, the game stays at 29.97 fps");
         }
