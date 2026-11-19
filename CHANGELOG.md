@@ -23,6 +23,12 @@
 
 ### Improved
 
+- **The launcher's buttons**, as in mc3port: Report a problem and Support the project sit above the bottom bar, on
+  every page and in the in-game menu, and a speaker at the left of the bar turns the launcher's music off and on
+  (`launcher_mute` in `sm2port.ini`; the game's volume stays in the settings). The hints' keys are drawn as keyboard
+  keys. Support goes to Ko-fi only.
+- **First start**: after the disc and the quality the launcher opens its menu, with every page, instead of starting
+  the game. The disc's row no longer cuts its text short.
 - **A shorter black screen at start**: the game's loader reads its first 18 MB in 151 pieces and rested 30 ms after
   each one, waiting for the main thread too. It now rests 1 ms, and the Activision logo comes after about 4 to 6
   seconds instead of 7 to 11. The same thread loads the city while you play, now with less waiting between pieces.

@@ -39,6 +39,7 @@ const Setting kSettings[] = {
     {"fullscreen", 0, "Start in full screen: 1 = yes, 0 = in a window (Alt+Enter or F11 switches while playing)."},
     {"volume", 100, "Overall volume, 0 to 100."},
     {"launcher_music", 70, "Volume of the launcher's background music, 0 to 100 (0 = off)."},
+    {"launcher_mute", 0, "1 = the launcher's background music is off (the speaker button in its bottom bar)."},
     {"fps_counter", 0, "Frames per second shown in a corner while playing: 1 = yes, 0 = no."},
     {"pause_in_background", 1, "Pause the game (in-game menu) when its window goes to the background: 1 = yes, 0 = no."},
     {"check_updates", 1, "Look for a newer sm2port release on GitHub when the launcher opens: 1 = yes, 0 = no."},
