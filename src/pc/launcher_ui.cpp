@@ -117,7 +117,7 @@ const Texts kEnglish = {
     "Game", "Display", "Graphics", "Effects",
     "Game language", "The game's text and speech", "Like Windows", "Frames per second", "60 is smoother; 30 like the Xbox",
     "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
-    "Aspect ratio", "16:9 uses the game's own widescreen mode", "Window mode", "Alt+Enter or F11 while playing",
+    "Aspect ratio", "16:9 is the game's own widescreen mode; 21:9 fills a wider screen", "Window mode", "Alt+Enter or F11 while playing",
     "Window", "Full screen",
     "Quality", "Sets filtering and effects together", "Original", "Balanced", "High", "Custom",
     "Internal resolution", "Smoother edges, more graphics card work",
@@ -186,7 +186,7 @@ const Texts kItalian = {
     "Lingua del gioco", "Testi e voci del gioco", "Come Windows", "Fotogrammi al secondo",
     "60 \xC3\xA8 pi\xC3\xB9 fluido; 30 come l'Xbox", "Volume del gioco", "Musica del launcher",
     "La musica di sottofondo di questa schermata; 0 la spegne",
-    "Formato", "16:9 usa la modalit\xC3\xA0 panoramica del gioco", "Modalit\xC3\xA0 finestra",
+    "Formato", "16:9 \xC3\xA8 la modalit\xC3\xA0 panoramica del gioco; 21:9 riempie uno schermo pi\xC3\xB9 largo", "Modalit\xC3\xA0 finestra",
     "Alt+Invio o F11 durante il gioco", "Finestra", "Schermo intero",
     "Qualit\xC3\xA0", "Imposta insieme filtri ed effetti", "Originale", "Bilanciata", "Alta",
     "Personalizzata", "Risoluzione interna", "Bordi pi\xC3\xB9 lisci, pi\xC3\xB9 lavoro per la scheda video",
@@ -259,7 +259,7 @@ const Texts kPortuguese = {
     "Jogo", "Tela", "Gráficos", "Efeitos",
     "Idioma do jogo", "Textos e vozes do jogo (não há português)", "Como o Windows", "Quadros por segundo", "60 é mais fluido; 30 como no Xbox",
     "Volume do jogo", "Música do launcher", "A música de fundo desta tela; 0 desliga",
-    "Proporção", "16:9 usa o modo widescreen do próprio jogo", "Modo de janela", "Alt+Enter ou F11 durante o jogo",
+    "Proporção", "16:9 é o modo widescreen do próprio jogo; 21:9 preenche uma tela mais larga", "Modo de janela", "Alt+Enter ou F11 durante o jogo",
     "Janela", "Tela cheia",
     "Qualidade", "Define filtros e efeitos de uma vez", "Original", "Equilibrada", "Alta", "Personalizada",
     "Resolução interna", "Bordas mais suaves, mais trabalho para a placa de vídeo",
@@ -328,7 +328,7 @@ const Texts kSpanish = {
     "Juego", "Pantalla", "Gráficos", "Efectos",
     "Idioma del juego", "Textos y voces del juego", "Como Windows", "Fotogramas por segundo", "60 es más fluido; 30 como en Xbox",
     "Volumen del juego", "Música del launcher", "La música de fondo de esta pantalla; 0 la apaga",
-    "Relación de aspecto", "16:9 usa el modo panorámico del propio juego", "Modo de ventana", "Alt+Intro o F11 mientras juegas",
+    "Relación de aspecto", "16:9 es el modo panorámico del propio juego; 21:9 llena una pantalla más ancha", "Modo de ventana", "Alt+Intro o F11 mientras juegas",
     "Ventana", "Pantalla completa",
     "Calidad", "Ajusta filtros y efectos a la vez", "Original", "Equilibrada", "Alta", "Personalizada",
     "Resolución interna", "Bordes más suaves, más trabajo para la tarjeta gráfica",
@@ -1815,7 +1815,8 @@ void Launcher::page_play() {
     char summary[160];
     const int preset = quality_preset();
     const char* quality = preset == 0 ? t.original : preset == 1 ? t.balanced : preset == 2 ? t.high : t.custom;
-    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 %.0f fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
+    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 %.0f fps \xC2\xB7 %s %s",
+                  setting("widescreen") >= 2 ? "21:9" : setting("widescreen") != 0 ? "16:9" : "4:3",
                   setting("frame_rate") >= 60 ? 60.0f : 30.0f, t.quality, quality);
     if (status(true, summary, setting("effects") != 0 ? t.effects_sub : t.effects, t.edit, "##edit")) {
         page_ = Page::kSettings;
@@ -1912,9 +1913,9 @@ void Launcher::page_settings() {
         if (slider("##mouse_sensitivity", &speed, 0.25f, 3, "%.2fx")) set_setting("mouse_sensitivity", std::round(speed * 20) / 20);
     } else if (settings_tab_ == 1) {
         row(t.aspect, t.aspect_sub, true);
-        const char* aspects[] = {"4:3", "16:9"};
-        int aspect = setting("widescreen") != 0 ? 1 : 0;
-        if (segmented("##aspect", aspects, 2, &aspect)) set_setting("widescreen", static_cast<float>(aspect));
+        const char* aspects[] = {"4:3", "16:9", "21:9"};
+        int aspect = std::clamp(static_cast<int>(setting("widescreen")), 0, 2);
+        if (segmented("##aspect", aspects, 3, &aspect)) set_setting("widescreen", static_cast<float>(aspect));
         row(t.window_mode, t.window_mode_sub);
         const char* modes[] = {t.windowed, t.fullscreen};
         int mode = setting("fullscreen") != 0 ? 1 : 0;
@@ -2439,9 +2440,9 @@ void Launcher::page_wizard() {
         int preset = quality_preset();
         if (segmented("##quality", qualities, 3, &preset)) apply_quality(preset);
         row(t.aspect, t.aspect_sub);
-        const char* aspects[] = {"4:3", "16:9"};
-        int aspect = setting("widescreen") != 0 ? 1 : 0;
-        if (segmented("##aspect", aspects, 2, &aspect)) set_setting("widescreen", static_cast<float>(aspect));
+        const char* aspects[] = {"4:3", "16:9", "21:9"};
+        int aspect = std::clamp(static_cast<int>(setting("widescreen")), 0, 2);
+        if (segmented("##aspect", aspects, 3, &aspect)) set_setting("widescreen", static_cast<float>(aspect));
         row(t.fps, t.fps_sub, true);
         const char* rates[] = {"30", "60"};
         int rate = setting("frame_rate") >= 60 ? 1 : 0;
@@ -3200,7 +3201,8 @@ void Launcher::page_paused() {
     char summary[160];
     const int preset = quality_preset();
     const char* quality = preset == 0 ? t.original : preset == 1 ? t.balanced : preset == 2 ? t.high : t.custom;
-    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 %.0f fps \xC2\xB7 %s %s", setting("widescreen") != 0 ? "16:9" : "4:3",
+    std::snprintf(summary, sizeof(summary), "%s \xC2\xB7 %.0f fps \xC2\xB7 %s %s",
+                  setting("widescreen") >= 2 ? "21:9" : setting("widescreen") != 0 ? "16:9" : "4:3",
                   setting("frame_rate") >= 60 ? 60.0f : 30.0f, t.quality, quality);
     if (status(true, summary, setting("effects") != 0 ? t.effects_sub : t.effects, t.edit, "##edit")) {
         page_ = Page::kSettings;

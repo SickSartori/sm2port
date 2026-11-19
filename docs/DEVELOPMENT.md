@@ -115,6 +115,7 @@ Variabili d'ambiente:
 | `SM2_<VOCE>` | qualunque voce di `sm2port.ini` (per esempio `SM2_RENDER_SCALE=1`, `SM2_AMBIENT_OCCLUSION=0`) |
 | `SM2_DUMP_WINDOW=1` | con `SM2_DUMP_FRAMES`, salva anche l'immagine della finestra con gli effetti (`window-NNNNN.bmp`) |
 | `SM2_AO_VIEW=1` | mostra solo l'ombreggiatura ambientale, in grigio, al posto della scena (per regolarla) |
+| `SM2_SCREEN_SHAPE=<larghezza/altezza>` | con `widescreen = 2`, quella forma dello schermo invece di quella vera (per provare il 21:9 senza uno schermo 21:9, per esempio 2.389) |
 | `SM2_LANGUAGE` | lingua del gioco: 1 inglese, 3 tedesco, 4 francese, 5 spagnolo, 6 italiano (altrimenti `game_language`, poi la lingua di Windows) |
 | `SM2_MULTICORE=1` | usa tutti i core; per default il gioco gira su un core solo, come sull'Xbox |
 | `SM2_NO_DIALOG=1` | niente finestre di dialogo e niente launcher (per i test automatici) |

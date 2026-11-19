@@ -12,6 +12,7 @@
 #include "pc/game_pause.h"
 #include "pc/log.h"
 #include "pc/nv2a.h"
+#include "pc/renderer_d3d11.h"
 #include "pc/settings.h"
 
 namespace xport::pc {
@@ -233,7 +234,28 @@ void patch_field_of_view(const Xbe& xbe) {
     scale_field_of_view();
 }
 
+// Setting widescreen 2: the camera's shape in the game's widescreen mode, 16/9, read once (World 0x344A20) into the
+// camera; its perspective keeps the vertical angle, so the screen's wider shape (renderer_aspect) widens the view to
+// the sides.
+constexpr uint32_t kWideShape = 0x0048D970;  // 16/9: 39 8E E3 3F
+bool g_wide_shape = false;
+
+void patch_wide_shape(const Xbe& xbe) {
+    const float shape = renderer_aspect();
+    if (shape <= 16.0f / 9.0f + 0.01f) return;
+    const uint32_t address = find_address(xbe, kWideShape, {0x39, 0x8E, 0xE3, 0x3F});
+    if (!address) {
+        log_line("HLE: widescreen shape at %08X does not match this XBE, not changed", kWideShape);
+        return;
+    }
+    std::memcpy(reinterpret_cast<void*>(static_cast<uintptr_t>(address)), &shape, sizeof(shape));
+    g_wide_shape = true;
+    log_line("HLE: widescreen shape at %08X set to %.3f", address, shape);
+}
+
 }  // namespace
+
+bool hle_wide_shape() { return g_wide_shape; }
 
 void hle_frame() {
     const float hour = setting("time_of_day");
@@ -271,6 +293,7 @@ void apply_hle_patches(const Xbe& xbe) {
         log_line("HLE: game clock not found, no fixed time of day");
     }
     patch_field_of_view(xbe);
+    patch_wide_shape(xbe);
     g_kick_off_return = build_address(xbe, 0x003C424B);
     g_read_get_return = build_address(xbe, 0x003C4099);
     for (const Patch& patch : kPatches) {

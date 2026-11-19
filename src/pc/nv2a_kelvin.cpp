@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "pc/hle_patches.h"
 #include "pc/log.h"
 #include "pc/nv2a_combiner.h"
 #include "pc/nv2a_texture.h"
@@ -851,6 +852,19 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
     }
     const SurfaceState target = surface();
     if (!target.width || !target.height) return;
+
+    // Setting widescreen 2: a frame with a vertex in perspective is a 3D scene, shown as wide as the screen; films and
+    // menus over a still picture are flat (w 1) and stay 16:9. The first vertex of each draw, until one is in perspective.
+    static const bool wider = hle_wide_shape();
+    if (wider && target.width >= 640 && !renderer_scene_noted()) {
+        Vec4 inputs[kVshAttributes];
+        std::copy(std::begin(g_k.attribute), std::end(g_k.attribute), inputs);
+        fetch(0, inputs);
+        Vec4 outputs[kVshOutputs];
+        if (!fixed_function) g_k.vertex_program.execute(inputs, g_k.constants, outputs);
+        const Vec4 first = fixed_function ? fixed_function_position(inputs[kInPosition]) : outputs[kOutPosition];
+        if (first[3] != 1) renderer_note_scene();
+    }
 
     // Where a flat draw over the 3D scene falls on the screen (sharp_2d enlarges its textures; renderer_game.cpp keeps
     // the HUD's shape in 16:9, hides it with F7 and leaves out the cutscenes' black bars). Flat: w 1 on every vertex and

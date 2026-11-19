@@ -173,7 +173,7 @@ there). Language, frame rate, VSync, aspect ratio, resolution and filtering appl
 | Game language | the game's own languages for your release, by default like Windows |
 | Frames per second | 30 like the Xbox, or 60 |
 | VSync | off by default: frames are shown at once, and the picture can tear (a horizontal line where two frames meet) in fast camera moves. On: it never tears, but a PC that cannot keep up may skip frames |
-| Aspect ratio | 16:9 (the game's widescreen mode) or 4:3 |
+| Aspect ratio | 16:9 (the game's widescreen mode), 4:3, or 21:9: your screen's own shape when it is wider than 16:9 (21:9, 32:9), with the view widened to the sides; films and loading screens stay 16:9, with bars at the sides |
 | Time of day | the game's own clock, or always dawn, day, sunset or night |
 | Round HUD in 16:9 | the health ring keeps its shape in 16:9 instead of stretching |
 | Field of view | 75% to 130% of the game's own |
@@ -188,7 +188,7 @@ there). Language, frame rate, VSync, aspect ratio, resolution and filtering appl
 - **Sound**: the game's sounds, music and films play, but some DirectSound calls (3D positioning among them) are not
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
 - Online play (Xbox Live) is not available. Only the Italian, the European (French, German, Spanish) and the World releases are supported.
-- On monitors wider than 16:9 there are thin black bars at the sides.
+- On screens wider than 16:9, choose 21:9 in the settings: the game's menus and texts, and the web counter at the bottom left, are then wider than they should be, and films and loading screens keep bars at the sides.
 - Linux (Wine, Proton) has not been tried with this game: see [Linux](#linux-experimental-not-tried-yet).
 
 ## Troubleshooting

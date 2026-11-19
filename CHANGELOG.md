@@ -4,6 +4,10 @@
 
 ### New
 
+- **21:9**: a third aspect ratio next to 4:3 and 16:9 in the launcher's and the in-game menu's settings. On a screen
+  wider than 16:9 (21:9, 32:9) the game takes your screen's shape and sees more to the sides, as it does in 16:9
+  compared with 4:3; the health ring and the minimap stay round. Films and loading screens are made for 16:9 and keep
+  bars at the sides. The game's menus and texts, and the web counter, come out wider than they should.
 - **VSync** (Settings, Game, off by default), as in mc3port: frames are shown at once, and the picture can tear in fast
   camera moves. With VSync on it never tears, but a PC that cannot keep up may skip frames. It applies at the next start.
 
