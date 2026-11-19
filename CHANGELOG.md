@@ -21,6 +21,10 @@
 
 - **A little faster again where the PC works hardest**: for each draw the textures and the vertex state are found
   without being looked up again, a few percent less work on the thread that limits the frame rate.
+- **Replacement pictures for any texture**, as in mc3port: `SM2_DUMP_TEXTURE=all` saves every texture the game
+  draws with as a PNG in a folder `textures_dump` next to `sm2port.ini`. Redrawn or enlarged with a tool of your
+  own and put in a folder `textures_replace` there under the same name (16 hex digits), at any size, they are
+  drawn instead of the game's.
 - **The launcher's new layout**, in the in-game menu too: each page sits in a column from the top of the window to the
   bottom bar, with Play at its foot. A page longer than the window scrolls (the mouse wheel, or the selection kept in
   sight with the keys and the controller). In a 4:3 or smaller window everything is larger than before (it was sized
