@@ -792,6 +792,12 @@ private:
     void stop_rumble();
     void poll_gamepads(float now);  // every controller slot into ImGui's keys, the left stick as a d-pad
     void focus_ring();              // the launcher's focus look on a standard ImGui widget
+    // The selection of keys and controller: one lit row with a leaning mark, drawn under the page's widgets (as in
+    // mc3port). A selected button showed nothing more than the value already chosen.
+    bool nav_selected() const;
+    void focus_frame(ImVec2 a, ImVec2 b);
+    bool row_marked_ = false;
+    ImVec2 row_a_{}, row_b_{};
     float pad_icon(ImDrawList* list, const char* name, ImVec2 at, float h, bool draw = true);
     void resize_if_needed();
     void upload_art();
@@ -1278,6 +1284,7 @@ bool Launcher::small_button(const char* label, ImVec2 at, const char* id, ImVec2
     const bool pressed = ImGui::InvisibleButton(id, box, kNavigable);
     const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused());
     if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    focus_frame(ImVec2(origin_.x - px(24), at.y - px(7)), ImVec2(origin_.x + panel_width_ + px(14), at.y + box.y + px(7)));
     list_->AddRectFilled(at, ImVec2(at.x + box.x, at.y + box.y), fade(kRed, hot * 0.25f));
     list_->AddRect(at, ImVec2(at.x + box.x, at.y + box.y), fade(mix(IM_COL32(255, 255, 255, 60), kRed, hot)), 0, 0, px(1.5f));
     text(body_bold_, px(18), ImVec2(at.x + px(14), at.y + px(6)), mix(kInk, IM_COL32(255, 120, 125, 255), hot), label);
@@ -1310,6 +1317,7 @@ bool Launcher::status(bool good, const char* heading, const char* detail, const 
         *second_pressed = true;
     }
     const bool pressed = button_label && small_button(button_label, ImVec2(button_x, a.y + px(14)), id);
+    if (button_label) focus_frame(ImVec2(a.x - px(24), a.y), ImVec2(b.x + px(14), b.y));
     cursor_ += height + px(10);
     return pressed;
 }
@@ -1323,6 +1331,7 @@ bool Launcher::big_button(const char* label, const char* id, bool pulse) {
     const bool pressed = ImGui::InvisibleButton(id, ImVec2(b.x - a.x + px(14), b.y - a.y), kNavigable);
     const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused());
     if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    focus_frame(ImVec2(origin_.x - px(24), a.y - px(8)), ImVec2(origin_.x + panel_width_ + px(14), b.y + px(8)));
     if (pulse) {
         const float p = std::fmod(static_cast<float>(ImGui::GetTime()), 2.2f) / 2.2f / 0.7f;
         if (p < 1) {
@@ -1374,6 +1383,7 @@ bool Launcher::tabs(const char* const* labels, int count, int* current) {
         }
         const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused());
         if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+        focus_frame(ImVec2(ImGui::GetItemRectMin().x - px(16), ImGui::GetItemRectMin().y - px(4)), ImGui::GetItemRectMax());
         ImGui::PopID();
         const bool on = *current == i;
         text(heading_, px(22), ImVec2(x, origin_.y + cursor_), on ? kInk : mix(kDim, kInk, hot), labels[i]);
@@ -1415,6 +1425,8 @@ bool Launcher::segmented(const char* id, const char* const* labels, int count, i
             *current = i;
             changed = true;
         }
+        focus_frame(ImVec2(origin_.x - px(24), origin_.y + cursor_),
+                    ImVec2(origin_.x + panel_width_ + px(14), origin_.y + cursor_ + px(details ? 66 : 52) + row_extra_));
         const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused());
         if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
         const float on = anim(ImGui::GetItemID() + 1, *current == i, 16);
@@ -1468,6 +1480,7 @@ bool Launcher::compact_slider(const char* label, const char* id, float* value, f
     claim_focus();
     const bool changed = value_slider(id, value, minimum, maximum, "%.2f", px(16));
     focus_ring();
+    focus_frame(ImVec2(at.x - px(14), at.y - px(3)), ImVec2(at.x + width + px(8), at.y + px(46)));
     ImGui::PopStyleVar();
     ImGui::PopFont();
     ImGui::PopItemWidth();
@@ -1483,6 +1496,7 @@ bool Launcher::slider(const char* id, float* value, float minimum, float maximum
     claim_focus();
     const bool changed = value_slider(id, value, minimum, maximum, format, px(18));
     focus_ring();
+    focus_frame(ImVec2(origin_.x - px(24), origin_.y + cursor_), ImVec2(origin_.x + panel_width_ + px(14), origin_.y + cursor_ + px(46) + row_extra_));
     ImGui::PopStyleVar();
     ImGui::PopFont();
     ImGui::PopItemWidth();
@@ -1876,6 +1890,7 @@ void Launcher::page_settings() {
         claim_focus();
         if (ImGui::Combo("##language", &index, names, 6)) set_setting("game_language", static_cast<float>(kLanguages[index]));
         focus_ring();
+        focus_frame(ImVec2(origin_.x - px(24), origin_.y + cursor_), ImVec2(origin_.x + panel_width_ + px(14), origin_.y + cursor_ + px(52) + row_extra_));
         ImGui::PopStyleVar();
         ImGui::PopFont();
         ImGui::PopItemWidth();
@@ -2129,6 +2144,7 @@ void Launcher::page_keyboard_keys(float row_height, float column) {
             }
             const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused() || waiting);
             if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            focus_frame(box_a, box_b);
             ImGui::PopID();
             list_->AddRectFilled(box_a, box_b, fade(mix(IM_COL32(255, 255, 255, 14), kRed, hot * (waiting ? 0.8f : 0.35f))));
             text(body_bold_, px(16), ImVec2(box_b.x - key_size.x - px(9), y + (row_height - key_size.y) / 2), kInk, key.c_str());
@@ -2178,6 +2194,7 @@ void Launcher::page_pad_buttons(float row_height, float column) {
         }
         const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused() || waiting);
         if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+        focus_frame(box_a, box_b);
         ImGui::PopID();
         list_->AddRectFilled(box_a, box_b, fade(mix(IM_COL32(255, 255, 255, 14), kRed, hot * (waiting ? 0.8f : 0.35f))));
         if (waiting) {
@@ -2575,6 +2592,7 @@ void Launcher::panel(float now, float since) {
     item_count_ = 0;
     item_shift_ = 0;
     list_->ChannelsSplit(2);
+    row_marked_ = false;
     list_->ChannelsSetCurrent(1);
     // Rows scrolled out of the column are neither drawn nor hovered.
     ImGui::PushClipRect(ImVec2(panel_x, view_top_), ImVec2(panel_x + column_width, view_bottom_), true);
@@ -2645,6 +2663,12 @@ void Launcher::panel(float now, float since) {
     list_->AddRectFilled(pa, pb, fade(IM_COL32(12, 12, 14, 214)));
     list_->AddLine(pa, ImVec2(pa.x, pb.y), fade(IM_COL32(255, 255, 255, 20)), px(1));
     list_->AddRectFilled(pa, ImVec2(pb.x, pa.y + px(3)), fade(kRed));
+    if (row_marked_) {
+        list_->PushClipRect(ImVec2(panel_x, view_top_), ImVec2(pb.x, view_bottom_), true);
+        list_->AddRectFilled(row_a_, row_b_, fade(IM_COL32(255, 255, 255, 28)));
+        skewed_rect(list_, row_a_, ImVec2(row_a_.x + px(7), row_b_.y), fade(IM_COL32_WHITE), fade(IM_COL32_WHITE));
+        list_->PopClipRect();
+    }
     list_->ChannelsMerge();
 }
 
@@ -3028,6 +3052,19 @@ void Launcher::poll_gamepads(float now) {
 
 // A thin red frame around the last ImGui widget while it is hovered or focused, like the launcher's own buttons;
 // ImGui's own navigation rectangle is off.
+// Only while keys or a controller move through the page: ImGui keeps the focus while the menu on the left has them, and
+// after a click, and two selections at once say neither.
+bool Launcher::nav_selected() const {
+    return ImGui::IsItemFocused() && (!menu_has_focus_ || wizard_) && ImGui::GetCurrentContext()->NavCursorVisible;
+}
+
+void Launcher::focus_frame(ImVec2 a, ImVec2 b) {
+    if (!nav_selected()) return;
+    row_marked_ = true;
+    row_a_ = a;
+    row_b_ = b;
+}
+
 void Launcher::focus_ring() {
     const float hot = anim(ImGui::GetItemID(), ImGui::IsItemHovered() || ImGui::IsItemFocused());
     if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
