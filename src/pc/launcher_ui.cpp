@@ -831,6 +831,8 @@ private:
     bool segmented(const char* id, const char* const* labels, int count, int* current, const char* const* details = nullptr,
                    float wide = 0);
     bool slider(const char* id, float* value, float minimum, float maximum, const char* format);
+    // A drop-down list on the row's right (270 px), after row().
+    bool combo(const char* id, const char* const* items, int count, int* current);
     bool compact_slider(const char* label, const char* id, float* value, float minimum, float maximum, ImVec2 at,
                         float width);
     // ImGui::SliderFloat with its text hidden and the value drawn beside the grab, on the side with more room, so the
@@ -1487,6 +1489,24 @@ bool Launcher::compact_slider(const char* label, const char* id, float* value, f
     return changed;
 }
 
+bool Launcher::combo(const char* id, const char* const* items, int count, int* current) {
+    ImGui::SetCursorScreenPos(ImVec2(origin_.x + panel_width_ - px(270), origin_.y + cursor_ + px(8)));
+    ImGui::PushItemWidth(px(270));
+    ImGui::PushFont(body_bold_, px(18));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(px(8), px(5)));
+    claim_focus();
+    const bool changed = ImGui::Combo(id, current, items, count);
+    focus_ring();
+    focus_frame(ImVec2(origin_.x - px(24), origin_.y + cursor_), ImVec2(origin_.x + panel_width_ + px(14), origin_.y + cursor_ + px(52) + row_extra_));
+    ImGui::PopStyleVar();
+    ImGui::PopFont();
+    ImGui::PopItemWidth();
+    cursor_ += px(58) + row_extra_;
+    row_extra_ = 0;
+    list_->AddLine(ImVec2(origin_.x, origin_.y + cursor_ - px(6)), ImVec2(origin_.x + panel_width_, origin_.y + cursor_ - px(6)), fade(IM_COL32(255, 255, 255, 16)));
+    return changed;
+}
+
 bool Launcher::slider(const char* id, float* value, float minimum, float maximum, const char* format) {
     const float width = px(270);
     ImGui::SetCursorScreenPos(ImVec2(origin_.x + panel_width_ - width, origin_.y + cursor_ + px(8)));
@@ -1883,19 +1903,7 @@ void Launcher::page_settings() {
         for (int i = 0; i < 6; ++i) {
             if (static_cast<int>(setting("game_language")) == kLanguages[i]) index = i;
         }
-        ImGui::SetCursorScreenPos(ImVec2(origin_.x + panel_width_ - px(270), origin_.y + cursor_ + px(8)));
-        ImGui::PushItemWidth(px(270));
-        ImGui::PushFont(body_bold_, px(18));
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(px(8), px(5)));
-        claim_focus();
-        if (ImGui::Combo("##language", &index, names, 6)) set_setting("game_language", static_cast<float>(kLanguages[index]));
-        focus_ring();
-        focus_frame(ImVec2(origin_.x - px(24), origin_.y + cursor_), ImVec2(origin_.x + panel_width_ + px(14), origin_.y + cursor_ + px(52) + row_extra_));
-        ImGui::PopStyleVar();
-        ImGui::PopFont();
-        ImGui::PopItemWidth();
-        cursor_ += px(58) + row_extra_;
-        row_extra_ = 0;
+        if (combo("##language", names, 6, &index)) set_setting("game_language", static_cast<float>(kLanguages[index]));
         row(t.fps, t.fps_sub, true);
         const char* rates[] = {"30", "60", "120"};
         static const float kRates[] = {30, 60, 120};
@@ -1947,20 +1955,21 @@ void Launcher::page_settings() {
         const char* qualities[] = {t.original, t.balanced, t.high};
         int preset = quality_preset();
         if (segmented("##quality", qualities, 3, &preset)) apply_quality(preset);
-        row(t.scale, t.scale_sub, true, 380);
+        row(t.scale, t.scale_sub, true);
         MONITORINFO monitor{sizeof(MONITORINFO)};
         GetMonitorInfoW(MonitorFromWindow(window_, MONITOR_DEFAULTTOPRIMARY), &monitor);
         char screen_lines[16];
         std::snprintf(screen_lines, sizeof(screen_lines), "%ldp",
                       std::clamp<long>(monitor.rcMonitor.bottom - monitor.rcMonitor.top, 480, 2160));
+        char labels[kResolutionCount][32];
         const char* names[kResolutionCount];
-        const char* lines[kResolutionCount];
         for (int i = 0; i < kResolutionCount; ++i) {
-            names[i] = kResolutions[i].name;
-            lines[i] = kResolutions[i].lines ? kResolutions[i].lines : screen_lines;
+            std::snprintf(labels[i], sizeof(labels[i]), "%s \xC2\xB7 %s", kResolutions[i].name,
+                          kResolutions[i].lines ? kResolutions[i].lines : screen_lines);
+            names[i] = labels[i];
         }
         int resolution = resolution_index(setting("render_scale"));
-        if (segmented("##scale", names, kResolutionCount, &resolution, lines, 380)) {
+        if (combo("##scale", names, kResolutionCount, &resolution)) {
             set_setting("render_scale", kResolutions[resolution].scale);
         }
         row(t.fps_counter, t.fps_counter_sub);

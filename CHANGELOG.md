@@ -25,7 +25,8 @@
   for 16:9 and shrank). A slider's value now sits beside its grab instead of under it, the rows of a page come in one
   after another, a light runs round Play when the game is ready and along the menu's selected item. The bottom bar no
   longer shows Enter twice on the keyboard. With the keys or a controller the selected row is lit, as in mc3port: on a
-  choice already made (VSync on, say) nothing showed where the selection was.
+  choice already made (VSync on, say) nothing showed where the selection was. The internal resolution is a drop-down
+  list, like the game language, instead of six narrow buttons.
 - **The launcher's webs** stretch towards the mouse pointer, and the spider lowers itself on its thread to the menu's
   selected item instead of going up and down by itself.
 
