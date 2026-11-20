@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "pc/game_pause.h"
+#include "pc/input_hle.h"
 #include "pc/kernel_internal.h"
 #include "pc/log.h"
 #include "pc/mmio.h"
@@ -840,6 +841,7 @@ std::atomic<int> g_mouse_dx{0}, g_mouse_dy{0};  // raw mouse movement not taken 
 std::atomic<uint64_t> g_mouse_moved_at{0};
 
 LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+    input_note_window_message(window, message, wparam, lparam);  // before the hook, which keeps some messages
     if (message == WM_SETCURSOR && g_cursor_hidden && LOWORD(lparam) == HTCLIENT) {
         SetCursor(nullptr);
         return TRUE;
