@@ -1,9 +1,10 @@
 # Builds the Release configuration and packages it for a GitHub release:
-#   dist/sm2port-<version>-windows-x86.zip        (portable: a folder "sm2port" with sm2.exe, sm2runtime.dll, readmes,
-#                                                  changelog and licences; the same folder name in every version, so a
-#                                                  new zip extracted in the same place updates the old one)
-#   dist/sm2port-<version>-windows-x86-setup.exe  (installer, with Inno Setup 6.6+; skipped if it is missing)
-#   dist/sm2port-<version>-linux.tar.gz           (the portable folder plus install.sh for Wine, and the menu icon)
+#   dist/sm2port-<version>-windows-setup.exe     (installer, with Inno Setup 6.6+; skipped if it is missing. Older
+#                                                 launchers find their update by the "-setup.exe" ending)
+#   dist/sm2port-<version>-windows-portable.zip  (a folder "sm2port" with sm2.exe, sm2runtime.dll, readmes, changelog
+#                                                 and licences; the same folder name in every version, so a new zip
+#                                                 extracted in the same place updates the old one)
+#   dist/sm2port-<version>-linux.tar.gz          (the portable folder plus install.sh for Wine, and the menu icon)
 #   dist/SHA256SUMS
 # The version comes from project(... VERSION ...) in CMakeLists.txt. No game file can end up in the package.
 # PowerShell 7 (pwsh), as in the workflow: Windows PowerShell 5's Compress-Archive writes backslashes in the zip's
@@ -28,7 +29,7 @@ if (-not $SkipBuild) {
     & (Join-Path (Split-Path $cmake) ctest.exe) --test-dir build/pc-x86 -C Release --output-on-failure; if ($LASTEXITCODE) { throw "tests failed" }
 }
 
-$name = "sm2port-$version-windows-x86"
+$name = "sm2port-$version-windows"
 $stage = Join-Path "dist" "sm2port"
 if (Test-Path dist) { Remove-Item dist -Recurse -Force }
 New-Item -ItemType Directory -Force "$stage\licenses" | Out-Null
@@ -44,7 +45,7 @@ Copy-Item third_party/sdl3/LICENSE.txt "$stage\licenses\sdl3-LICENSE.txt"
 $forbidden = Get-ChildItem $stage -Recurse -File | Where-Object { $_.Extension -in ".iso", ".xbe", ".xiso", ".log", ".ini" }
 if ($forbidden) { throw "not for the package: $($forbidden.Name -join ', ')" }
 
-Compress-Archive -Path $stage -DestinationPath "dist/$name.zip"
+Compress-Archive -Path $stage -DestinationPath "dist/$name-portable.zip"
 
 # Linux: the same folder with the script that installs it under Wine (tools/install-linux.sh) and the icon for the
 # menu, as a tar.gz.

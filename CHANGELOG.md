@@ -68,6 +68,16 @@
 - **A little lighter on the PC**: the work that turns each frame's Xbox drawing commands into Direct3D takes about 5%
   less time (more in Midnight Club 3, whose port shares this code).
 
+### Changed
+
+- **Updating from the launcher**, as in mc3port: Update opens the new installer's link and your browser downloads it;
+  you start it, as any download. The launcher no longer downloads and starts the installer itself, which antivirus
+  programs take for the way malware brings in more of itself.
+- **The keyboard and the mouse's buttons are read from the game's window**, no longer by asking Windows for the whole
+  keyboard's state, which antivirus programs also distrust. Keys pressed in other windows no longer reach the game.
+- **Release files with names that say what they are**: `-windows-setup.exe` (the installer), `-windows-portable.zip`
+  and `-linux.tar.gz`, and a "Which file?" list at the end of the release notes, right above the files. "x86" is gone from the names.
+
 ### Fixed
 
 - **Sharp HUD pictures on the HUD's smallest pictures**: those enlarged four times got one level too many, Direct3D

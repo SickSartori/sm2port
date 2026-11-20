@@ -91,11 +91,11 @@ Compared with the console:
 
 ## Installing
 
-**Installer**: download `sm2port-<version>-windows-x86-setup.exe` from the
+**Installer**: download `sm2port-<version>-windows-setup.exe` from the
 [releases page](https://github.com/SickSartori/sm2port/releases) and run it. It installs for your user only (no
 administrator rights) and adds Start menu and desktop shortcuts.
 
-**Portable**: download `sm2port-<version>-windows-x86.zip`, extract it where you like and start `sm2.exe`. The
+**Portable**: download `sm2port-<version>-windows-portable.zip`, extract it where you like and start `sm2.exe`. The
 files are not code signed yet (see [Code signing policy](#code-signing-policy)), so Windows SmartScreen may ask once whether you trust them ("More info", then "Run anyway").
 To check a download, compare its SHA-256 with the `SHA256SUMS` file of the release.
 
@@ -246,8 +246,8 @@ each release lists their SHA-256 in `SHA256SUMS`.
 sm2port collects no personal data and has no telemetry. The only connection it makes on its own is the update check:
 when the launcher opens, it asks `api.github.com` for this project's latest release. You can turn it off in the
 installer, or at any time with `check_updates = 0` in `Documents\sm2port\sm2port.ini`; started from RecompLauncher, it
-is always off. If you accept an update, the launcher downloads the new installer and `SHA256SUMS` from this project's
-GitHub releases. **Report a problem** only opens GitHub's bug form in your browser, filled in for you to read and send
+is always off. If you accept an update, the launcher opens the new installer's link on this project's GitHub
+releases in your browser, which downloads it; sm2port itself downloads and starts nothing. **Report a problem** only opens GitHub's bug form in your browser, filled in for you to read and send
 yourself.
 
 ## Supporting the project

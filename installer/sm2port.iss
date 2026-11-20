@@ -43,7 +43,7 @@ ShowLanguageDialog=auto
 CloseApplications=yes
 RestartApplications=no
 OutputDir={#OutputDir}
-OutputBaseFilename=sm2port-{#AppVersion}-windows-x86-setup
+OutputBaseFilename=sm2port-{#AppVersion}-windows-setup
 Compression=lzma2/max
 SolidCompression=yes
 
