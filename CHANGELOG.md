@@ -75,6 +75,11 @@
   programs take for the way malware brings in more of itself.
 - **The keyboard and the mouse's buttons are read from the game's window**, no longer by asking Windows for the whole
   keyboard's state, which antivirus programs also distrust. Keys pressed in other windows no longer reach the game.
+- **New default keys**, after the game's own buttons and Marvel's Spider-Man on PC: Shift sprints, Ctrl dodges and
+  clings to walls, F is the web attack, Q grabs and picks up (B+Y), E is the web zip (LT+RT), R the Spider Reflexes,
+  the middle mouse button recenters the camera, Tab locks it on, Esc pauses and M opens the map. The Keyboard tab names
+  each key's action instead of the pad's button. Keys you changed yourself stay as they are; Restore keys gives the
+  new ones.
 - **Release files with names that say what they are**: `-windows-setup.exe` (the installer), `-windows-portable.zip`
   and `-linux.tar.gz`, and a "Which file?" list at the end of the release notes, right above the files. "x86" is gone from the names.
 

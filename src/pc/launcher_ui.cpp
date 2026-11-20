@@ -484,6 +484,8 @@ std::string key_name(int virtual_key) {
         case VK_SPACE: return in_language("Space", "Spazio", "Espaço", "Espacio");
         case VK_RETURN: return in_language("Enter", "Invio", "Enter", "Intro");
         case VK_BACK: return "Backspace";
+        case VK_ESCAPE: return "Esc";
+        case VK_TAB: return "Tab";
         case VK_LBUTTON: return in_language("Mouse L", "Mouse sx", "Mouse esq.", "Ratón izq.");
         case VK_RBUTTON: return in_language("Mouse R", "Mouse dx", "Mouse dir.", "Ratón der.");
         case VK_MBUTTON: return in_language("Mouse M", "Mouse centro", "Mouse meio", "Ratón centro");
@@ -2025,9 +2027,9 @@ void Launcher::page_keyboard_keys(float row_height, float column) {
     const Group groups[] = {
         {t.group_move, {PadInput::kMoveUp, PadInput::kMoveDown, PadInput::kMoveLeft, PadInput::kMoveRight}},
         {t.group_camera, {PadInput::kLookUp, PadInput::kLookDown, PadInput::kLookLeft, PadInput::kLookRight}},
-        {t.group_actions, {PadInput::kA, PadInput::kX, PadInput::kB, PadInput::kY, PadInput::kRightTrigger,
-                           PadInput::kLeftTrigger, PadInput::kBlack, PadInput::kWhite, PadInput::kLeftThumb,
-                           PadInput::kRightThumb}},
+        {t.group_actions, {PadInput::kA, PadInput::kX, PadInput::kB, PadInput::kY, PadInput::kGrab,
+                           PadInput::kRightTrigger, PadInput::kLeftTrigger, PadInput::kWebZip, PadInput::kWhite,
+                           PadInput::kBlack, PadInput::kLeftThumb, PadInput::kRightThumb}},
         {t.group_menu, {PadInput::kStart, PadInput::kBack, PadInput::kDpadUp, PadInput::kDpadDown, PadInput::kDpadLeft,
                         PadInput::kDpadRight}},
     };

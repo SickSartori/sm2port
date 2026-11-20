@@ -287,6 +287,8 @@ bool virtual_pad(XboxGamepad& pad) {
         if (down(PadInput::kLookRight)) pad.thumb_rx = 32767;
         if (down(PadInput::kLookUp)) pad.thumb_ry = 32767;
         if (down(PadInput::kLookDown)) pad.thumb_ry = -32768;
+        if (down(PadInput::kGrab)) pad.analog[kAnalogB] = pad.analog[kAnalogY] = 255;
+        if (down(PadInput::kWebZip)) pad.analog[kAnalogLeftTrigger] = pad.analog[kAnalogRightTrigger] = 255;
     }
     mouse_look(pad);
     return true;  // controller 1 is always there

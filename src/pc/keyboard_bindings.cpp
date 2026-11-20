@@ -15,31 +15,35 @@ namespace xport::pc {
 namespace {
 
 // Mouse buttons are virtual keys too (VK_LBUTTON...): the mouse drives the camera (input_hle.cpp, mouse_look).
+// The defaults follow the game's own buttons and, for the keys, Marvel's Spider-Man on PC: Shift runs, Ctrl dodges, F
+// shoots webs, Q grabs, Esc pauses, M opens the map.
 const KeyBinding kBindings[kPadInputs] = {
-    {PadInput::kRightTrigger, "rt", "RT", "Right trigger", "Grilletto destro", "Gatilho direito", "Gatillo derecho", VK_RBUTTON},
-    {PadInput::kLeftTrigger, "lt", "LT", "Left trigger", "Grilletto sinistro", "Gatilho esquerdo", "Gatillo izquierdo", 'Q'},
+    {PadInput::kRightTrigger, "rt", "RT", "Web swing", "Dondola", "Balançar na teia", "Balancearse", VK_RBUTTON},
+    {PadInput::kLeftTrigger, "lt", "LT", "Sprint", "Corri", "Correr", "Correr", VK_LSHIFT},
     {PadInput::kMoveLeft, "move_left", "L ←", "Move left", "Muovi a sinistra", "Mover para a esquerda", "Moverse a la izquierda", 'A'},
     {PadInput::kMoveRight, "move_right", "L →", "Move right", "Muovi a destra", "Mover para a direita", "Moverse a la derecha", 'D'},
     {PadInput::kMoveUp, "move_up", "L ↑", "Move forward", "Muovi avanti", "Mover para a frente", "Moverse adelante", 'W'},
     {PadInput::kMoveDown, "move_down", "L ↓", "Move back", "Muovi indietro", "Mover para trás", "Moverse atrás", 'S'},
     {PadInput::kA, "a", "A", "Jump", "Salta", "Pular", "Saltar", VK_SPACE},
-    {PadInput::kB, "b", "B", "Cling to walls", "Aggrappati ai muri", "Grudar nas paredes", "Agarrarse a las paredes", 'E'},
+    {PadInput::kB, "b", "B", "Dodge, wall cling", "Schiva, aggrappati", "Esquivar, grudar", "Esquivar, agarrarse", VK_LCONTROL},
     {PadInput::kX, "x", "X", "Attack", "Attacca", "Atacar", "Atacar", VK_LBUTTON},
-    {PadInput::kY, "y", "Y", "Y button", "Pulsante Y", "Botão Y", "Botón Y", 'R'},
+    {PadInput::kY, "y", "Y", "Web attack", "Attacco ragnatela", "Ataque de teia", "Ataque de telaraña", 'F'},
     {PadInput::kLeftThumb, "ls", "LS", "Left stick click", "Clic leva sinistra", "Clique do analógico esquerdo", "Clic del stick izquierdo", 'C'},
-    {PadInput::kBlack, "black", "Black", "Black button", "Pulsante nero", "Botão preto", "Botón negro", VK_LSHIFT},
-    {PadInput::kWhite, "white", "White", "White button", "Pulsante bianco", "Botão branco", "Botón blanco", VK_LCONTROL},
-    {PadInput::kStart, "start", "Start", "Pause", "Pausa", "Pausa", "Pausa", VK_RETURN},
-    {PadInput::kBack, "back", "Back", "Back", "Indietro", "Voltar", "Atrás", VK_BACK},
+    {PadInput::kBlack, "black", "Black", "Recenter camera", "Centra telecamera", "Centralizar câmera", "Centrar cámara", VK_MBUTTON},
+    {PadInput::kWhite, "white", "White", "Spider Reflexes", "Riflessi da ragno", "Reflexos de aranha", "Reflejos arácnidos", 'R'},
+    {PadInput::kStart, "start", "Start", "Pause", "Pausa", "Pausa", "Pausa", VK_ESCAPE},
+    {PadInput::kBack, "back", "Back", "Map", "Mappa", "Mapa", "Mapa", 'M'},
     {PadInput::kDpadUp, "up", "D-pad ↑", "D-pad up", "Croce su", "Direcional para cima", "Cruceta arriba", 'I'},
-    {PadInput::kDpadDown, "down", "D-pad ↓", "D-pad down", "Croce giù", "Direcional para baixo", "Cruceta abajo", 'K'},
+    {PadInput::kDpadDown, "down", "D-pad ↓", "Lock the camera on", "Aggancia la telecamera", "Travar a câmera", "Fijar la cámara", VK_TAB},
     {PadInput::kDpadLeft, "left", "D-pad ←", "D-pad left", "Croce sinistra", "Direcional para a esquerda", "Cruceta izquierda", 'J'},
     {PadInput::kDpadRight, "right", "D-pad →", "D-pad right", "Croce destra", "Direcional para a direita", "Cruceta derecha", 'L'},
     {PadInput::kLookLeft, "look_left", "R ←", "Camera left", "Telecamera sinistra", "Câmera à esquerda", "Cámara a la izquierda", VK_LEFT},
     {PadInput::kLookRight, "look_right", "R →", "Camera right", "Telecamera destra", "Câmera à direita", "Cámara a la derecha", VK_RIGHT},
     {PadInput::kLookUp, "look_up", "R ↑", "Camera up", "Telecamera su", "Câmera para cima", "Cámara arriba", VK_UP},
     {PadInput::kLookDown, "look_down", "R ↓", "Camera down", "Telecamera giù", "Câmera para baixo", "Cámara abajo", VK_DOWN},
-    {PadInput::kRightThumb, "rs", "RS", "Right stick click", "Clic leva destra", "Clique do analógico direito", "Clic del stick derecho", VK_MBUTTON},
+    {PadInput::kRightThumb, "rs", "RS", "Right stick click", "Clic leva destra", "Clique do analógico direito", "Clic del stick derecho", 'V'},
+    {PadInput::kGrab, "grab", "B+Y", "Grab, pick up", "Afferra, solleva", "Agarrar, levantar", "Agarrar, levantar", 'Q'},
+    {PadInput::kWebZip, "web_zip", "LT+RT", "Web zip", "Scatto ragnatela", "Impulso de teia", "Impulso de telaraña", 'E'},
 };
 
 const PadButtonBinding kPadButtonBindings[kPadButtons] = {

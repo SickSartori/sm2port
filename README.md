@@ -141,15 +141,19 @@ keyboard and the mouse are controller 1; every key can be changed on the same pa
 | W / A / S / D | left stick (move) |
 | Mouse, or the arrow keys | right stick (camera) |
 | Space | A (jump) |
-| E | B (cling to walls) |
 | Left mouse button | X (attack) |
-| Right mouse button | right trigger |
-| Q | left trigger |
-| R | Y |
-| C / Left Shift / Left Ctrl | left stick click / Black / White |
-| Middle mouse button | right stick click |
-| I / J / K / L | D-pad |
-| Enter / Backspace | Start (pause) / Back |
+| Right mouse button | right trigger (web swing) |
+| Left Shift | left trigger (sprint) |
+| Left Ctrl | B (dodge, cling to walls) |
+| F | Y (web attack) |
+| Q | B+Y (grab, pick up) |
+| E | left and right trigger (web zip, once bought) |
+| R | White (Spider Reflexes, slow motion) |
+| Middle mouse button | Black (recenter the camera) |
+| Tab | D-pad down (lock the camera on) |
+| Esc / M | Start (pause) / Back (map) |
+| I / J / L | D-pad up, left, right |
+| C / V | left / right stick click |
 
 | PC key | Action |
 |---|---|
