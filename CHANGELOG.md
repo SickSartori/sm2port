@@ -70,6 +70,9 @@
 
 ### Fixed
 
+- **Sharp HUD pictures on the HUD's smallest pictures**: those enlarged four times got one level too many, Direct3D
+  refused them (`cannot create an enlarged texture` in the log) and they stayed as the game's. Now they are sharp
+  like the others.
 - **Pieces of the city behind the minimap moved**: a door, a sign or a piece of wall at the foot of a building that came
   out behind the minimap was shrunk towards the map's centre with it, so it seemed to slide out of place. Only the
   minimap's own pieces, drawn over the scene, are scaled now.
