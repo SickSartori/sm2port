@@ -72,6 +72,8 @@
 
 - **A little lighter on the PC**: the work that turns each frame's Xbox drawing commands into Direct3D takes about 5%
   less time (more in Midnight Club 3, whose port shares this code).
+- **Linux and macOS**, as in mc3port: at start the port checks that the picture it hands from one Direct3D device to
+  the other really arrives, and shows it the plain way where it does not. Not yet tried on those systems.
 
 ### Changed
 
