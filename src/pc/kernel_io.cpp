@@ -639,7 +639,18 @@ NTSTATUS __stdcall NtReadFile(uint32_t handle, uint32_t event, uint32_t apc_rout
             status = kStatusEndOfFile;
         } else {
             read = static_cast<uint32_t>(g_disc->read(file->disc_entry, offset, buffer, length));
-            if (read == 0 && length) status = kStatusUnsuccessful;
+            if (read == 0 && length) {
+                status = kStatusUnsuccessful;
+                // The game goes on with whatever the buffer held, so a damaged or incomplete image shows only as a
+                // crash later, in the game's code (mc3port issue #22): the first ones are named here.
+                static std::atomic<int> failures{0};
+                if (failures++ < 20) {
+                    log_line("disc: read of %s failed (offset %llX, %X bytes, file of %llX bytes): the disc image is "
+                             "incomplete or cannot be read",
+                             file->location.xbox_path.c_str(), static_cast<unsigned long long>(offset), length,
+                             static_cast<unsigned long long>(file->disc_entry.size));
+                }
+            }
         }
     } else if (file->host != INVALID_HANDLE_VALUE) {
         OVERLAPPED overlapped{};
