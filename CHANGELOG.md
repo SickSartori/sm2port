@@ -90,6 +90,9 @@
 
 ### Fixed
 
+- **Steadier 120 fps**: the vertical blank comes from a high-resolution timer. With waits in whole milliseconds a blank
+  could come late and the next one early, and a frame that needed nearly a whole blank missed it: in the city 119.6
+  to 119.8 frames a second instead of 111.
 - **Frame timing**: a vertical blank was at times counted just after the frame that came with it, so two frames of
   the same length were timed as one short and one long, for the game's clock and in the log.
 - **Sharp HUD pictures on the HUD's smallest pictures**: those enlarged four times got one level too many, Direct3D
