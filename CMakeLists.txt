@@ -81,6 +81,9 @@ if(WIN32)
                                SM2PORT_VERSION="${PROJECT_VERSION}" ${SM2_VERSION_DEFINES})
     target_compile_options(sm2runtime PRIVATE /utf-8)
     target_include_directories(sm2runtime PRIVATE src res)
+    # The checksum in the PE header, which the linker leaves at 0 without /RELEASE: antivirus heuristics count an
+    # empty one against an unsigned file. Also for sm2.exe below.
+    target_link_options(sm2runtime PRIVATE /RELEASE)
     xport_identity(sm2runtime sm2port SM2PORT SM2_)
     # Started by RecompLauncher, the data stays next to sm2.exe (since 0.1.2).
     target_compile_definitions(sm2runtime PRIVATE XPORT_DATA_WITH_RECOMPLAUNCHER)
@@ -98,7 +101,7 @@ if(WIN32)
     target_link_options(sm2 PRIVATE
         /NODEFAULTLIB /ENTRY:LauncherEntry /SUBSYSTEM:WINDOWS
         /BASE:0x10000 /FIXED /DYNAMICBASE:NO /LARGEADDRESSAWARE
-        /SAFESEH:NO /INCREMENTAL:NO
+        /SAFESEH:NO /INCREMENTAL:NO /RELEASE
     )
     add_dependencies(sm2 sm2runtime)
 

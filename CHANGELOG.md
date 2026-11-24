@@ -77,6 +77,10 @@
   later.
 - **Linux and macOS**, as in mc3port: at start the port checks that the picture it hands from one Direct3D device to
   the other really arrives, and shows it the plain way where it does not. Not yet tried on those systems.
+- **Fewer antivirus false alarms**, as in mc3port. Started by RecompLauncher, `sm2.exe` no longer starts the game
+  process suspended and then resumes it, which is how malware hides its code in another process: the game process
+  starts as usual and joins `sm2.exe`'s job at once. `sm2.exe` and `sm2runtime.dll` also carry the checksum in
+  their header, which was left empty.
 
 ### Changed
 
