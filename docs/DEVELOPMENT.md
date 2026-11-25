@@ -42,9 +42,19 @@ Pacchetto della release (zip e SHA256SUMS in `dist/`): `powershell -File tools/p
 Non c'è un workflow di rilascio: i rilasci si fanno a mano.
 
 Pubblicare una versione: su `develop` aggiornare `project(... VERSION x.y.z)` in `CMakeLists.txt` e aggiungere la
-sezione `## x.y.z` in `CHANGELOG.md`; `powershell -File tools/package.ps1` crea zip, installer e `SHA256SUMS` in `dist/`;
-unire `develop` in `main` con `--no-ff`, inviare il tag `vx.y.z` e creare la release su GitHub con le note prese dal
-CHANGELOG (`tools/release_notes.ps1`) e i file di `dist/`.
+sezione `## x.y.z` in `CHANGELOG.md`; unire `develop` in `main` con `--no-ff` e inviare il tag `vx.y.z`. Il workflow
+compila e crea la release in bozza con le note prese dal CHANGELOG (`tools/release_notes.ps1`).
+
+Firma: il workflow non può firmare (la chiave del certificato Certum si raggiunge solo da SimplySign Desktop, con
+un codice usa e getta). Con la sessione di SimplySign aperta, scaricare dalla bozza lo zip portable e firmare gli
+stessi file compilati dal workflow, poi sostituire gli asset della bozza:
+
+```
+pwsh tools/package.ps1 -From <zip portable della bozza> -Sign
+gh release upload vx.y.z (Get-ChildItem dist -File).FullName --clobber
+```
+
+Poi VirusTotal sullo zip firmato e pubblicazione della bozza a mano.
 
 ## Struttura del repository
 

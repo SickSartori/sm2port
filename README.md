@@ -96,7 +96,8 @@ Compared with the console:
 administrator rights) and adds Start menu and desktop shortcuts.
 
 **Portable**: download `sm2port-<version>-windows-portable.zip`, extract it where you like and start `sm2.exe`. The
-files are not code signed yet (see [Code signing policy](#code-signing-policy)), so Windows SmartScreen may ask once whether you trust them ("More info", then "Run anyway").
+files are code signed from 0.2.0 (see [Code signing policy](#code-signing-policy)); the certificate is new, so Windows
+SmartScreen may still ask once whether you trust them ("More info", then "Run anyway").
 To check a download, compare its SHA-256 with the `SHA256SUMS` file of the release.
 
 Your settings (`sm2port.ini`), saves (`xbox_hdd`), logs (`logs`) and shader cache live in your `Documents\sm2port` folder
@@ -241,9 +242,13 @@ xemu and other open-source Xbox projects were studied as references only; no cod
 
 ## Code signing policy
 
-The releases are not code signed yet. Every Windows file is built from this repository and
+From 0.2.0 the Windows files (`sm2.exe`, `sm2runtime.dll`, the installer and its uninstaller) are code signed with a
+Certum Open Source Code Signing certificate issued to the author: Windows shows the publisher
+**Open Source Developer Gabriel Sartori**. Every file is built from this repository and
 [xport](https://github.com/SickSartori/xport) by GitHub Actions ([release workflow](.github/workflows/release.yml));
-each release lists their SHA-256 in `SHA256SUMS`.
+the author then signs those same files on their own PC (`tools/package.ps1 -From <the workflow's zip> -Sign`: the
+key cannot leave Certum's service, so the workflow cannot sign) and uploads them to the release, which lists their
+SHA-256 in `SHA256SUMS`. Earlier releases are not signed.
 
 ## Privacy
 

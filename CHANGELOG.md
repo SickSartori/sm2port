@@ -81,6 +81,9 @@
   process suspended and then resumes it, which is how malware hides its code in another process: the game process
   starts as usual and joins `sm2.exe`'s job at once. `sm2.exe` and `sm2runtime.dll` also carry the checksum in
   their header, which was left empty.
+- **Code signed files**: `sm2.exe`, `sm2runtime.dll`, the installer and its uninstaller are signed (Windows shows the
+  publisher "Open Source Developer Gabriel Sartori"), which Windows and antivirus programs trust more than
+  unsigned files. The certificate is new, so SmartScreen may still ask once until it has seen enough downloads.
 
 ### Changed
 
