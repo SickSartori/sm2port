@@ -44,6 +44,11 @@ CloseApplications=yes
 RestartApplications=no
 OutputDir={#OutputDir}
 OutputBaseFilename=sm2port-{#AppVersion}-windows-setup
+; With /DSign (tools/package.ps1 -Sign): the installer and the uninstaller inside it are code signed.
+#ifdef Sign
+SignTool=sign
+SignedUninstaller=yes
+#endif
 Compression=lzma2/max
 SolidCompression=yes
 
