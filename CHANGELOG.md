@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+### Fixed
+
+- **The window mode in the settings after F11 or Alt+Enter**: the row showed the mode in `sm2port.ini`, not the
+  window's own, so after F11 the in-game menu could say "Window" in full screen. It now shows the window as it is.
+  The settings also say that full screen has no border, which it always had: Alt+Tab is instant.
+
 ## 0.2.0
 
 ### New

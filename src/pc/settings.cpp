@@ -36,7 +36,7 @@ const Setting kSettings[] = {
     {"draw_distance", 100, "How far away cars, pedestrians and full-detail buildings are drawn, in percent of the game's own: 100 = like the Xbox, up to 300 (more work for the processor and the graphics card). Applies at the next start."},
     {"sharp_textures", 0, "The textures of the 3D scene (streets, buildings, people) enlarged two times with their edges kept, as sharp_2d does for the HUD: 1 = sharper from close, 0 = as the game's. Needs more graphics memory; they sharpen a few seconds after a place loads."},
     {"sharp_2d", 1,"The HUD's pictures (icons, letters) enlarged with their edges kept: 1 = sharper at high resolutions, 0 = as the game's."},
-    {"fullscreen", 0, "Start in full screen: 1 = yes, 0 = in a window (Alt+Enter or F11 switches while playing)."},
+    {"fullscreen", 0, "Start in full screen, without a border (Alt+Tab is instant): 1 = yes, 0 = in a window (Alt+Enter or F11 switches while playing)."},
     {"volume", 100, "Overall volume, 0 to 100."},
     {"launcher_music", 70, "Volume of the launcher's background music, 0 to 100 (0 = off)."},
     {"launcher_mute", 0, "1 = the launcher's background music is off (the speaker button in its bottom bar)."},

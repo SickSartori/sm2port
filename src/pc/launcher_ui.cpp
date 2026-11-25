@@ -117,7 +117,7 @@ const Texts kEnglish = {
     "Game", "Display", "Graphics", "Effects", "Audio", "Mouse",
     "Game language", "The game's text and speech", "Like Windows", "Frames per second", "60 is smoother; 30 like the Xbox; 120 for a fast processor",
     "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
-    "Aspect ratio", "16:9 is the game's own widescreen mode; 21:9 fills a wider screen", "Window mode", "Alt+Enter or F11 while playing",
+    "Aspect ratio", "16:9 is the game's own widescreen mode; 21:9 fills a wider screen", "Window mode", "Full screen has no border, so Alt+Tab is instant; Alt+Enter or F11 while playing",
     "Window", "Full screen",
     "Quality", "Sets filtering and effects together", "Original", "Balanced", "High", "Custom",
     "Internal resolution", "Smoother edges, more graphics card work",
@@ -189,7 +189,7 @@ const Texts kItalian = {
     "60 \xC3\xA8 pi\xC3\xB9 fluido; 30 come l'Xbox; 120 per un processore veloce", "Volume del gioco", "Musica del launcher",
     "La musica di sottofondo di questa schermata; 0 la spegne",
     "Formato", "16:9 \xC3\xA8 la modalit\xC3\xA0 panoramica del gioco; 21:9 riempie uno schermo pi\xC3\xB9 largo", "Modalit\xC3\xA0 finestra",
-    "Alt+Invio o F11 durante il gioco", "Finestra", "Schermo intero",
+    "Lo schermo intero \xC3\xA8 senza bordi, Alt+Tab \xC3\xA8 immediato; Alt+Invio o F11 durante il gioco", "Finestra", "Schermo intero",
     "Qualit\xC3\xA0", "Imposta insieme filtri ed effetti", "Originale", "Bilanciata", "Alta",
     "Personalizzata", "Risoluzione interna", "Bordi pi\xC3\xB9 lisci, pi\xC3\xB9 lavoro per la scheda video",
     "Filtro anisotropico", "Vertici sulla scheda video", "Pi\xC3\xB9 veloce; da spegnere solo in caso di problemi",
@@ -264,7 +264,7 @@ const Texts kPortuguese = {
     "Jogo", "Tela", "Gráficos", "Efeitos", "Áudio", "Mouse",
     "Idioma do jogo", "Textos e vozes do jogo (não há português)", "Como o Windows", "Quadros por segundo", "60 é mais fluido; 30 como no Xbox; 120 para um processador rápido",
     "Volume do jogo", "Música do launcher", "A música de fundo desta tela; 0 desliga",
-    "Proporção", "16:9 é o modo widescreen do próprio jogo; 21:9 preenche uma tela mais larga", "Modo de janela", "Alt+Enter ou F11 durante o jogo",
+    "Proporção", "16:9 é o modo widescreen do próprio jogo; 21:9 preenche uma tela mais larga", "Modo de janela", "A tela cheia é sem bordas, o Alt+Tab é imediato; Alt+Enter ou F11 durante o jogo",
     "Janela", "Tela cheia",
     "Qualidade", "Define filtros e efeitos de uma vez", "Original", "Equilibrada", "Alta", "Personalizada",
     "Resolução interna", "Bordas mais suaves, mais trabalho para a placa de vídeo",
@@ -335,7 +335,7 @@ const Texts kSpanish = {
     "Juego", "Pantalla", "Gráficos", "Efectos", "Audio", "Ratón",
     "Idioma del juego", "Textos y voces del juego", "Como Windows", "Fotogramas por segundo", "60 es más fluido; 30 como en Xbox; 120 para un procesador rápido",
     "Volumen del juego", "Música del launcher", "La música de fondo de esta pantalla; 0 la apaga",
-    "Relación de aspecto", "16:9 es el modo panorámico del propio juego; 21:9 llena una pantalla más ancha", "Modo de ventana", "Alt+Intro o F11 mientras juegas",
+    "Relación de aspecto", "16:9 es el modo panorámico del propio juego; 21:9 llena una pantalla más ancha", "Modo de ventana", "La pantalla completa es sin bordes, Alt+Tab es inmediato; Alt+Intro o F11 mientras juegas",
     "Ventana", "Pantalla completa",
     "Calidad", "Ajusta filtros y efectos a la vez", "Original", "Equilibrada", "Alta", "Personalizada",
     "Resolución interna", "Bordes más suaves, más trabajo para la tarjeta gráfica",
@@ -1888,7 +1888,7 @@ void Launcher::page_settings() {
         if (slider("##field_of_view", &view, 75, 130, "%.0f%%")) set_setting("field_of_view", std::round(view));
         row(t.window_mode, t.window_mode_sub);
         const char* modes[] = {t.windowed, t.fullscreen};
-        int mode = setting("fullscreen") != 0 ? 1 : 0;
+        int mode = nv2a_full_screen() ? 1 : 0;  // the window's own state: Alt+Enter and F11 change it too
         if (segmented("##mode", modes, 2, &mode)) {
             set_setting("fullscreen", static_cast<float>(mode));
             nv2a_set_full_screen(mode != 0);
