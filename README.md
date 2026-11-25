@@ -187,6 +187,7 @@ there). Language, frame rate, VSync, aspect ratio, resolution and filtering appl
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
 | Modern effects | glow, sharpening, colour, vignette, ambient occlusion |
 | Pause in the background | opens the in-game menu (and pauses) when you switch to another window |
+| Controller rumble | how strongly the controllers rumble, 0 to 100% of what the game asks (100%, the default); 0 turns it off |
 
 ## Known issues
 

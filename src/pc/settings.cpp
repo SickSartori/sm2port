@@ -41,6 +41,7 @@ const Setting kSettings[] = {
     {"launcher_music", 70, "Volume of the launcher's background music, 0 to 100 (0 = off)."},
     {"launcher_mute", 0, "1 = the launcher's background music is off (the speaker button in its bottom bar)."},
     {"fps_counter", 0, "Frames per second shown in a corner while playing: 1 = yes, 0 = no."},
+    {"rumble", 100, "How strongly the controllers rumble, in percent of what the game asks: 100 = like the Xbox, 0 = never."},
     {"pause_in_background", 1, "Pause the game (in-game menu) when its window goes to the background: 1 = yes, 0 = no."},
     {"check_updates", 1, "Look for a newer sm2port release on GitHub when the launcher opens: 1 = yes, 0 = no."},
     {"render_thread", 1, "Drawing on a thread of its own, beside the one that reads the game's drawing commands: 1 = yes (faster; needs four processor threads or more), 0 = as before, if the picture or the game misbehaves."},
