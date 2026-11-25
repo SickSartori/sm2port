@@ -12,16 +12,25 @@ float clamp01(float v) { return std::clamp(v, 0.0f, 1.0f); }
 ImVec2 lerp(ImVec2 a, ImVec2 b, float t) { return ImVec2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t); }
 ImU32 white(float alpha) { return IM_COL32(236, 241, 255, static_cast<int>(255 * clamp01(alpha))); }
 
+// A point of a web pulled towards `pull`, the more the nearer it is (none beyond `reach`).
+ImVec2 stretch(ImVec2 p, ImVec2 pull, float reach) {
+    const float dx = pull.x - p.x, dy = pull.y - p.y, distance = std::sqrt(dx * dx + dy * dy);
+    if (distance >= reach) return p;
+    const float k = 0.22f * (1 - distance / reach) * (1 - distance / reach);
+    return ImVec2(p.x + dx * k, p.y + dy * k);
+}
+
 // An orb web centred at `c`, spokes spread over the angles a0..a1 (a full circle when a1 = a0 + 2 pi). `progress` 0..1
 // weaves it: the spokes grow first, then the rings, each one as a thread running from spoke to spoke.
 void orb(ImDrawList* list, ImVec2 c, float radius, float a0, float a1, int spokes, int rings, float progress, float now,
-         float alpha, float thickness) {
+         float alpha, float thickness, ImVec2 pull, float reach) {
     const float spoke_length = radius * clamp01(progress / 0.4f);
     std::vector<ImVec2> direction(spokes);
     for (int i = 0; i < spokes; ++i) {
         const float angle = a0 + (a1 - a0) * i / (spokes - 1) + 0.012f * std::sin(now * 0.5f + i);  // sways
         direction[i] = ImVec2(std::cos(angle), std::sin(angle));
-        list->AddLine(c, ImVec2(c.x + direction[i].x * spoke_length, c.y + direction[i].y * spoke_length), white(alpha * 0.9f), thickness);
+        const ImVec2 end(c.x + direction[i].x * spoke_length, c.y + direction[i].y * spoke_length);
+        list->AddBezierQuadratic(c, stretch(lerp(c, end, 0.6f), pull, reach), end, white(alpha * 0.9f), thickness);
     }
     for (int ring = 1; ring <= rings; ++ring) {
         const float done = clamp01((progress - 0.35f - 0.65f * (ring - 1) / rings) / (0.65f / rings));
@@ -30,14 +39,14 @@ void orb(ImDrawList* list, ImVec2 c, float radius, float a0, float a1, int spoke
         for (int i = 0; i + 1 < spokes; ++i) {
             const float part = clamp01(done * (spokes - 1) - i);
             if (part <= 0) break;
-            const ImVec2 p0(c.x + direction[i].x * r, c.y + direction[i].y * r);
-            const ImVec2 p1(c.x + direction[i + 1].x * r, c.y + direction[i + 1].y * r);
+            const ImVec2 p0 = stretch(ImVec2(c.x + direction[i].x * r, c.y + direction[i].y * r), pull, reach);
+            const ImVec2 p1 = stretch(ImVec2(c.x + direction[i + 1].x * r, c.y + direction[i + 1].y * r), pull, reach);
             const float glint = 0.8f + 0.2f * std::sin(now * 1.4f - ring * 0.7f + i * 0.3f);
             if (part < 1) {
                 list->AddLine(p0, lerp(p0, p1, part), white(alpha * glint), thickness);
             } else {  // a thread sags towards the centre
                 const ImVec2 mid = lerp(p0, p1, 0.5f);
-                list->AddBezierQuadratic(p0, ImVec2(c.x + (mid.x - c.x) * 0.86f, c.y + (mid.y - c.y) * 0.86f), p1,
+                list->AddBezierQuadratic(p0, stretch(ImVec2(c.x + (mid.x - c.x) * 0.86f, c.y + (mid.y - c.y) * 0.86f), pull, reach), p1,
                                          white(alpha * glint), thickness);
                 if ((i + ring) % 4 == 0) {  // a drop of dew
                     list->AddCircleFilled(p1, thickness * 1.8f, white(alpha * (0.5f + 0.5f * std::sin(now * 2 + ring * 1.7f + i))));
@@ -51,16 +60,21 @@ void orb(ImDrawList* list, ImVec2 c, float radius, float a0, float a1, int spoke
 
 void WebEffects::burst(ImVec2 at, float radius, float now) { impacts_.push_back({at, now, radius}); }
 
-void WebEffects::draw(ImDrawList* list, ImVec2 screen, float scale, float now, float dt, float since_open) {
-    (void)dt;
+void WebEffects::draw(ImDrawList* list, ImVec2 screen, float scale, float now, float dt, float since_open, ImVec2 pointer,
+                      ImVec2 spider_at) {
     const float visible = clamp01(since_open / 1.0f);
     const float thick = std::max(1.0f, scale);
-    orb(list, ImVec2(0, screen.y), screen.y * 0.62f, -kPi / 2, 0, 8, 10, clamp01(since_open / 3.4f), now, 0.34f * visible, thick);
+    if (pointer.x < 0) pointer = ImVec2(-10000, -10000);
+    // The pull springs after the pointer.
+    pull_ = pull_.x < -9999 || pointer.x < -9999 ? pointer : lerp(pull_, pointer, std::min(1.0f, dt * 6));
+    const float reach = scale * 260;
+    orb(list, ImVec2(0, screen.y), screen.y * 0.62f, -kPi / 2, 0, 8, 10, clamp01(since_open / 3.4f), now, 0.34f * visible, thick,
+        pull_, reach);
     orb(list, ImVec2(screen.x, 0), screen.y * 0.46f, kPi / 2, kPi, 7, 8, clamp01((since_open - 0.7f) / 3.0f), now,
-        0.30f * visible, thick);
+        0.30f * visible, thick, pull_, reach);
     shots(list, screen, scale, now);
     impacts(list, scale, now);
-    spider(list, screen, scale, now);
+    spider(list, screen, scale, now, dt, spider_at);
 }
 
 // Threads shot from outside the screen; each leaves a small web where it lands and then fades.
@@ -99,14 +113,21 @@ void WebEffects::impacts(ImDrawList* list, float scale, float now) {
     for (const Impact& impact : impacts_) {
         const float age = now - impact.start;
         const float alpha = age < 1.6f ? 1.0f : 1 - clamp01((age - 1.6f) / 1.2f);
-        orb(list, impact.at, impact.radius, 0, 2 * kPi, 9, 3, clamp01(age / 0.5f), now, 0.55f * alpha, std::max(1.0f, scale));
+        orb(list, impact.at, impact.radius, 0, 2 * kPi, 9, 3, clamp01(age / 0.5f), now, 0.55f * alpha, std::max(1.0f, scale),
+            pull_, scale * 260);
     }
     impacts_.erase(std::remove_if(impacts_.begin(), impacts_.end(), [&](const Impact& i) { return now - i.start > 2.8f; }),
                    impacts_.end());
 }
 
 // A small spider lowering itself on a thread from the top edge, waiting, and climbing back up.
-void WebEffects::spider(ImDrawList* list, ImVec2 screen, float scale, float now) {
+void WebEffects::spider(ImDrawList* list, ImVec2 screen, float scale, float now, float dt, ImVec2 at) {
+    if (at.y >= 0) {  // hangs by the menu's item: down or up its thread to it, then bobbing
+        if (spider_.x < 0) spider_ = ImVec2(at.x, -scale * 40);
+        spider_ = lerp(spider_, at, std::min(1.0f, dt * 3.5f));
+        draw_spider(list, spider_.x, spider_.y + scale * 3 * std::sin(now * 2.2f), scale, now);
+        return;
+    }
     constexpr float kCycle = 16;
     const float phase = std::fmod(now, kCycle) / kCycle;
     const float top = screen.y * 0.02f, bottom = screen.y * 0.2f;
@@ -121,7 +142,11 @@ void WebEffects::spider(ImDrawList* list, ImVec2 screen, float scale, float now)
         y = bottom + (top - bottom) * (t * t * (3 - 2 * t));
         if (phase > 0.9f) y = top - (phase - 0.9f) * screen.y * 0.6f;  // gone up out of sight
     }
-    const float x = screen.x * 0.34f + std::sin(now * 0.5f) * scale * 14;
+    draw_spider(list, screen.x * 0.34f + std::sin(now * 0.5f) * scale * 14, y, scale, now);
+}
+
+// The spider at (x, y), the top of its head, on its thread from the top of the screen.
+void WebEffects::draw_spider(ImDrawList* list, float x, float y, float scale, float now) {
     list->AddLine(ImVec2(x, 0), ImVec2(x, y), white(0.4f), std::max(1.0f, scale));
     const float s = scale * 8;
     const ImU32 leg = IM_COL32(88, 90, 108, 255), body = IM_COL32(26, 26, 34, 255);

@@ -11,16 +11,21 @@ if ($end -lt 0) { $end = $lines.Count }
 # GitHub keeps line breaks in release notes: wrapped list items (continuation lines indented) become one line.
 $section = ($lines[($start + 1)..($end - 1)] -join "`n") -replace "`n  +", " "
 
-$notes = $section.Trim() + @"
+# "Which file?" last: on the release page the files come right under it. Not first: launchers read the
+# notes' first list items as what is new.
+$download = @"
 
 
 > sm2port is in early development and may still have problems. If you find one, please [open an issue](https://github.com/SickSartori/sm2port/issues).
 
-### Download
+### Which file?
 
-- **Installer**: ``sm2port-$Version-windows-x86-setup.exe`` (installs for your user, no administrator rights).
-- **Portable**: ``sm2port-$Version-windows-x86.zip`` (extract anywhere and start ``sm2.exe``).
-- Check a download against ``SHA256SUMS``. You need your own disc image of the Italian, the European (French, German, Spanish) or the World Xbox release: see the README.
+- **Windows**: ``sm2port-$Version-windows-setup.exe``. Run it: it installs for your user, and the launcher tells you about updates. The browser or Windows may warn because it is not signed yet ("Keep", then "More info" and "Run anyway").
+- **Windows, without installing**: ``sm2port-$Version-windows-portable.zip``. Extract it anywhere and start ``sm2.exe``.
+- **Linux**: ``sm2port-$Version-linux.tar.gz`` (Wine; see the README).
+- Or install it from [RecompLauncher](https://recomplauncher.com), which updates it for you.
+- You need your own disc image of the Italian, the European (French, German, Spanish) or the World Xbox release: see the README. ``SHA256SUMS`` is for checking a download; the two ``Source code`` files are only the code.
 - [Code signing policy](https://github.com/SickSartori/sm2port#code-signing-policy) and [Privacy](https://github.com/SickSartori/sm2port#privacy).
 "@
+$notes = $section.Trim() + "`n`n" + $download.Trim()
 Set-Content -Path $Out -Value $notes -Encoding utf8NoBOM

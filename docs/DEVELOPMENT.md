@@ -42,9 +42,19 @@ Pacchetto della release (zip e SHA256SUMS in `dist/`): `powershell -File tools/p
 Non c'è un workflow di rilascio: i rilasci si fanno a mano.
 
 Pubblicare una versione: su `develop` aggiornare `project(... VERSION x.y.z)` in `CMakeLists.txt` e aggiungere la
-sezione `## x.y.z` in `CHANGELOG.md`; `powershell -File tools/package.ps1` crea zip, installer e `SHA256SUMS` in `dist/`;
-unire `develop` in `main` con `--no-ff`, inviare il tag `vx.y.z` e creare la release su GitHub con le note prese dal
-CHANGELOG (`tools/release_notes.ps1`) e i file di `dist/`.
+sezione `## x.y.z` in `CHANGELOG.md`; unire `develop` in `main` con `--no-ff` e inviare il tag `vx.y.z`. Il workflow
+compila e crea la release in bozza con le note prese dal CHANGELOG (`tools/release_notes.ps1`).
+
+Firma: il workflow non può firmare (la chiave del certificato Certum si raggiunge solo da SimplySign Desktop, con
+un codice usa e getta). Con la sessione di SimplySign aperta, scaricare dalla bozza lo zip portable e firmare gli
+stessi file compilati dal workflow, poi sostituire gli asset della bozza:
+
+```
+pwsh tools/package.ps1 -From <zip portable della bozza> -Sign
+gh release upload vx.y.z (Get-ChildItem dist -File).FullName --clobber
+```
+
+Poi VirusTotal sullo zip firmato e pubblicazione della bozza a mano.
 
 ## Struttura del repository
 
@@ -115,6 +125,7 @@ Variabili d'ambiente:
 | `SM2_<VOCE>` | qualunque voce di `sm2port.ini` (per esempio `SM2_RENDER_SCALE=1`, `SM2_AMBIENT_OCCLUSION=0`) |
 | `SM2_DUMP_WINDOW=1` | con `SM2_DUMP_FRAMES`, salva anche l'immagine della finestra con gli effetti (`window-NNNNN.bmp`) |
 | `SM2_AO_VIEW=1` | mostra solo l'ombreggiatura ambientale, in grigio, al posto della scena (per regolarla) |
+| `SM2_SCREEN_SHAPE=<larghezza/altezza>` | con `widescreen = 2`, quella forma dello schermo invece di quella vera (per provare il 21:9 senza uno schermo 21:9, per esempio 2.389) |
 | `SM2_LANGUAGE` | lingua del gioco: 1 inglese, 3 tedesco, 4 francese, 5 spagnolo, 6 italiano (altrimenti `game_language`, poi la lingua di Windows) |
 | `SM2_MULTICORE=1` | usa tutti i core; per default il gioco gira su un core solo, come sull'Xbox |
 | `SM2_NO_DIALOG=1` | niente finestre di dialogo e niente launcher (per i test automatici) |
@@ -125,12 +136,14 @@ Variabili d'ambiente:
 | `SM2_DUMP_FRAMES=<n>` | salva un frame presentato ogni `n` come `frame-NNNNN.bmp` nella cartella di lavoro |
 | `SM2_DEBUG_DRAWS=<n>` | descrive nel log i primi `n` draw (vertici, combiner, texture, stati); con `SM2_DEBUG_DRAWS_FF=1` solo quelli fixed-function |
 | `SM2_DUMP_TARGET=<indirizzo hex>` | con ogni frame salvato, anche la render target a quell'indirizzo fisico (`target-NNNNN.bmp`) |
-| `SM2_DEBUG_FRAME_AT=<s>[+<durata>]` | una riga per draw (e per clear) durante 1 s, o `durata` secondi, a partire da `s` secondi dopo il primo draw (rettangolo a schermo, coordinate di texture, stati) |
+| `SM2_DEBUG_FRAME_AT=<s>[+<durata>]` | una riga per draw (e per clear) durante 1 s, o `durata` secondi, a partire da `s` secondi dopo il primo draw (rettangolo a schermo, coordinate di texture, stati); il tasto F9 nel gioco apre la stessa finestra per 1 s da quel momento |
 | `SM2_DEBUG_PROBE=<x>,<y>` | con il precedente, registra il pixel (x, y) ogni volta che un draw lo cambia |
 | `SM2_DEBUG_HUD=<n>` | a ogni F7, i successivi `n` draw piatti nel log con la decisione del renderer (HUD stretto, nascosto, bande nere) |
 | `SM2_DEBUG_FULLSCREEN=1` | con `SM2_DEBUG_FRAME_AT`, solo i draw che coprono quasi tutta la superficie (gli effetti a schermo intero), così la finestra può durare a lungo |
 | `SM2_DEBUG_ADDITIVE=1` | con `SM2_DEBUG_FRAME_AT`, solo i draw che aggiungono luce (fusione con destinazione ONE: aloni, scie, bagliori) |
 | `SM2_DUMP_TEXTURE=<indirizzo hex>` | salva le texture decodificate di quella pagina di 4 KB come `texture-<indirizzo>.bmp` (con l'alfa) |
+| `SM2_DUMP_TEXTURE=all` | salva ogni texture che il gioco usa, una volta, come `textures_dump\<hash>.png` nella cartella dei dati (BGRA con l'alfa, qualunque sia il formato del gioco): `<hash>` è il nome da dare all'immagine in `textures_replace` |
+| `SM2_RENDER_THREAD=2` | il thread di rendering (impostazione `render_thread`) acceso e spento a turno ogni 4 s, con draw e fotogrammi al secondo di ciascun modo nel log (`renderer: render thread on/off: ...`): il confronto leggibile su un PC la cui velocità cambia da una prova all'altra. `0` lo spegne |
 | `SM2_DUMP_2D=1` | salva ogni texture dei draw piatti dell'HUD come `texture-<indirizzo>-<hash>.bmp` (le compresse a blocchi così come sono, in `.dds`); l'hash è il nome da dare all'immagine in `textures_replace` |
 | `SM2_GPU_STATS=1` | ogni 10 s, i metodi GPU più usati |
 | `SM2_PROFILE=1` | ogni 10 s, oltre alla riga `profile:` sempre presente (fps del gioco, vblank per fotogramma, carico del core del gioco e del thread della GPU): tempo CPU e attese di ogni thread, registri della GPU letti o scritti dal gioco tramite eccezioni, con l'indirizzo del codice |
@@ -140,7 +153,7 @@ Variabili d'ambiente:
 | `SM2_TRACE_WAITS=1` | registra le attese del kernel che durano più di 5 s, con gli ultimi eventi segnalati |
 | `SM2_AUDIO_DUMP=<s>` | i primi `s` secondi dell'audio in uscita in `audio.wav` (cartella di lavoro) |
 | `SM2_AUDIO_VOICES=1` | ogni 10 s, l'elenco delle voci audio attive con formato, volume, tono, regioni, età e uscite |
-| `SM2_SKIP=<texture>:<superficie>:<fusione>` / `SM2_DUMP_DRAW=...` | salta, o salva prima e dopo, i draw corrispondenti (per isolare un difetto grafico) |
+| `SM2_SKIP=<texture>:<superficie>:<fusione>` / `SM2_DUMP_DRAW=...` | salta, o salva prima e dopo, i draw corrispondenti (per isolare un difetto grafico); `SM2_DUMP_DRAW` agisce solo nella finestra di `SM2_DEBUG_FRAME_AT` o di F9 (il primo draw corrispondente) e fuori lascia i vertici alla GPU |
 | `SM2_WATCHDOG=<s>` | ogni `s` secondi, dove si trovano i thread del gioco (cambia la temporizzazione) |
 
 ## Prove automatiche

@@ -19,4 +19,7 @@ void apply_hle_patches(const Xbe& xbe);
 // the field of view).
 void hle_frame();
 
+// Setting widescreen 2: whether the game's camera took the screen's shape. If not, 3D frames stay 16:9.
+bool hle_wide_shape();
+
 }  // namespace xport::pc

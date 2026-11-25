@@ -11,7 +11,6 @@ from your own disc image.
 
 <a href="https://recomplauncher.com/game/sm2port"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
 
-<a href="https://github.com/sponsors/SickSartori"><img alt="Sponsor on GitHub" src="https://img.shields.io/badge/Sponsor-on_GitHub-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" height="36"></a>
 <a href="https://ko-fi.com/sicksartori"><img alt="Support me on Ko-fi" src="https://ko-fi.com/img/githubbutton_sm.svg" height="36"></a>
 
 [![Latest release](https://img.shields.io/github/v/release/SickSartori/sm2port?label=release)](https://github.com/SickSartori/sm2port/releases/latest)
@@ -92,12 +91,13 @@ Compared with the console:
 
 ## Installing
 
-**Installer**: download `sm2port-<version>-windows-x86-setup.exe` from the
+**Installer**: download `sm2port-<version>-windows-setup.exe` from the
 [releases page](https://github.com/SickSartori/sm2port/releases) and run it. It installs for your user only (no
 administrator rights) and adds Start menu and desktop shortcuts.
 
-**Portable**: download `sm2port-<version>-windows-x86.zip`, extract it where you like and start `sm2.exe`. The
-files are not code signed yet (see [Code signing policy](#code-signing-policy)), so Windows SmartScreen may ask once whether you trust them ("More info", then "Run anyway").
+**Portable**: download `sm2port-<version>-windows-portable.zip`, extract it where you like and start `sm2.exe`. The
+files are code signed from 0.2.0 (see [Code signing policy](#code-signing-policy)); the certificate is new, so Windows
+SmartScreen may still ask once whether you trust them ("More info", then "Run anyway").
 To check a download, compare its SHA-256 with the `SHA256SUMS` file of the release.
 
 Your settings (`sm2port.ini`), saves (`xbox_hdd`), logs (`logs`) and shader cache live in your `Documents\sm2port` folder
@@ -142,15 +142,19 @@ keyboard and the mouse are controller 1; every key can be changed on the same pa
 | W / A / S / D | left stick (move) |
 | Mouse, or the arrow keys | right stick (camera) |
 | Space | A (jump) |
-| E | B (cling to walls) |
 | Left mouse button | X (attack) |
-| Right mouse button | right trigger |
-| Q | left trigger |
-| R | Y |
-| C / Left Shift / Left Ctrl | left stick click / Black / White |
-| Middle mouse button | right stick click |
-| I / J / K / L | D-pad |
-| Enter / Backspace | Start (pause) / Back |
+| Right mouse button | right trigger (web swing) |
+| Left Shift | left trigger (sprint) |
+| Left Ctrl | B (dodge, cling to walls) |
+| F | Y (web attack) |
+| Q | B+Y (grab, pick up) |
+| E | left and right trigger (web zip, once bought) |
+| R | White (Spider Reflexes, slow motion) |
+| Middle mouse button | Black (recenter the camera) |
+| Tab | D-pad down (lock the camera on) |
+| Esc / M | Start (pause) / Back (map) |
+| I / J / L | D-pad up, left, right |
+| C / V | left / right stick click |
 
 | PC key | Action |
 |---|---|
@@ -166,15 +170,18 @@ without moving). Settings
 ## Settings
 
 Everything is in the launcher's **Settings** page, in the in-game menu (F1) and in `sm2port.ini` (each key is explained
-there). Language, frame rate, aspect ratio, resolution and filtering apply the next time the game starts.
+there). Language, frame rate, VSync, aspect ratio, resolution and filtering apply the next time the game starts.
 
 | Setting | What it does |
 |---|---|
 | Game language | the game's own languages for your release, by default like Windows |
-| Frames per second | 30 like the Xbox, or 60 |
-| Aspect ratio | 16:9 (the game's widescreen mode) or 4:3 |
+| Frames per second | 30 like the Xbox, 60, or 120 for a fast processor and a screen of 120 Hz or more (the game keeps its speed; where the PC cannot keep up, fewer frames are shown) |
+| VSync | off by default: frames are shown at once, and the picture can tear (a horizontal line where two frames meet) in fast camera moves. On: it never tears, but a PC that cannot keep up may skip frames |
+| Aspect ratio | 16:9 (the game's widescreen mode), 4:3, or 21:9: your screen's own shape when it is wider than 16:9 (21:9, 32:9), with the view widened to the sides; films and loading screens stay 16:9, with bars at the sides |
 | Time of day | the game's own clock, or always dawn, day, sunset or night |
 | Round HUD in 16:9 | the health ring keeps its shape in 16:9 instead of stretching |
+| Sharp textures | off by default: the textures of streets, buildings and people enlarged two times with their edges kept, sharper from close; they take more graphics memory and sharpen a few seconds after a place loads |
+| Draw distance | how far away cars, pedestrians and full-detail buildings are drawn: 100% (the default) like the Xbox, up to 300%. Traffic and pedestrians also appear further away. More work for the processor and the graphics card: in tests at 60 fps, 200% cost about a tenth of the frames, 300% about a quarter. Applies at the next start |
 | Field of view | 75% to 130% of the game's own |
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
@@ -187,7 +194,7 @@ there). Language, frame rate, aspect ratio, resolution and filtering apply the n
 - **Sound**: the game's sounds, music and films play, but some DirectSound calls (3D positioning among them) are not
   emulated yet and the Xbox sound chip's own effects are left out. The sound may differ from the console.
 - Online play (Xbox Live) is not available. Only the Italian, the European (French, German, Spanish) and the World releases are supported.
-- On monitors wider than 16:9 there are thin black bars at the sides.
+- On screens wider than 16:9, choose 21:9 in the settings: the game's menus and texts, and the web counter at the bottom left, are then wider than they should be, and films and loading screens keep bars at the sides.
 - Linux (Wine, Proton) has not been tried with this game: see [Linux](#linux-experimental-not-tried-yet).
 
 ## Troubleshooting
@@ -235,24 +242,27 @@ xemu and other open-source Xbox projects were studied as references only; no cod
 
 ## Code signing policy
 
-The releases are not code signed yet. Every Windows file is built from this repository and
+From 0.2.0 the Windows files (`sm2.exe`, `sm2runtime.dll`, the installer and its uninstaller) are code signed with a
+Certum Open Source Code Signing certificate issued to the author: Windows shows the publisher
+**Open Source Developer Gabriel Sartori**. Every file is built from this repository and
 [xport](https://github.com/SickSartori/xport) by GitHub Actions ([release workflow](.github/workflows/release.yml));
-each release lists their SHA-256 in `SHA256SUMS`.
+the author then signs those same files on their own PC (`tools/package.ps1 -From <the workflow's zip> -Sign`: the
+key cannot leave Certum's service, so the workflow cannot sign) and uploads them to the release, which lists their
+SHA-256 in `SHA256SUMS`. Earlier releases are not signed.
 
 ## Privacy
 
 sm2port collects no personal data and has no telemetry. The only connection it makes on its own is the update check:
 when the launcher opens, it asks `api.github.com` for this project's latest release. You can turn it off in the
 installer, or at any time with `check_updates = 0` in `Documents\sm2port\sm2port.ini`; started from RecompLauncher, it
-is always off. If you accept an update, the launcher downloads the new installer and `SHA256SUMS` from this project's
-GitHub releases. **Report a problem** only opens GitHub's bug form in your browser, filled in for you to read and send
+is always off. If you accept an update, the launcher opens the new installer's link on this project's GitHub
+releases in your browser, which downloads it; sm2port itself downloads and starts nothing. **Report a problem** only opens GitHub's bug form in your browser, filled in for you to read and send
 yourself.
 
 ## Supporting the project
 
 sm2port is free and always will be: no paid builds, no early access, no locked features. If you enjoy it and want to
-say thanks, you can support its author on [GitHub Sponsors](https://github.com/sponsors/SickSartori) or
-[Ko-fi](https://ko-fi.com/sicksartori). It is never needed to play, and it buys nothing: it gives more time for fixes,
+say thanks, you can support its author on [Ko-fi](https://ko-fi.com/sicksartori). It is never needed to play, and it buys nothing: it gives more time for fixes,
 features and the next port.
 
 ## Licence

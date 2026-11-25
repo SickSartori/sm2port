@@ -12,6 +12,7 @@ enum class PadInput : uint8_t {
     kA, kB, kX, kY, kLeftThumb, kBlack, kWhite,
     kStart, kBack, kDpadUp, kDpadDown, kDpadLeft, kDpadRight,
     kLookLeft, kLookRight, kLookUp, kLookDown, kRightThumb,
+    kGrab, kWebZip,  // two buttons at once (B+Y, LT+RT): one key for what the pad does with two
     kCount
 };
 constexpr int kPadInputs = static_cast<int>(PadInput::kCount);

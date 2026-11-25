@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <unordered_set>
 
+#include "pc/hle_patches.h"
 #include "pc/log.h"
 #include "pc/renderer_d3d11.h"
 #include "pc/settings.h"
@@ -53,7 +54,9 @@ void minimap(RendererNarrowing& n, const SurfaceState& surface, Box b, uint32_t 
     // shortcut: a flat piece ending left of the map is taken for the tutorials' box (which ends there) and left as drawn,
     // also an objective's marker on the map's west edge; tell them apart if the box ever turns out to reach further.
     if (texture != g_minimap_target && b.right <= g_map.left && g_extent[0] > g_extent[1]) return;
-    n.factor = kMinimapScale;  // not narrowed in 16:9 too: the tilted disc is 3D, drawn with the wide projection
+    // Not narrowed in 16:9 too: the tilted disc is 3D, drawn with the wide projection. Wider than 16:9 the game still
+    // lays the minimap out for 16:9, so it is narrowed by what the screen adds.
+    n.factor = kMinimapScale * (hle_wide_shape() ? (16.0f / 9.0f) / renderer_aspect() : 1.0f);
     n.anchor = cx;
     n.factor_y = kMinimapScale;
     n.anchor_y = cy;
@@ -84,7 +87,8 @@ RendererNarrowing narrowing(const SurfaceState& surface, float left, float right
     // ring, with its grey tab); not the lower left one, as the pieces of one box must share a column and the tutorials'
     // box there reaches past the middle (narrowing its pieces each towards its own side would tear it apart), nor the
     // lower right one (below). What counts is the part inside the scissor rectangle.
-    const float narrow = (4.0f / 3.0f) / renderer_aspect();
+    const float shown = hle_wide_shape() ? renderer_aspect() : std::min(renderer_aspect(), 16.0f / 9.0f);
+    const float narrow = (4.0f / 3.0f) / shown;
     if (setting("hud_aspect") == 0 || !ring || narrow >= 0.99f) return n;
     left = std::max(left, static_cast<float>(surface.clip_x));
     right = std::min(right, static_cast<float>(surface.clip_x + surface.clip_width));

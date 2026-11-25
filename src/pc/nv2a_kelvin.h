@@ -21,5 +21,7 @@ void kelvin_array_elements16(const uint32_t* words, uint32_t count);
 uint32_t kelvin_drawn_width(uint32_t address);
 // The same for the height: 480 lines on NTSC, 576 on PAL (this game's PAL build draws 640x576), 0 if none.
 uint32_t kelvin_drawn_height(uint32_t address);
+// F9: SM2_DEBUG_FRAME_AT's window for one second from now (draw lines, SM2_DEBUG_PROBE, SM2_DUMP_DRAW).
+void kelvin_request_debug_window();
 
 }  // namespace xport::pc
