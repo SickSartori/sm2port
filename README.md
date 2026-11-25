@@ -9,7 +9,7 @@ French/German/Spanish and the World releases).<br>
 16:9 widescreen, up to 60 fps, a higher internal resolution, keyboard and mouse and optional modern effects, running
 from your own disc image.
 
-<a href="https://recomplauncher.com/game/sm2port"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
+<a href="https://recomplauncher.com/game/sm2port"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></a>
 
 <a href="https://ko-fi.com/sicksartori"><img alt="Support me on Ko-fi" src="https://ko-fi.com/img/githubbutton_sm.svg" height="36"></a>
 

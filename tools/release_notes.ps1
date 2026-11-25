@@ -20,7 +20,7 @@ $download = @"
 
 ### Which file?
 
-- **Windows**: ``sm2port-$Version-windows-setup.exe``. Run it: it installs for your user, and the launcher tells you about updates. The browser or Windows may warn because it is not signed yet ("Keep", then "More info" and "Run anyway").
+- **Windows**: ``sm2port-$Version-windows-setup.exe``. Run it: it installs for your user, and the launcher tells you about updates. It is code signed; the certificate is new, so the browser or Windows may still warn ("Keep", then "More info" and "Run anyway").
 - **Windows, without installing**: ``sm2port-$Version-windows-portable.zip``. Extract it anywhere and start ``sm2.exe``.
 - **Linux**: ``sm2port-$Version-linux.tar.gz`` (Wine; see the README).
 - Or install it from [RecompLauncher](https://recomplauncher.com), which updates it for you.
