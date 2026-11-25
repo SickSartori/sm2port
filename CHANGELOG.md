@@ -2,6 +2,12 @@
 
 ## 0.2.1
 
+### Improved
+
+- **More settings on RecompLauncher's page**: 120 frames per second, 21:9, the field of view, the draw distance, the
+  texture filter, sharp textures, the modern effects and the frame counter, which the launcher and the in-game menu
+  already had.
+
 ### Fixed
 
 - **The window mode in the settings after F11 or Alt+Enter**: the row showed the mode in `sm2port.ini`, not the
