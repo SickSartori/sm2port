@@ -186,6 +186,7 @@ there). Language, frame rate, VSync, aspect ratio, resolution and filtering appl
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
 | Modern effects | glow, sharpening, colour, vignette, ambient occlusion |
+| Gamma and brightness | the 3D scene's, with the modern effects on or off (the HUD, menus and films stay as they are): gamma 0.8 to 1.4 (1, the default, is the game's), brightness 80 to 120% (more lifts the dark parts) |
 | Pause in the background | opens the in-game menu (and pauses) when you switch to another window |
 | Controller rumble | how strongly the controllers rumble, 0 to 100% of what the game asks (100%, the default); 0 turns it off |
 
