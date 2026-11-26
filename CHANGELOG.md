@@ -18,6 +18,10 @@
 
 ### Fixed
 
+- **The final fight with Doc Ock with a fixed time of day**: it could start and go straight back to the flight to the
+  warehouse. A fixed time of day was written into the game's clock every frame, also after a mission had set its own
+  hour and timed itself on that clock. Now the clock is the mission's from the moment a script sets the time, until a
+  save is loaded or the setting changes. Not tried in that fight: no save before it was at hand.
 - **Crash on entering the city with the draw distance above 200%** (issue 9): the game keeps the objects near the
   camera in a list of 750, made for the Xbox's distances; with more of them in view the list ran past its end into the
   game's own memory, and it crashed at the start or soon after. The list now holds 4096, and 300% plays.
