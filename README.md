@@ -263,6 +263,8 @@ yourself.
 
 ## Supporting the project
 
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-buy_me_a_coffee-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/sicksartori)
+
 sm2port is free and always will be: no paid builds, no early access, no locked features. If you enjoy it and want to
 say thanks, you can support its author on [Ko-fi](https://ko-fi.com/sicksartori). It is never needed to play, and it buys nothing: it gives more time for fixes,
 features and the next port.
