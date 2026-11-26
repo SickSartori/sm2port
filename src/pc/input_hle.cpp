@@ -268,7 +268,9 @@ void mouse_look(XboxGamepad& pad) {
     static float carry_x = 0, carry_y = 0;  // past full deflection, for the next polls (mouse_stick.h)
     pad.thumb_rx = mouse_to_stick(pad.thumb_rx, dx * gain, carry_x);
     pad.thumb_ry = mouse_to_stick(pad.thumb_ry, -dy * gain * invert, carry_y);
-    if (dx || dy) mouse_skip_dead_zone(pad.thumb_rx, pad.thumb_ry, setting("mouse_deadzone"));
+    const float dead_zone = setting("mouse_deadzone");
+    if (dx) pad.thumb_rx = mouse_skip_dead_zone(pad.thumb_rx, dead_zone);
+    if (dy) pad.thumb_ry = mouse_skip_dead_zone(pad.thumb_ry, dead_zone);
 }
 
 // Controller 1 without a pad: the keyboard and mouse (only while the game window is in front) and the test script.

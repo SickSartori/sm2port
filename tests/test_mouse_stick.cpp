@@ -21,18 +21,11 @@ int main() {
     // A huge swipe waits at most kMouseCarryLimit.
     mouse_to_stick(0, 1000 * 32767.0f, carry);
     CHECK(carry == kMouseCarryLimit);
-    // Past the dead zone: a small movement starts at its edge, the direction kept; full tilt and no movement untouched.
-    int16_t x = 3277, y = 0;  // a tenth of full tilt
-    mouse_skip_dead_zone(x, y, 0.2f);
-    CHECK(x > 0.27f * 32767 && x < 0.29f * 32767 && y == 0);
-    x = -1000, y = -1000;
-    mouse_skip_dead_zone(x, y, 0.2f);
-    CHECK(x == y && x < -0.14f * 32767);
-    x = 32767, y = 32767;
-    mouse_skip_dead_zone(x, y, 0.2f);
-    CHECK(x == 32767 && y == 32767);
-    x = 0, y = 0;
-    mouse_skip_dead_zone(x, y, 0.2f);
-    CHECK(x == 0 && y == 0);
+    // Past the dead zone, each axis on its own: a small movement starts at its edge, the sign kept; full tilt and no
+    // movement untouched.
+    CHECK(mouse_skip_dead_zone(3277, 0.4f) > 0.45f * 32767 && mouse_skip_dead_zone(3277, 0.4f) < 0.47f * 32767);
+    CHECK(mouse_skip_dead_zone(-3277, 0.4f) == -mouse_skip_dead_zone(3277, 0.4f));
+    CHECK(mouse_skip_dead_zone(32767, 0.4f) == 32767 && mouse_skip_dead_zone(-32768, 0.4f) == -32768);
+    CHECK(mouse_skip_dead_zone(0, 0.4f) == 0);
     return test_result();
 }
