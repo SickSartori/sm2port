@@ -214,6 +214,10 @@ volatile uint32_t* g_clock = nullptr;
 // game's until a save is loaded (the load puts the clock back from the save: the fixed hour is taken again there) or
 // the setting changes. Both script functions are done here, as the game does them, with that mark.
 std::atomic<bool> g_clock_left_to_game{false};
+// The game's time when the fixed hour took the clock: put back when the setting goes back to the game's clock, so the
+// game goes on from its own hour instead of the fixed one.
+std::atomic<bool> g_clock_held{false};
+uint32_t g_clock_before = 0;
 float g_clock_setting = -1;
 
 void leave_clock_to_game(const char* how) {
@@ -239,6 +243,7 @@ void __cdecl script_advance_time(int hour, int minute) {  // World 0x2A81C0: for
 void __cdecl save_loaded_clock(uint32_t value) {
     *g_clock = value;
     g_clock_left_to_game = false;
+    g_clock_held = false;  // the save's time is the game's own: taken again from here
 }
 
 // World 0x2B8129, in the load of a save: "mov [clock],eax" (5 bytes) becomes a call here.
@@ -410,7 +415,12 @@ void hle_frame() {
     const float hour = setting("time_of_day");
     if (hour != g_clock_setting) g_clock_setting = hour, g_clock_left_to_game = false;  // a new choice takes it again
     // Whole minutes: the tick makes it hh:mm:01, so the game's "new minute" work does not run on every tick.
-    if (g_clock && hour >= 0 && hour < 24 && !g_clock_left_to_game) *g_clock = static_cast<uint32_t>(hour * 60) * 60;
+    if (g_clock && hour >= 0 && hour < 24 && !g_clock_left_to_game) {
+        if (!g_clock_held.exchange(true)) g_clock_before = *g_clock;
+        *g_clock = static_cast<uint32_t>(hour * 60) * 60;
+    } else if (g_clock_held.exchange(false) && hour < 0) {  // not when a script set the time: that hour stays
+        *g_clock = g_clock_before;
+    }
     scale_field_of_view();
 }
 
