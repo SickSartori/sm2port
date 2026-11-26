@@ -180,6 +180,17 @@ const Patch kPatches[] = {
     // one core it also waits for the main thread every round, so the start took 7 to 11 s. Sleep(1) instead:
     // "push 1Eh; call Sleep" becomes "push 1".
     {"loader thread sleep", 0x0038DC79, {0x6A, 0x1E, 0xE8}, {0x6A, 0x01}},
+    // The objects near the camera each frame go into one of two lists (World 0x4F6F0C and 0x4F6F10, swapped every frame)
+    // allocated for 750 entries {object, value}, filled with no check of that size (World 0x234355 and 0x241348) and then
+    // sorted. With setting draw_distance above 200% more objects fade in than that: at 250% 796 were counted on entering
+    // the city, and the entries past the end overwrote the next block of the game's heap, which crashed it soon after
+    // (sm2port issue 9). Both lists hold 4096 entries: the size allocated, the count each is cleared to, and the count
+    // the game compares the two lists over.
+    {"near objects list size, first", 0x00233DDE, {0x68, 0x74, 0x17, 0x00, 0x00}, {0x68, 0x04, 0x80, 0x00, 0x00}},
+    {"near objects list clear, first", 0x00233DF2, {0xBA, 0xEE, 0x02, 0x00, 0x00}, {0xBA, 0x00, 0x10, 0x00, 0x00}},
+    {"near objects list size, second", 0x00233E15, {0x68, 0x74, 0x17, 0x00, 0x00}, {0x68, 0x04, 0x80, 0x00, 0x00}},
+    {"near objects list clear, second", 0x00233E29, {0xBA, 0xEE, 0x02, 0x00, 0x00}, {0xBA, 0x00, 0x10, 0x00, 0x00}},
+    {"near objects lists compared", 0x0023410D, {0x81, 0xFF, 0xEE, 0x02, 0x00, 0x00}, {0x81, 0xFF, 0x00, 0x10, 0x00, 0x00}},
 };
 
 // The address where the patch's original bytes are in this build; 0 if they are not there.
@@ -278,8 +289,7 @@ std::vector<uint8_t> float_bytes(std::initializer_list<float> values) {
 }
 
 void patch_draw_distance(const Xbe& xbe) {
-    // Above 200 the game's heap is corrupted on entering the city (sm2port issue 9): 225, 250 and 300 crashed every run.
-    const float s = std::clamp(setting_at_start("draw_distance"), 50.0f, 200.0f) / 100;
+    const float s = std::clamp(setting_at_start("draw_distance"), 50.0f, 300.0f) / 100;  // 300: the most tried
     if (s == 1) return;
     if (const uint32_t table = find_address(xbe, kFadeTable, float_bytes({1, 20, 20, 400, 400, 1}))) {
         auto* e = reinterpret_cast<float*>(static_cast<uintptr_t>(table));

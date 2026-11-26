@@ -1985,7 +1985,7 @@ void Launcher::page_settings() {
         if (segmented("##sharp_textures", toggle, 2, &sharp_scene)) set_setting("sharp_textures", static_cast<float>(sharp_scene));
         row(t.draw_distance, t.draw_distance_sub, true);
         float distance = setting("draw_distance");
-        if (slider("##draw_distance", &distance, 100, 200, "%.0f%%")) set_setting("draw_distance", std::round(distance / 25) * 25);
+        if (slider("##draw_distance", &distance, 100, 300, "%.0f%%")) set_setting("draw_distance", std::round(distance / 25) * 25);
         row(t.hud_aspect, t.hud_aspect_sub);
         int round_hud = setting("hud_aspect") != 0 ? 1 : 0;
         if (segmented("##hud_aspect", toggle, 2, &round_hud)) set_setting("hud_aspect", static_cast<float>(round_hud));

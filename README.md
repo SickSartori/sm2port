@@ -181,7 +181,7 @@ there). Language, frame rate, VSync, aspect ratio, resolution and filtering appl
 | Time of day | the game's own clock, or always dawn, day, sunset or night |
 | Round HUD in 16:9 | the health ring keeps its shape in 16:9 instead of stretching |
 | Sharp textures | off by default: the textures of streets, buildings and people enlarged two times with their edges kept, sharper from close; they take more graphics memory and sharpen a few seconds after a place loads |
-| Draw distance | how far away cars, pedestrians and full-detail buildings are drawn: 100% (the default) like the Xbox, up to 200%. Traffic and pedestrians also appear further away. More work for the processor and the graphics card: in tests at 60 fps, 200% cost about a tenth of the frames. Applies at the next start |
+| Draw distance | how far away cars, pedestrians and full-detail buildings are drawn: 100% (the default) like the Xbox, up to 300%. Traffic and pedestrians also appear further away. More work for the processor and the graphics card: in tests at 60 fps, 200% cost about a tenth of the frames, 300% about a quarter. Applies at the next start |
 | Field of view | 75% to 130% of the game's own |
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
