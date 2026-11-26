@@ -278,7 +278,8 @@ std::vector<uint8_t> float_bytes(std::initializer_list<float> values) {
 }
 
 void patch_draw_distance(const Xbe& xbe) {
-    const float s = std::clamp(setting_at_start("draw_distance"), 50.0f, 400.0f) / 100;
+    // Above 200 the game's heap is corrupted on entering the city (sm2port issue 9): 225, 250 and 300 crashed every run.
+    const float s = std::clamp(setting_at_start("draw_distance"), 50.0f, 200.0f) / 100;
     if (s == 1) return;
     if (const uint32_t table = find_address(xbe, kFadeTable, float_bytes({1, 20, 20, 400, 400, 1}))) {
         auto* e = reinterpret_cast<float*>(static_cast<uintptr_t>(table));

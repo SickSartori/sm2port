@@ -207,12 +207,6 @@
           "set": {
             "draw_distance": "200"
           }
-        },
-        {
-          "label": "300%",
-          "set": {
-            "draw_distance": "300"
-          }
         }
       ],
       "defaults": {

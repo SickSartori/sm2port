@@ -18,6 +18,9 @@
 
 ### Fixed
 
+- **Crash on entering the city with the draw distance above 200%** (issue 9): from 225% up the game's own memory was
+  damaged as the city loaded, and it crashed at the start or soon after. The draw distance now goes up to 200%; a
+  higher value already in `sm2port.ini` is played as 200%.
 - **The window mode in the settings after F11 or Alt+Enter**: the row showed the mode in `sm2port.ini`, not the
   window's own, so after F11 the in-game menu could say "Window" in full screen. It now shows the window as it is.
   The settings also say that full screen has no border, which it always had: Alt+Tab is instant.
