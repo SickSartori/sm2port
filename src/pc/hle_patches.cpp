@@ -180,6 +180,17 @@ const Patch kPatches[] = {
     // one core it also waits for the main thread every round, so the start took 7 to 11 s. Sleep(1) instead:
     // "push 1Eh; call Sleep" becomes "push 1".
     {"loader thread sleep", 0x0038DC79, {0x6A, 0x1E, 0xE8}, {0x6A, 0x01}},
+    // The objects near the camera each frame go into one of two lists (World 0x4F6F0C and 0x4F6F10, swapped every frame)
+    // allocated for 750 entries {object, value}, filled with no check of that size (World 0x234355 and 0x241348) and then
+    // sorted. With setting draw_distance above 200% more objects fade in than that: at 250% 796 were counted on entering
+    // the city, and the entries past the end overwrote the next block of the game's heap, which crashed it soon after
+    // (sm2port issue 9). Both lists hold 4096 entries: the size allocated, the count each is cleared to, and the count
+    // the game compares the two lists over.
+    {"near objects list size, first", 0x00233DDE, {0x68, 0x74, 0x17, 0x00, 0x00}, {0x68, 0x04, 0x80, 0x00, 0x00}},
+    {"near objects list clear, first", 0x00233DF2, {0xBA, 0xEE, 0x02, 0x00, 0x00}, {0xBA, 0x00, 0x10, 0x00, 0x00}},
+    {"near objects list size, second", 0x00233E15, {0x68, 0x74, 0x17, 0x00, 0x00}, {0x68, 0x04, 0x80, 0x00, 0x00}},
+    {"near objects list clear, second", 0x00233E29, {0xBA, 0xEE, 0x02, 0x00, 0x00}, {0xBA, 0x00, 0x10, 0x00, 0x00}},
+    {"near objects lists compared", 0x0023410D, {0x81, 0xFF, 0xEE, 0x02, 0x00, 0x00}, {0x81, 0xFF, 0x00, 0x10, 0x00, 0x00}},
 };
 
 // The address where the patch's original bytes are in this build; 0 if they are not there.
@@ -195,6 +206,100 @@ uint32_t find_address(const Xbe& xbe, uint32_t address, const std::vector<uint8_
 // uninitialised data, so there are no bytes to check there) comes from the tick that advances it:
 //   mov eax,[clock]; inc eax; xor edx,edx; mov ecx,60; mov [clock],eax
 volatile uint32_t* g_clock = nullptr;
+
+// Setting time_of_day writes the fixed hour into the clock every frame. The clock is also the scripts'
+// game_clock_timer, which missions time themselves on: when a mission set its own hour (the scripts' two "set the
+// time" functions) and the port wrote the fixed hour back, its timer ran out at once, and the final fight with Doc
+// Ock went back to the flight to the warehouse (reported on 0.1.6). So once a script sets the time, the clock is the
+// game's until a save is loaded (the load puts the clock back from the save: the fixed hour is taken again there) or
+// the setting changes. Both script functions are done here, as the game does them, with that mark.
+std::atomic<bool> g_clock_left_to_game{false};
+// The game's time when the fixed hour took the clock: put back when the setting goes back to the game's clock, so the
+// game goes on from its own hour instead of the fixed one.
+std::atomic<bool> g_clock_held{false};
+uint32_t g_clock_before = 0;
+float g_clock_setting = -1;
+
+void leave_clock_to_game(const char* how) {
+    if (!g_clock_left_to_game.exchange(true)) {
+        log_line("HLE: a script %s the time (%02u:%02u): the clock is the game's until a save is loaded", how,
+                 *g_clock / 3600 % 24, *g_clock / 60 % 60);
+    }
+}
+
+void __cdecl script_set_time(int hour, int minute) {  // World 0x2A8180
+    *g_clock = static_cast<uint32_t>((hour * 60 + minute) * 60);
+    leave_clock_to_game("set");
+}
+
+void __cdecl script_advance_time(int hour, int minute) {  // World 0x2A81C0: forward to hour:minute, within a day
+    const uint32_t clock = *g_clock;
+    int minutes = hour * 60 - static_cast<int>(clock / 60) % 1440 + minute;
+    if (minutes < 0) minutes += 1440;
+    *g_clock = clock + static_cast<uint32_t>(minutes * 60);
+    leave_clock_to_game("moved");
+}
+
+void __cdecl save_loaded_clock(uint32_t value) {
+    *g_clock = value;
+    g_clock_left_to_game = false;
+    g_clock_held = false;  // the save's time is the game's own: taken again from here
+}
+
+// World 0x2B8129, in the load of a save: "mov [clock],eax" (5 bytes) becomes a call here.
+__declspec(naked) void save_loads_clock() {
+    __asm {
+        push eax
+        push ecx
+        push edx
+        push eax
+        call save_loaded_clock
+        add esp, 4
+        pop edx
+        pop ecx
+        pop eax
+        ret
+    }
+}
+
+void patch_clock_writers(const Xbe& xbe) {
+    const auto clock = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(g_clock));
+    const auto with_clock = [&](std::vector<uint8_t> bytes, size_t at) {
+        std::memcpy(&bytes[at], &clock, 4);
+        return bytes;
+    };
+    struct Site {
+        const char* name;
+        uint32_t address;  // Italy
+        std::vector<uint8_t> original;
+        const void* target;
+        uint8_t opcode;  // E9 jmp (a whole function) or E8 call (one instruction)
+    };
+    const Site sites[] = {
+        {"scripts' set time", 0x002A7E80,
+         with_clock({0x8B, 0x44, 0x24, 0x04, 0x8B, 0x4C, 0x24, 0x08, 0x6B, 0xC0, 0x3C, 0x03, 0xC1, 0x6B, 0xC0, 0x3C, 0xA3,
+                     0, 0, 0, 0, 0xC3}, 17),
+         reinterpret_cast<const void*>(&script_set_time), 0xE9},
+        {"scripts' move time", 0x002A7EC0,
+         with_clock({0xB8, 0x89, 0x88, 0x88, 0x88, 0xF7, 0x25, 0, 0, 0, 0, 0x8B, 0xC2, 0xC1, 0xE8, 0x05, 0x99, 0xB9, 0xA0,
+                     0x05, 0x00, 0x00}, 7),
+         reinterpret_cast<const void*>(&script_advance_time), 0xE9},
+        {"save's clock", 0x002B7E29, with_clock({0xA3, 0, 0, 0, 0, 0x5E}, 1), reinterpret_cast<const void*>(&save_loads_clock),
+         0xE8},
+    };
+    for (const Site& site : sites) {
+        const uint32_t address = find_address(xbe, site.address, site.original);
+        if (!address) {
+            log_line("HLE: %s at %08X does not match this XBE, not redirected", site.name, site.address);
+            continue;
+        }
+        auto* code = reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(address));
+        code[0] = site.opcode;
+        const uint32_t relative = address_of(site.target) - (address + 5);
+        std::memcpy(code + 1, &relative, sizeof(relative));
+        log_line("HLE: %s at %08X redirected", site.name, address);
+    }
+}
 
 volatile uint32_t* find_clock(const Xbe& xbe) {
     const uint32_t address = build_address(xbe, 0x002CE4F8);
@@ -278,7 +383,7 @@ std::vector<uint8_t> float_bytes(std::initializer_list<float> values) {
 }
 
 void patch_draw_distance(const Xbe& xbe) {
-    const float s = std::clamp(setting_at_start("draw_distance"), 50.0f, 400.0f) / 100;
+    const float s = std::clamp(setting_at_start("draw_distance"), 50.0f, 300.0f) / 100;  // 300: the most tried
     if (s == 1) return;
     if (const uint32_t table = find_address(xbe, kFadeTable, float_bytes({1, 20, 20, 400, 400, 1}))) {
         auto* e = reinterpret_cast<float*>(static_cast<uintptr_t>(table));
@@ -308,8 +413,14 @@ bool hle_wide_shape() { return g_wide_shape; }
 
 void hle_frame() {
     const float hour = setting("time_of_day");
+    if (hour != g_clock_setting) g_clock_setting = hour, g_clock_left_to_game = false;  // a new choice takes it again
     // Whole minutes: the tick makes it hh:mm:01, so the game's "new minute" work does not run on every tick.
-    if (g_clock && hour >= 0 && hour < 24) *g_clock = static_cast<uint32_t>(hour * 60) * 60;
+    if (g_clock && hour >= 0 && hour < 24 && !g_clock_left_to_game) {
+        if (!g_clock_held.exchange(true)) g_clock_before = *g_clock;
+        *g_clock = static_cast<uint32_t>(hour * 60) * 60;
+    } else if (g_clock_held.exchange(false) && hour < 0) {  // not when a script set the time: that hour stays
+        *g_clock = g_clock_before;
+    }
     scale_field_of_view();
 }
 
@@ -350,6 +461,7 @@ void apply_hle_patches(const Xbe& xbe) {
     g_clock = find_clock(xbe);
     if (g_clock) {
         log_line("HLE: game clock at %08X", static_cast<uint32_t>(reinterpret_cast<uintptr_t>(g_clock)));
+        patch_clock_writers(xbe);
     } else {
         log_line("HLE: game clock not found, no fixed time of day");
     }

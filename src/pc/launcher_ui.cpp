@@ -107,6 +107,8 @@ struct Texts {
     const char *vsync, *vsync_sub;
     const char *upscaling, *upscaling_sub, *upscaling_checking, *upscaling_missing, *profile, *profile_sub, *profile_dlaa,
         *profile_quality, *profile_balanced, *profile_performance;
+    const char *rumble, *rumble_sub;
+    const char *gamma, *gamma_sub, *brightness, *brightness_sub;
 };
 
 const Texts kEnglish = {
@@ -117,7 +119,7 @@ const Texts kEnglish = {
     "Game", "Display", "Graphics", "Effects", "Audio", "Mouse",
     "Game language", "The game's text and speech", "Like Windows", "Frames per second", "60 is smoother; 30 like the Xbox; 120 for a fast processor",
     "Game volume", "Launcher music", "This screen's background music; 0 turns it off",
-    "Aspect ratio", "16:9 is the game's own widescreen mode; 21:9 fills a wider screen", "Window mode", "Alt+Enter or F11 while playing",
+    "Aspect ratio", "16:9 is the game's own widescreen mode; 21:9 fills a wider screen", "Window mode", "Full screen has no border, so Alt+Tab is instant; Alt+Enter or F11 while playing",
     "Window", "Full screen",
     "Quality", "Sets filtering and effects together", "Original", "Balanced", "High", "Custom",
     "Internal resolution", "Smoother edges, more graphics card work",
@@ -177,6 +179,9 @@ const Texts kEnglish = {
     "Upscaling", "NVIDIA DLSS: the game drawn smaller and made sharp at your screen's size", "Checking whether this graphics card has DLSS...",
     "DLSS needs an NVIDIA RTX graphics card and its driver", "Profile", "Drawn at %dp, brought to %dp", "Native (DLAA)", "Quality",
     "Balanced", "Performance",
+    "Controller rumble", "How strongly the controllers rumble: 100% is the game's own, 0 turns it off",
+    "Gamma", "The 3D scene only, with the modern effects on or off: more is lighter", "Brightness",
+    "The 3D scene only: more lifts the dark parts, less darkens it",
 };
 
 const Texts kItalian = {
@@ -189,7 +194,7 @@ const Texts kItalian = {
     "60 \xC3\xA8 pi\xC3\xB9 fluido; 30 come l'Xbox; 120 per un processore veloce", "Volume del gioco", "Musica del launcher",
     "La musica di sottofondo di questa schermata; 0 la spegne",
     "Formato", "16:9 \xC3\xA8 la modalit\xC3\xA0 panoramica del gioco; 21:9 riempie uno schermo pi\xC3\xB9 largo", "Modalit\xC3\xA0 finestra",
-    "Alt+Invio o F11 durante il gioco", "Finestra", "Schermo intero",
+    "Lo schermo intero \xC3\xA8 senza bordi, Alt+Tab \xC3\xA8 immediato; Alt+Invio o F11 durante il gioco", "Finestra", "Schermo intero",
     "Qualit\xC3\xA0", "Imposta insieme filtri ed effetti", "Originale", "Bilanciata", "Alta",
     "Personalizzata", "Risoluzione interna", "Bordi pi\xC3\xB9 lisci, pi\xC3\xB9 lavoro per la scheda video",
     "Filtro anisotropico", "Vertici sulla scheda video", "Pi\xC3\xB9 veloce; da spegnere solo in caso di problemi",
@@ -253,6 +258,9 @@ const Texts kItalian = {
     "Upscaling", "NVIDIA DLSS: il gioco disegnato pi\xC3\xB9 piccolo e reso nitido alla grandezza dello schermo",
     "Controllo se questa scheda video ha DLSS...", "DLSS richiede una scheda video NVIDIA RTX e il suo driver", "Profilo",
     "Disegnato a %dp, portato a %dp", "Nativo (DLAA)", "Qualit\xC3\xA0", "Bilanciato", "Prestazioni",
+    "Vibrazione del controller", "Quanto vibrano i controller: 100% \xC3\xA8 quella del gioco, 0 la spegne",
+    "Gamma", "Solo la scena 3D, con gli effetti moderni accesi o spenti: di pi\xC3\xB9 \xC3\xA8 pi\xC3\xB9 chiaro", "Luminosit\xC3\xA0",
+    "Solo la scena 3D: di pi\xC3\xB9 schiarisce le parti scure, di meno scurisce",
 };
 
 // Portuguese (Brazil). The game itself has no Portuguese: its own menus stay in English.
@@ -264,7 +272,7 @@ const Texts kPortuguese = {
     "Jogo", "Tela", "Gráficos", "Efeitos", "Áudio", "Mouse",
     "Idioma do jogo", "Textos e vozes do jogo (não há português)", "Como o Windows", "Quadros por segundo", "60 é mais fluido; 30 como no Xbox; 120 para um processador rápido",
     "Volume do jogo", "Música do launcher", "A música de fundo desta tela; 0 desliga",
-    "Proporção", "16:9 é o modo widescreen do próprio jogo; 21:9 preenche uma tela mais larga", "Modo de janela", "Alt+Enter ou F11 durante o jogo",
+    "Proporção", "16:9 é o modo widescreen do próprio jogo; 21:9 preenche uma tela mais larga", "Modo de janela", "A tela cheia é sem bordas, o Alt+Tab é imediato; Alt+Enter ou F11 durante o jogo",
     "Janela", "Tela cheia",
     "Qualidade", "Define filtros e efeitos de uma vez", "Original", "Equilibrada", "Alta", "Personalizada",
     "Resolução interna", "Bordas mais suaves, mais trabalho para a placa de vídeo",
@@ -325,6 +333,9 @@ const Texts kPortuguese = {
     "Upscaling", "NVIDIA DLSS: o jogo desenhado menor e deixado nítido no tamanho da sua tela",
     "Verificando se esta placa de vídeo tem DLSS...", "O DLSS precisa de uma placa de vídeo NVIDIA RTX e do seu driver", "Perfil",
     "Desenhado em %dp, levado a %dp", "Nativo (DLAA)", "Qualidade", "Equilibrado", "Desempenho",
+    "Vibração do controle", "O quanto os controles vibram: 100% é a do próprio jogo, 0 desliga",
+    "Gama", "Só a cena 3D, com os efeitos modernos ligados ou desligados: mais é mais claro", "Brilho",
+    "Só a cena 3D: mais clareia as partes escuras, menos escurece",
 };
 
 const Texts kSpanish = {
@@ -335,7 +346,7 @@ const Texts kSpanish = {
     "Juego", "Pantalla", "Gráficos", "Efectos", "Audio", "Ratón",
     "Idioma del juego", "Textos y voces del juego", "Como Windows", "Fotogramas por segundo", "60 es más fluido; 30 como en Xbox; 120 para un procesador rápido",
     "Volumen del juego", "Música del launcher", "La música de fondo de esta pantalla; 0 la apaga",
-    "Relación de aspecto", "16:9 es el modo panorámico del propio juego; 21:9 llena una pantalla más ancha", "Modo de ventana", "Alt+Intro o F11 mientras juegas",
+    "Relación de aspecto", "16:9 es el modo panorámico del propio juego; 21:9 llena una pantalla más ancha", "Modo de ventana", "La pantalla completa es sin bordes, Alt+Tab es inmediato; Alt+Intro o F11 mientras juegas",
     "Ventana", "Pantalla completa",
     "Calidad", "Ajusta filtros y efectos a la vez", "Original", "Equilibrada", "Alta", "Personalizada",
     "Resolución interna", "Bordes más suaves, más trabajo para la tarjeta gráfica",
@@ -396,6 +407,9 @@ const Texts kSpanish = {
     "Escalado", "NVIDIA DLSS: el juego dibujado más pequeño y nítido al tamaño de tu pantalla",
     "Comprobando si esta tarjeta gráfica tiene DLSS...", "DLSS necesita una tarjeta gráfica NVIDIA RTX y su controlador", "Perfil",
     "Dibujado a %dp, llevado a %dp", "Nativo (DLAA)", "Calidad", "Equilibrado", "Rendimiento",
+    "Vibración del mando", "Cuánto vibran los mandos: 100% es la del propio juego, 0 la apaga",
+    "Gamma", "Solo la escena 3D, con los efectos modernos activados o no: más es más claro", "Brillo",
+    "Solo la escena 3D: más aclara las partes oscuras, menos oscurece",
 };
 
 // The launcher's language: Windows', or SM2_LAUNCHER_LANGUAGE=en|it|pt|es for test screenshots.
@@ -862,6 +876,7 @@ private:
     ImDrawList* list_ = nullptr;
     ImVec2 origin_;  // panel content top left
     float panel_width_ = 0, cursor_ = 0, row_extra_ = 0;
+    float control_drop_ = 0;  // a wide control goes this much lower, on a line of its own under the heading and detail
     // The page's column runs from the top to the bottom bar; a longer page scrolls in it (the wheel, or the selection
     // kept in sight). view_top_/view_bottom_: the part of the screen the page shows.
     float scroll_ = 0, scroll_target_ = 0, view_top_ = 0, view_bottom_ = 0;
@@ -1322,18 +1337,21 @@ void Launcher::row(const char* heading, const char* detail, bool restart, float 
     const bool next_start = restart && in_game_;
     if (next_start) detail = T().next_start;
     if (!detail) return;
-    // Left of the control (`control` wide), or under a wide one across the whole row (squeezed beside it, it took four
-    // lines): a longer detail wraps, and the row grows by the extra lines.
-    const bool under = control >= 330;
-    const float wrap = under ? panel_width_ : panel_width_ - px(control + 20), top = px(under ? 60 : 29);
-    text(body_, px(16), ImVec2(origin_.x, origin_.y + cursor_ + top), next_start ? kAmber : kDim, detail, wrap);
-    row_extra_ = std::max(0.0f, measure(body_, px(16), detail, wrap).y - px(20) + top - px(29));
+    // Under the heading, left of the control (`control` wide); a wide one (squeezed beside it, the detail took four
+    // lines, and beside the heading it ran into it) goes on a line of its own under both. A longer detail wraps, and
+    // the row grows by the extra lines.
+    const bool wide = control >= 330;
+    const float wrap = wide ? panel_width_ : panel_width_ - px(control + 20);
+    text(body_, px(16), ImVec2(origin_.x, origin_.y + cursor_ + px(29)), next_start ? kAmber : kDim, detail, wrap);
+    const float lines = measure(body_, px(16), detail, wrap).y;
+    if (wide) control_drop_ = px(29) + lines + px(8) - px(6);
+    row_extra_ = wide ? control_drop_ : std::max(0.0f, lines - px(20));
 }
 
 bool Launcher::segmented(const char* id, const char* const* labels, int count, int* current, const char* const* details,
                          float wide) {
     const float width = px(wide > 0 ? wide : 270), height = px(details ? 50 : 36);
-    const ImVec2 a(origin_.x + panel_width_ - width, origin_.y + cursor_ + px(6));
+    const ImVec2 a(origin_.x + panel_width_ - width, origin_.y + cursor_ + px(6) + control_drop_);
     skewed_rect(list_, a, ImVec2(a.x + width, a.y + height), IM_COL32(255, 255, 255, 18), IM_COL32(255, 255, 255, 18));
     const float cell = width / static_cast<float>(count);
     bool changed = false;
@@ -1370,7 +1388,7 @@ bool Launcher::segmented(const char* id, const char* const* labels, int count, i
     }
     ImGui::PopID();
     cursor_ += px(details ? 72 : 58) + row_extra_;
-    row_extra_ = 0;
+    row_extra_ = 0, control_drop_ = 0;
     list_->AddLine(ImVec2(origin_.x, origin_.y + cursor_ - px(6)), ImVec2(origin_.x + panel_width_, origin_.y + cursor_ - px(6)), fade(IM_COL32(255, 255, 255, 16)));
     return changed;
 }
@@ -1878,6 +1896,12 @@ void Launcher::page_settings() {
         const char* toggle[] = {t.off, t.on};
         int pause = setting("pause_in_background") != 0 ? 1 : 0;
         if (segmented("##background_pause", toggle, 2, &pause)) set_setting("pause_in_background", static_cast<float>(pause));
+        row(t.rumble, t.rumble_sub);
+        float rumble = setting("rumble");
+        if (slider("##rumble", &rumble, 0, 100, "%.0f%%")) {
+            set_setting("rumble", std::round(rumble));
+            gamepad_set_rumble_scale(setting("rumble") / 100.0f);  // in the game, from its next request
+        }
     } else if (settings_tab_ == 1) {
         row(t.aspect, t.aspect_sub, true);
         const char* aspects[] = {"4:3", "16:9", "21:9"};
@@ -1888,7 +1912,7 @@ void Launcher::page_settings() {
         if (slider("##field_of_view", &view, 75, 130, "%.0f%%")) set_setting("field_of_view", std::round(view));
         row(t.window_mode, t.window_mode_sub);
         const char* modes[] = {t.windowed, t.fullscreen};
-        int mode = setting("fullscreen") != 0 ? 1 : 0;
+        int mode = nv2a_full_screen() ? 1 : 0;  // the window's own state: Alt+Enter and F11 change it too
         if (segmented("##mode", modes, 2, &mode)) {
             set_setting("fullscreen", static_cast<float>(mode));
             nv2a_set_full_screen(mode != 0);
@@ -1973,6 +1997,13 @@ void Launcher::page_settings() {
         int bars = setting("letterbox") != 0 ? 1 : 0;
         if (segmented("##letterbox", toggle, 2, &bars)) set_setting("letterbox", static_cast<float>(bars));
     } else if (settings_tab_ == 3) {
+        // The player's screen, apart from the effects' looks, which leave them alone.
+        row(t.gamma, t.gamma_sub);
+        float gamma = setting("gamma");
+        if (slider("##gamma", &gamma, 0.8f, 1.4f, "%.2f")) set_setting("gamma", std::round(gamma * 100) / 100);
+        row(t.brightness, t.brightness_sub);
+        float brightness = setting("brightness");
+        if (slider("##brightness", &brightness, 80, 120, "%.0f%%")) set_setting("brightness", std::round(brightness));
         // Two ready-made looks and a custom one. Original: the Xbox's picture. Enhanced: the modern effects. Custom
         // (setting effects_advanced): every value by itself, in two columns so that the page stays on screen.
         row(t.effects_style, t.effects_style_sub, false, 330);
@@ -2027,7 +2058,7 @@ void Launcher::page_settings() {
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
         for (const char* key : {"game_language", "frame_rate", "vsync", "time_of_day", "volume", "launcher_music", "pause_in_background",
-                                "mouse_look", "mouse_sensitivity",
+                                "rumble", "gamma", "brightness", "mouse_look", "mouse_sensitivity",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
                                 "anisotropy", "gpu_vertices", "sharp_2d", "sharp_textures", "draw_distance", "hud_aspect", "field_of_view",
                                 "letterbox", "effects", "sharpen", "bloom",
@@ -2857,10 +2888,18 @@ void Launcher::bottom_bar(float since) {
         return b;
     };
     enum { kNoIcon, kFlag, kMug };
-    const auto link = [&](const char* label, ImU32 colour, int icon = kNoIcon, ImU32 fill = 0) {
+    const auto link = [&](const char* label, ImU32 colour, int icon = kNoIcon, ImU32 fill = 0, bool pulse = false) {
         const ImVec2 size = measure(body_bold_, px(16), label);
         const float icon_width = icon == kNoIcon ? 0 : px(26);
         const BarButton b = button(size.x + px(36) + icon_width, fill);
+        if (pulse) {  // a crash to report: an amber border and a ring that widens and fades, every 1.6 s
+            const float width = size.x + px(36) + icon_width, p = std::fmod(static_cast<float>(ImGui::GetTime()), 1.6f) / 1.6f;
+            const ImVec2 end(b.at.x + width, b.at.y + px(36));
+            list_->AddRect(b.at, end, fade(colour), px(18), 0, px(1.5f));
+            const float grow = px(10) * p;
+            const ImU32 ring = (colour & 0x00FFFFFFu) | (static_cast<ImU32>(200 * (1 - p)) << 24);
+            list_->AddRect(ImVec2(b.at.x - grow, b.at.y - grow), ImVec2(end.x + grow, end.y + grow), fade(ring), px(18) + grow, 0, px(2));
+        }
         const ImU32 ink = fade(colour);
         const float s = px(16), ix = b.at.x + px(16), cy = b.at.y + px(18);
         if (icon == kFlag) {  // a flag on its pole
@@ -2895,7 +2934,7 @@ void Launcher::bottom_bar(float since) {
             page_since_ = static_cast<float>(ImGui::GetTime());
         }
     }
-    if (crash_report_ready() ? link(t.crash_link, kAmber, kFlag) : link(t.report, kInk, kFlag)) report_problem();
+    if (crash_report_ready() ? link(t.crash_link, kAmber, kFlag, 0, true) : link(t.report, kInk, kFlag)) report_problem();
     if (link(t.support, IM_COL32(255, 255, 255, 255), kMug, IM_COL32(255, 94, 91, 255))) {  // Ko-fi's colour
         ShellExecuteA(nullptr, "open", "https://ko-fi.com/sicksartori", nullptr, nullptr, SW_SHOWNORMAL);
     }

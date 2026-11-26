@@ -159,7 +159,7 @@ keyboard and the mouse are controller 1; every key can be changed on the same pa
 | PC key | Action |
 |---|---|
 | F1 (controller: Back+Start) | in-game menu: settings, controls, resume, exit; the game pauses meanwhile |
-| F11 or Alt+Enter | full screen on and off |
+| F11 or Alt+Enter | full screen (without a border, so Alt+Tab is instant) on and off |
 | F10 | modern effects on and off |
 | F7 | HUD hidden and shown again (for photos and videos) |
 
@@ -186,7 +186,9 @@ there). Language, frame rate, VSync, aspect ratio, resolution and filtering appl
 | Quality | Original (like the Xbox), Balanced or High: filtering and effects together |
 | Internal resolution | Auto (as many lines as your screen), or from SD 480p up to 4K |
 | Modern effects | glow, sharpening, colour, vignette, ambient occlusion |
+| Gamma and brightness | the 3D scene's, with the modern effects on or off (the HUD, menus and films stay as they are): gamma 0.8 to 1.4 (1, the default, is the game's), brightness 80 to 120% (more lifts the dark parts) |
 | Pause in the background | opens the in-game menu (and pauses) when you switch to another window |
+| Controller rumble | how strongly the controllers rumble, 0 to 100% of what the game asks (100%, the default); 0 turns it off |
 
 ## Known issues
 
@@ -260,6 +262,8 @@ releases in your browser, which downloads it; sm2port itself downloads and start
 yourself.
 
 ## Supporting the project
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-buy_me_a_coffee-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/sicksartori)
 
 sm2port is free and always will be: no paid builds, no early access, no locked features. If you enjoy it and want to
 say thanks, you can support its author on [Ko-fi](https://ko-fi.com/sicksartori). It is never needed to play, and it buys nothing: it gives more time for fixes,
