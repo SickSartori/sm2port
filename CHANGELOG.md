@@ -8,6 +8,8 @@
   and 120 fps it turns faster than before at the same speed setting); a slow movement turns the camera at once
   instead of waiting in the stick's dead zone and then jumping; and none of the mouse's movement is lost any more
   between the game's reads. New setting under Controls, Mouse: **invert up and down**.
+- **The camera stays where the mouse puts it**: for 3 seconds after the mouse last moved, the game no longer swings
+  the camera back behind Spider-Man while he swings or runs (`mouse_camera_hold` in sm2port.ini; 0 = as before).
 
 ## 0.2.1 (2026-11-26)
 

@@ -144,8 +144,27 @@ const JumpPatch kJumpPatches[] = {
     {"D3D rdtsc", 0x003C72A0, {0x0F, 0x31, 0xC3, 0xCC, 0xCC}, reinterpret_cast<const void*>(&rdtsc_function)},
 };
 
+// --- camera ---
+//
+// The camera's update (World 0x16A9F0, sick-xport INDIRIZZI-XBE.md) keeps the camera the player turned while the camera
+// stick is out of its dead zone; once it is back, the game's own cameras take over again (behind Spider-Man while he
+// swings or runs). With the mouse the stick is back at rest between two movements, so the camera kept swinging back
+// against the hand. While the mouse turned the camera lately (input_hle.cpp) the stick counts as moved.
+uint8_t g_mouse_holds_camera = 0;
+
+// Replaces "mov [esi+0A5Ch],al" (6 bytes; the stick moved this frame) by a call to this and a nop.
+__declspec(naked) void camera_stick_moved() {
+    __asm {
+        or al, g_mouse_holds_camera
+        mov byte ptr [esi + 0A5Ch], al
+        ret
+    }
+}
+
 const JumpPatch kCallPatches[] = {
     {"game clock", 0x0034E96C, {0x0F, 0x31, 0x89, 0x44, 0x24, 0x0C}, reinterpret_cast<const void*>(&game_clock_read)},
+    {"camera stick moved", 0x0016A83F, {0x88, 0x86, 0x5C, 0x0A, 0x00, 0x00},
+     reinterpret_cast<const void*>(&camera_stick_moved)},
 };
 
 struct Patch {
@@ -506,5 +525,7 @@ void apply_hle_patches(const Xbe& xbe) {
         log_line("HLE: %s at %08X redirected", patch.name, address);
     }
 }
+
+void hle_mouse_holds_camera(bool holds) { g_mouse_holds_camera = holds ? 1 : 0; }
 
 }  // namespace xport::pc

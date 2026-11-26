@@ -261,7 +261,11 @@ void mouse_look(XboxGamepad& pad) {
                                                      0.004f, 0.1f)
                                         : 1 / 30.0f;
     last = now;
-    if (!running || setting("mouse_look") == 0) return;
+    static ULONGLONG moved_at = 0;
+    if (dx || dy) moved_at = GetTickCount64();
+    const bool on = running && setting("mouse_look") != 0;
+    hle_mouse_holds_camera(on && GetTickCount64() - moved_at < setting("mouse_camera_hold") * 1000);
+    if (!on) return;
     // Full tilt at 650 counts a second, what 1500 stick units a count gave at 30 fps before (issues 3 and 4).
     const float gain = 32767.0f / (650.0f * seconds) * setting("mouse_sensitivity");
     const float invert = setting("mouse_invert") != 0 ? -1.0f : 1.0f;
