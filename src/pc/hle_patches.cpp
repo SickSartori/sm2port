@@ -149,21 +149,24 @@ const JumpPatch kJumpPatches[] = {
 // The camera's update (World 0x16A9F0, sick-xport INDIRIZZI-XBE.md) keeps the camera the player turned while the camera
 // stick is out of its dead zone; once it is back, the game's own cameras take over again (behind Spider-Man while he
 // swings or runs). With the mouse the stick is back at rest between two movements, so the camera kept swinging back
-// against the hand. While the mouse turned the camera lately (input_hle.cpp) the stick counts as moved.
+// against the hand. While the mouse turned the camera lately (input_hle.cpp) the choice of the camera sees the stick as
+// moved. Only the choice: the flag itself [C+0xA5C] stays the stick's, because the free camera brings its distance
+// back to the usual one (World 0x161131) only while the stick is at rest; a held flag left it close to Spider-Man.
 uint8_t g_mouse_holds_camera = 0;
 
-// Replaces "mov [esi+0A5Ch],al" (6 bytes; the stick moved this frame) by a call to this and a nop.
+// Replaces "mov al,[esi+0A5Ch]" (6 bytes; read for the choice, followed by "test al,al; je <the game's cameras>") by a
+// call to this and a nop.
 __declspec(naked) void camera_stick_moved() {
     __asm {
+        mov al, byte ptr [esi + 0A5Ch]
         or al, g_mouse_holds_camera
-        mov byte ptr [esi + 0A5Ch], al
         ret
     }
 }
 
 const JumpPatch kCallPatches[] = {
     {"game clock", 0x0034E96C, {0x0F, 0x31, 0x89, 0x44, 0x24, 0x0C}, reinterpret_cast<const void*>(&game_clock_read)},
-    {"camera stick moved", 0x0016A83F, {0x88, 0x86, 0x5C, 0x0A, 0x00, 0x00},
+    {"camera stick moved", 0x0016AAF6, {0x8A, 0x86, 0x5C, 0x0A, 0x00, 0x00},
      reinterpret_cast<const void*>(&camera_stick_moved)},
 };
 
