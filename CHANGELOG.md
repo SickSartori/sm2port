@@ -12,6 +12,10 @@
 
 ### Improved
 
+- **A setup step on RecompLauncher**: after your disc image is checked, the launcher makes sure Direct3D 11 starts
+  on this PC (a few seconds, no window), so a graphics card or a Wine without it is named at setup instead of
+  with a black window at the first start. The game's page also lists the disc image the newer way (named inputs),
+  which RecompLauncher 1.0 will need.
 - **More settings on RecompLauncher's page**: 120 frames per second, 21:9, the field of view, the draw distance, the
   texture filter, sharp textures, the modern effects and the frame counter, which the launcher and the in-game menu
   already had.
