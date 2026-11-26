@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 (not released)
+
+### Improved
+
+- **Mouse look is smoother**: the camera follows how fast the mouse moves, the same at 30, 60 or 120 fps (at 60
+  and 120 fps it turns faster than before at the same speed setting); a slow movement turns the camera at once
+  instead of waiting in the stick's dead zone and then jumping; and none of the mouse's movement is lost any more
+  between the game's reads. New setting under Controls, Mouse: **invert up and down**.
+
 ## 0.2.1 (2026-11-26)
 
 ### New

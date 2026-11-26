@@ -3,6 +3,7 @@
 // kept and spent in the next polls; the camera then turns as far as the mouse went, not only as far as one poll of
 // full stick allows (issues 3 and 4: a half turn took a swipe across the desk).
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 namespace xport::pc {
@@ -18,6 +19,17 @@ inline int16_t mouse_to_stick(int16_t stick, float movement, float& carry) {
     const float given = std::clamp(wanted, -32768.0f, 32767.0f);
     carry = std::clamp(wanted - given, -kMouseCarryLimit, kMouseCarryLimit);
     return static_cast<int16_t>(given);
+}
+
+// Past the game's own dead zone: a slow mouse is a small deflection, which the dead zone would swallow and then let go
+// all at once; the movement starts at the dead zone's edge instead. `dead_zone`: the fraction of full tilt the game
+// ignores. A stick already at full tilt (a fast swipe, the look keys) is left alone.
+inline void mouse_skip_dead_zone(int16_t& x, int16_t& y, float dead_zone) {
+    const float fx = x / 32767.0f, fy = y / 32767.0f, m = std::sqrt(fx * fx + fy * fy);
+    if (m < 1e-4f || m >= 1) return;
+    const float scale = std::min(1.0f, dead_zone + m * (1 - dead_zone)) / m;
+    x = static_cast<int16_t>(std::clamp(fx * scale * 32767.0f, -32768.0f, 32767.0f));
+    y = static_cast<int16_t>(std::clamp(fy * scale * 32767.0f, -32768.0f, 32767.0f));
 }
 
 }  // namespace xport::pc

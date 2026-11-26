@@ -11,6 +11,7 @@
 #include <windows.h>
 #include <xinput.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdlib>
 #include <cstring>
@@ -244,6 +245,7 @@ void apply_script(XboxGamepad& pad, uint32_t port) {
 // Mouse look: the mouse moves the camera (right stick) while the game window is in front and the game runs. Its
 // movement comes from raw input (nv2a.cpp), so the cursor is free to go anywhere; while the game runs it is hidden,
 // at once with mouse look (the mouse is always moving then: issue 3), otherwise after 3 s without moving.
+// The stick follows the mouse's speed, not the movement since the last poll: the same at 30, 60 or 120 fps.
 void mouse_look(XboxGamepad& pad) {
     static bool hidden = false;
     const bool running = game_has_focus() && !game_paused();
@@ -251,11 +253,22 @@ void mouse_look(XboxGamepad& pad) {
     if (hide != hidden) nv2a_hide_cursor(hidden = hide);
     int dx = 0, dy = 0;
     nv2a_take_mouse_motion(dx, dy);
+    static LARGE_INTEGER last{};
+    LARGE_INTEGER now, frequency;
+    QueryPerformanceCounter(&now);
+    QueryPerformanceFrequency(&frequency);
+    const float seconds = last.QuadPart ? std::clamp(static_cast<float>(now.QuadPart - last.QuadPart) / frequency.QuadPart,
+                                                     0.004f, 0.1f)
+                                        : 1 / 30.0f;
+    last = now;
     if (!running || setting("mouse_look") == 0) return;
-    const float gain = 1500.0f * setting("mouse_sensitivity");  // stick units per mickey moved between two polls
+    // Full tilt at 650 counts a second, what 1500 stick units a count gave at 30 fps before (issues 3 and 4).
+    const float gain = 32767.0f / (650.0f * seconds) * setting("mouse_sensitivity");
+    const float invert = setting("mouse_invert") != 0 ? -1.0f : 1.0f;
     static float carry_x = 0, carry_y = 0;  // past full deflection, for the next polls (mouse_stick.h)
     pad.thumb_rx = mouse_to_stick(pad.thumb_rx, dx * gain, carry_x);
-    pad.thumb_ry = mouse_to_stick(pad.thumb_ry, -dy * gain, carry_y);
+    pad.thumb_ry = mouse_to_stick(pad.thumb_ry, -dy * gain * invert, carry_y);
+    if (dx || dy) mouse_skip_dead_zone(pad.thumb_rx, pad.thumb_ry, setting("mouse_deadzone"));
 }
 
 // Controller 1 without a pad: the keyboard and mouse (only while the game window is in front) and the test script.
@@ -293,8 +306,7 @@ bool virtual_pad(XboxGamepad& pad) {
         if (down(PadInput::kGrab)) pad.analog[kAnalogB] = pad.analog[kAnalogY] = 255;
         if (down(PadInput::kWebZip)) pad.analog[kAnalogLeftTrigger] = pad.analog[kAnalogRightTrigger] = 255;
     }
-    mouse_look(pad);
-    return true;  // controller 1 is always there
+    return true;  // controller 1 is always there (the mouse is added in XInputGetState)
 }
 
 // How far a button of the PC's controller is down: 0 or 255, the triggers in between.
@@ -497,6 +509,9 @@ uint32_t __stdcall XInputGetState(uint32_t handle, XboxInputState* state) {
     XboxGamepad pad{};
     if (port && port->index == 0) hle_frame();  // controller 1 is always there and read once a frame
     if (!port || !read_host(port->index, pad)) return kErrorDeviceNotConnected;
+    // Only the game's own read takes the mouse's movement: the connection checks (host_mask) read controller 1 too,
+    // and the movement they took was lost.
+    if (port->index == 0 && !g_host_connected[0]) mouse_look(pad);
     // The Back+Start combo, only on the read the game sees: host_mask's reads threw the replayed tap away.
     if (g_host_connected[port->index]) {
         const ULONGLONG now = GetTickCount64();
