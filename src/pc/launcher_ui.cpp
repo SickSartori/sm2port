@@ -876,6 +876,7 @@ private:
     ImDrawList* list_ = nullptr;
     ImVec2 origin_;  // panel content top left
     float panel_width_ = 0, cursor_ = 0, row_extra_ = 0;
+    float control_drop_ = 0;  // a wide control goes this much lower, on a line of its own under the heading and detail
     // The page's column runs from the top to the bottom bar; a longer page scrolls in it (the wheel, or the selection
     // kept in sight). view_top_/view_bottom_: the part of the screen the page shows.
     float scroll_ = 0, scroll_target_ = 0, view_top_ = 0, view_bottom_ = 0;
@@ -1336,18 +1337,21 @@ void Launcher::row(const char* heading, const char* detail, bool restart, float 
     const bool next_start = restart && in_game_;
     if (next_start) detail = T().next_start;
     if (!detail) return;
-    // Left of the control (`control` wide), or under a wide one across the whole row (squeezed beside it, it took four
-    // lines): a longer detail wraps, and the row grows by the extra lines.
-    const bool under = control >= 330;
-    const float wrap = under ? panel_width_ : panel_width_ - px(control + 20), top = px(under ? 60 : 29);
-    text(body_, px(16), ImVec2(origin_.x, origin_.y + cursor_ + top), next_start ? kAmber : kDim, detail, wrap);
-    row_extra_ = std::max(0.0f, measure(body_, px(16), detail, wrap).y - px(20) + top - px(29));
+    // Under the heading, left of the control (`control` wide); a wide one (squeezed beside it, the detail took four
+    // lines, and beside the heading it ran into it) goes on a line of its own under both. A longer detail wraps, and
+    // the row grows by the extra lines.
+    const bool wide = control >= 330;
+    const float wrap = wide ? panel_width_ : panel_width_ - px(control + 20);
+    text(body_, px(16), ImVec2(origin_.x, origin_.y + cursor_ + px(29)), next_start ? kAmber : kDim, detail, wrap);
+    const float lines = measure(body_, px(16), detail, wrap).y;
+    if (wide) control_drop_ = px(29) + lines + px(8) - px(6);
+    row_extra_ = wide ? control_drop_ : std::max(0.0f, lines - px(20));
 }
 
 bool Launcher::segmented(const char* id, const char* const* labels, int count, int* current, const char* const* details,
                          float wide) {
     const float width = px(wide > 0 ? wide : 270), height = px(details ? 50 : 36);
-    const ImVec2 a(origin_.x + panel_width_ - width, origin_.y + cursor_ + px(6));
+    const ImVec2 a(origin_.x + panel_width_ - width, origin_.y + cursor_ + px(6) + control_drop_);
     skewed_rect(list_, a, ImVec2(a.x + width, a.y + height), IM_COL32(255, 255, 255, 18), IM_COL32(255, 255, 255, 18));
     const float cell = width / static_cast<float>(count);
     bool changed = false;
@@ -1384,7 +1388,7 @@ bool Launcher::segmented(const char* id, const char* const* labels, int count, i
     }
     ImGui::PopID();
     cursor_ += px(details ? 72 : 58) + row_extra_;
-    row_extra_ = 0;
+    row_extra_ = 0, control_drop_ = 0;
     list_->AddLine(ImVec2(origin_.x, origin_.y + cursor_ - px(6)), ImVec2(origin_.x + panel_width_, origin_.y + cursor_ - px(6)), fade(IM_COL32(255, 255, 255, 16)));
     return changed;
 }
