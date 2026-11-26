@@ -10,6 +10,8 @@
   between the game's reads. New setting under Controls, Mouse: **invert up and down**.
 - **The camera stays where the mouse puts it**: for 3 seconds after the mouse last moved, the game no longer swings
   the camera back behind Spider-Man while he swings or runs (`mouse_camera_hold` in sm2port.ini; 0 = as before).
+- **The minimap no longer flickers**: with the drawing on its own thread (the default), the minimap's tilted map
+  was sometimes sized or placed with another draw's position for a frame.
 
 ## 0.2.1 (2026-11-26)
 

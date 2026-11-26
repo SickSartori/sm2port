@@ -886,8 +886,8 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
     // draws on a shown frame with no depth buffer bound: some HUD pieces are drawn so (the ring's grey tab, the dark
     // fill of the tutorials' box), and the scene is not "under" them for the renderer.
     g_k.draw.screen_left = 1, g_k.draw.screen_right = 0;
-    renderer_game_note_screen_space(false);
-    renderer_game_note_extent(1, 0, 0, 0);
+    g_k.draw.screen_space = false;
+    g_k.draw.extent_left = 1, g_k.draw.extent_right = 0;
     // Also small draws while the HUD is up: the ring's dark lower half is the first draw after the depth clear that ends
     // the scene, before any draw "over" it, and stayed wide beside the narrowed ring (a dark half-disc).
     const bool hud_draw = (!target.zeta_address || count <= 8) && renderer_game_hud_up() &&
@@ -903,7 +903,7 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
             return outputs[kOutPosition];
         };
         const Vec4 first = position(0);
-        renderer_game_note_screen_space(first[3] == 1);
+        g_k.draw.screen_space = first[3] == 1;
         constexpr uint32_t kDepthAlways = 0x207;
         const bool uses_depth = target.zeta_address &&  // with no depth buffer bound the depth state does nothing
             ((g_k.draw.depth_test && g_k.draw.depth_function != kDepthAlways) || g_k.draw.depth_write);
@@ -927,7 +927,10 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
                 left = std::min(left, p[0]), right = std::max(right, p[0]);
                 top = std::min(top, p[1]), bottom = std::max(bottom, p[1]);
             }
-            if (std::isfinite(left + right + top + bottom)) renderer_game_note_extent(left, right, top, bottom);
+            if (std::isfinite(left + right + top + bottom)) {
+                g_k.draw.extent_left = left, g_k.draw.extent_right = right;
+                g_k.draw.extent_top = top, g_k.draw.extent_bottom = bottom;
+            }
         }
     }
 
