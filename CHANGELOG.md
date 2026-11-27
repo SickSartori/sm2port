@@ -17,6 +17,8 @@
 
 - **No more flicker at 21:9**: at high frame rates a frame could be taken for a film and shown at 16:9 for an
   instant, as in mc3port.
+- **Black Cat's chase meter in one piece** in 16:9 with the round HUD: its right end was narrowed apart from the rest,
+  leaving a gap in the middle (issue #8).
 
 ## 0.2.1 (2026-11-26)
 

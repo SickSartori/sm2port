@@ -20,6 +20,7 @@ namespace {
 std::atomic<bool> g_hud_hidden{false};
 std::atomic<uint64_t> g_frames{0};               // frames shown
 std::atomic<uint64_t> g_ring_frame{~0ull >> 1};  // the last one with the health ring
+std::atomic<uint64_t> g_wide_top_frame{~0ull >> 1};  // the last one with a HUD piece across the top right's edge
 std::atomic<int> g_debug_hud{0};                 // SM2_DEBUG_HUD=<n>: the next n flat draws in the log, from each F7
 
 // The health ring (top left, with the spider-sense meter): pieces of a 256x256 atlas, the only HUD texture of that
@@ -93,12 +94,18 @@ RendererNarrowing narrowing(const SurfaceState& surface, float left, float right
     top = std::max(top, static_cast<float>(surface.clip_y));
     bottom = std::min(bottom, static_cast<float>(surface.clip_y + surface.clip_height));
     if (left > right || top > bottom) return n;
+    // A bar across the top right's edge (Black Cat's chase meter, issue 8): its pieces right of the edge would be
+    // narrowed away from the rest, with a gap in the middle; while one is up (from the frame before), none is.
+    if (bottom <= 0.45f * height && left < 0.65f * width && right > 0.65f * width && !full_width) {
+        g_wide_top_frame = g_frames.load();
+    }
+    const bool wide_top = g_frames.load() - g_wide_top_frame.load() <= 3;
     // Not the lower right: the minimap's map and border start at 0.63 of the width, left of where the tutorials' box
     // ends (0.66), so they stayed wide while the markers right of 0.67 were narrowed, off the map (the player's arrow
     // away from the centre, the objectives elsewhere; seen 16 November 2026). Left as the game draws it, it is right.
     if (bottom <= 0.45f * height && right <= 0.35f * width) {
         n.factor = narrow;
-    } else if (bottom <= 0.45f * height && left >= 0.65f * width) {
+    } else if (bottom <= 0.45f * height && left >= 0.65f * width && !wide_top) {
         n.factor = narrow;
         n.anchor = width;
     }
