@@ -13,6 +13,11 @@
 - **The minimap no longer flickers**: with the drawing on its own thread (the default), the minimap's tilted map
   was sometimes sized or placed with another draw's position for a frame.
 
+### Fixed
+
+- **No more flicker at 21:9**: at high frame rates a frame could be taken for a film and shown at 16:9 for an
+  instant, as in mc3port.
+
 ## 0.2.1 (2026-11-26)
 
 ### New

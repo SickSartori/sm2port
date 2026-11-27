@@ -866,14 +866,14 @@ void draw(uint32_t count, const VertexSource& source, Fetch fetch) {
     // Setting widescreen 2: a frame with a vertex in perspective is a 3D scene, shown as wide as the screen; films and
     // menus over a still picture are flat (w 1) and stay 16:9. The first vertex of each draw, until one is in perspective.
     static const bool wider = hle_wide_shape();
-    if (wider && target.width >= 640 && !renderer_scene_noted()) {
+    if (wider && target.width >= 640 && !renderer_scene_noted(target.color_address)) {
         Vec4 inputs[kVshAttributes];
         std::copy(std::begin(g_k.attribute), std::end(g_k.attribute), inputs);
         fetch(0, inputs);
         Vec4 outputs[kVshOutputs];
         if (!fixed_function) g_k.vertex_program.execute(inputs, g_k.constants, outputs);
         const Vec4 first = fixed_function ? fixed_function_position(inputs[kInPosition]) : outputs[kOutPosition];
-        if (first[3] != 1) renderer_note_scene();
+        if (first[3] != 1) renderer_note_scene(target.color_address);
     }
 
     // Where a flat draw over the 3D scene falls on the screen (sharp_2d enlarges its textures; renderer_game.cpp keeps
