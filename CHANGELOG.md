@@ -1,11 +1,13 @@
 # Changelog
 
-## 0.2.2 (not released)
+## 0.2.2 (2026-11-28)
 
 ### Improved
 
 - **Lighter on the processor**: waiting for the graphics card, the game's core now sleeps instead of checking over and
   over, as in mc3port (where it went from about 70% busy to about 40% in a drive at 60 fps; not measured here yet).
+- **A log that tells more**: every line has the time since the start, the first lines say how the session before
+  ended (a crash, a freeze, closed normally), and every 5 minutes one line sums up the frame rate and the hitches.
 - **Smoother where the city is busy**: the drawing thread no longer checks the game's memory for changed textures
   itself, as in mc3port. The texture filter setting applies at once.
 - **Mouse look is smoother**: the camera follows how fast the mouse moves, the same at 30, 60 or 120 fps (at 60

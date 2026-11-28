@@ -170,7 +170,7 @@ without moving). Settings
 ## Settings
 
 Everything is in the launcher's **Settings** page, in the in-game menu (F1) and in `sm2port.ini` (each key is explained
-there). Language, frame rate, VSync, aspect ratio, resolution and filtering apply the next time the game starts.
+there). Language, frame rate, VSync, aspect ratio and resolution apply the next time the game starts.
 
 | Setting | What it does |
 |---|---|
