@@ -103,7 +103,7 @@ struct Texts {
     const char *back_to_launcher, *back_to_launcher_sub, *back_to_launcher_button, *menu_launcher;
     const char *saves_title, *saves_lead, *saves_backup_note, *saves_there, *saves_here, *saves_use, *saves_keep, *saves_failed;
     const char *support, *support_sub;
-    const char *mouse_look, *mouse_look_sub, *mouse_speed, *mouse_speed_sub;
+    const char *mouse_look, *mouse_look_sub, *mouse_speed, *mouse_speed_sub, *mouse_invert, *mouse_invert_sub;
     const char *vsync, *vsync_sub;
     const char *upscaling, *upscaling_sub, *upscaling_checking, *upscaling_missing, *profile, *profile_sub, *profile_dlaa,
         *profile_quality, *profile_balanced, *profile_performance;
@@ -175,6 +175,7 @@ const Texts kEnglish = {
     "Copy my saves", "Go on without them", "They could not be copied: close what uses them and try again.",
     "Support the project", "Free, and always will be. A thank-you keeps it going.",
     "Mouse look", "The mouse moves the camera", "Mouse speed", "How fast the camera turns with the mouse",
+    "Invert up and down", "Moving the mouse up looks down",
     "VSync", "On: the picture never tears, but a slow PC may skip frames",
     "Upscaling", "NVIDIA DLSS: the game drawn smaller and made sharp at your screen's size", "Checking whether this graphics card has DLSS...",
     "DLSS needs an NVIDIA RTX graphics card and its driver", "Profile", "Drawn at %dp, brought to %dp", "Native (DLAA)", "Quality",
@@ -254,6 +255,7 @@ const Texts kItalian = {
     "Sostieni il progetto", "Gratis, e lo rester\xC3\xA0. Un grazie lo fa andare avanti.",
     "Visuale col mouse", "Il mouse muove la telecamera", "Velocit\xC3\xA0 del mouse",
     "Quanto in fretta gira la telecamera col mouse",
+    "Inverti su e gi\xC3\xB9", "Muovendo il mouse in su la telecamera guarda in gi\xC3\xB9",
     "VSync", "Acceso: l'immagine non si taglia mai, ma su un PC lento pu\xC3\xB2 saltare dei fotogrammi",
     "Upscaling", "NVIDIA DLSS: il gioco disegnato pi\xC3\xB9 piccolo e reso nitido alla grandezza dello schermo",
     "Controllo se questa scheda video ha DLSS...", "DLSS richiede una scheda video NVIDIA RTX e il suo driver", "Profilo",
@@ -329,6 +331,7 @@ const Texts kPortuguese = {
     "Apoie o projeto", "Gratuito, e sempre será. Um obrigado o mantém vivo.",
     "C\xC3\xA2mera com o mouse", "O mouse move a c\xC3\xA2mera", "Velocidade do mouse",
     "Qu\xC3\xA3o r\xC3\xA1pido a c\xC3\xA2mera gira com o mouse",
+    "Inverter cima e baixo", "Mover o mouse para cima olha para baixo",
     "VSync", "Ligado: a imagem nunca se corta, mas um PC lento pode pular quadros",
     "Upscaling", "NVIDIA DLSS: o jogo desenhado menor e deixado nítido no tamanho da sua tela",
     "Verificando se esta placa de vídeo tem DLSS...", "O DLSS precisa de uma placa de vídeo NVIDIA RTX e do seu driver", "Perfil",
@@ -403,6 +406,7 @@ const Texts kSpanish = {
     "Apoya el proyecto", "Gratis, y siempre lo será. Un gracias lo mantiene vivo.",
     "C\xC3\xA1mara con el rat\xC3\xB3n", "El rat\xC3\xB3n mueve la c\xC3\xA1mara", "Velocidad del rat\xC3\xB3n",
     "Lo r\xC3\xA1pido que gira la c\xC3\xA1mara con el rat\xC3\xB3n",
+    "Invertir arriba y abajo", "Mover el rat\xC3\xB3n hacia arriba mira hacia abajo",
     "VSync", "Activado: la imagen nunca se corta, pero un PC lento puede saltarse fotogramas",
     "Escalado", "NVIDIA DLSS: el juego dibujado más pequeño y nítido al tamaño de tu pantalla",
     "Comprobando si esta tarjeta gráfica tiene DLSS...", "DLSS necesita una tarjeta gráfica NVIDIA RTX y su controlador", "Perfil",
@@ -1634,7 +1638,7 @@ std::string row_label(const char* button, const char* label) {
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
-         {"game_language", "frame_rate", "vsync", "widescreen", "render_scale", "upscaler", "upscaler_quality", "anisotropy", "sharp_2d", "sharp_textures", "draw_distance"}) {
+         {"game_language", "frame_rate", "vsync", "widescreen", "render_scale", "upscaler", "upscaler_quality", "sharp_2d", "sharp_textures", "draw_distance"}) {
         if (setting(key) != setting_at_start(key)) return true;
     }
     return false;
@@ -1969,7 +1973,7 @@ void Launcher::page_settings() {
                 set_setting("render_scale", kResolutions[resolution].scale);
             }
         }
-        row(t.anisotropy, nullptr, true);
+        row(t.anisotropy, nullptr);  // applies at once (xport 0.2.13)
         const char* levels[] = {"1x", "4x", "8x", "16x"};
         static const float kLevels[] = {1, 4, 8, 16};
         int level = 0;
@@ -2058,7 +2062,7 @@ void Launcher::page_settings() {
     ImVec2 defaults_size;
     if (small_button(t.defaults, ImVec2(origin_.x, origin_.y + cursor_), "##defaults", &defaults_size)) {
         for (const char* key : {"game_language", "frame_rate", "vsync", "time_of_day", "volume", "launcher_music", "pause_in_background",
-                                "rumble", "gamma", "brightness", "mouse_look", "mouse_sensitivity",
+                                "rumble", "gamma", "brightness", "mouse_look", "mouse_sensitivity", "mouse_invert",
                                 "widescreen", "fullscreen", "fps_counter", "render_scale", 
                                 "anisotropy", "gpu_vertices", "sharp_2d", "sharp_textures", "draw_distance", "hud_aspect", "field_of_view",
                                 "letterbox", "effects", "sharpen", "bloom",
@@ -2117,6 +2121,9 @@ void Launcher::page_controls() {
         row(t.mouse_speed, t.mouse_speed_sub);
         float speed = setting("mouse_sensitivity");
         if (slider("##mouse_sensitivity", &speed, 0.25f, 3, "%.2fx")) set_setting("mouse_sensitivity", std::round(speed * 20) / 20);
+        row(t.mouse_invert, t.mouse_invert_sub);
+        int invert = setting("mouse_invert") != 0 ? 1 : 0;
+        if (segmented("##mouse_invert", toggle, 2, &invert)) set_setting("mouse_invert", static_cast<float>(invert));
     } else if (controls_tab_ == 2) {
         page_pad_buttons(row_height, column);
     } else {
@@ -2355,9 +2362,10 @@ void report_problem() {
         char line[512];
         for (int i = 0; i < 80 && std::fgets(line, sizeof(line), file); ++i) {
             line[std::strcspn(line, "\r\n")] = 0;
-            if (std::strncmp(line, "host: ", 6) != 0 || std::strstr(line, "(software)")) continue;
+            const char* text = without_stamp(line);
+            if (std::strncmp(text, "host: ", 6) != 0 || std::strstr(text, "(software)")) continue;
             if (!system.empty()) system += "; ";
-            system += line + 6;
+            system += text + 6;
         }
         std::fclose(file);
     }

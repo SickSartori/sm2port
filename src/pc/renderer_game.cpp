@@ -20,7 +20,7 @@ namespace {
 std::atomic<bool> g_hud_hidden{false};
 std::atomic<uint64_t> g_frames{0};               // frames shown
 std::atomic<uint64_t> g_ring_frame{~0ull >> 1};  // the last one with the health ring
-bool g_screen_space = false;                     // renderer_game_note_screen_space, GPU thread
+std::atomic<uint64_t> g_wide_top_frame{~0ull >> 1};  // the last one with a HUD piece across the top right's edge
 std::atomic<int> g_debug_hud{0};                 // SM2_DEBUG_HUD=<n>: the next n flat draws in the log, from each F7
 
 // The health ring (top left, with the spider-sense meter): pieces of a 256x256 atlas, the only HUD texture of that
@@ -35,14 +35,13 @@ bool ring_on_screen() { return g_frames.load() - g_ring_frame.load() <= 3; }
 // before, as its border comes first) is scaled with it, around its centre. GPU thread only.
 constexpr float kMinimapScale = 0.85f;
 std::atomic<uint32_t> g_minimap_target{0};
-float g_extent[4] = {1, 0, 0, 0};  // renderer_game_note_extent: the current draw's, when it is not flat
 struct Box {
     float left = 1, right = 0, top = 0, bottom = 0;
 };
 Box g_map;                   // where the map was last drawn
 uint64_t g_map_frame = ~0ull >> 1;
 
-void minimap(RendererNarrowing& n, const SurfaceState& surface, Box b, uint32_t texture) {
+void minimap(RendererNarrowing& n, const SurfaceState& surface, Box b, uint32_t texture, bool tilted) {
     if (b.left > b.right || !g_minimap_target || !renderer_surface_shown(surface.color_address)) return;
     if (texture == g_minimap_target) g_map = b, g_map_frame = g_frames.load();
     if (g_frames.load() - g_map_frame > 3 || n.factor != 1 || !ring_on_screen()) return;
@@ -53,7 +52,7 @@ void minimap(RendererNarrowing& n, const SurfaceState& surface, Box b, uint32_t 
     if (dx * dx + dy * dy > 1) return;
     // shortcut: a flat piece ending left of the map is taken for the tutorials' box (which ends there) and left as drawn,
     // also an objective's marker on the map's west edge; tell them apart if the box ever turns out to reach further.
-    if (texture != g_minimap_target && b.right <= g_map.left && g_extent[0] > g_extent[1]) return;
+    if (texture != g_minimap_target && b.right <= g_map.left && !tilted) return;
     // Not narrowed in 16:9 too: the tilted disc is 3D, drawn with the wide projection. Wider than 16:9 the game still
     // lays the minimap out for 16:9, so it is narrowed by what the screen adds.
     n.factor = kMinimapScale * (hle_wide_shape() ? (16.0f / 9.0f) / renderer_aspect() : 1.0f);
@@ -95,12 +94,18 @@ RendererNarrowing narrowing(const SurfaceState& surface, float left, float right
     top = std::max(top, static_cast<float>(surface.clip_y));
     bottom = std::min(bottom, static_cast<float>(surface.clip_y + surface.clip_height));
     if (left > right || top > bottom) return n;
+    // A bar across the top right's edge (Black Cat's chase meter, issue 8): its pieces right of the edge would be
+    // narrowed away from the rest, with a gap in the middle; while one is up (from the frame before), none is.
+    if (bottom <= 0.45f * height && left < 0.65f * width && right > 0.65f * width && !full_width) {
+        g_wide_top_frame = g_frames.load();
+    }
+    const bool wide_top = g_frames.load() - g_wide_top_frame.load() <= 3;
     // Not the lower right: the minimap's map and border start at 0.63 of the width, left of where the tutorials' box
     // ends (0.66), so they stayed wide while the markers right of 0.67 were narrowed, off the map (the player's arrow
     // away from the centre, the objectives elsewhere; seen 16 November 2026). Left as the game draws it, it is right.
     if (bottom <= 0.45f * height && right <= 0.35f * width) {
         n.factor = narrow;
-    } else if (bottom <= 0.45f * height && left >= 0.65f * width) {
+    } else if (bottom <= 0.45f * height && left >= 0.65f * width && !wide_top) {
         n.factor = narrow;
         n.anchor = width;
     }
@@ -117,19 +122,15 @@ void renderer_game_toggle_hud() {
     if (GetEnvironmentVariableA("SM2_DEBUG_HUD", value, sizeof(value))) g_debug_hud = std::atoi(value);
 }
 
-void renderer_game_note_screen_space(bool screen_space) { g_screen_space = screen_space; }
-
-void renderer_game_note_extent(float left, float right, float top, float bottom) {
-    g_extent[0] = left, g_extent[1] = right, g_extent[2] = top, g_extent[3] = bottom;
-}
-
 bool renderer_game_hud_up() { return ring_on_screen(); }
 
-RendererNarrowing renderer_game_narrowing(const SurfaceState& surface, float left, float right, float top, float bottom,
-                                          uint32_t texture) {
+RendererNarrowing renderer_game_narrowing(const SurfaceState& surface, const DrawState& state) {
+    const float left = state.screen_left, right = state.screen_right, top = state.screen_top, bottom = state.screen_bottom;
+    const uint32_t texture = state.textures[0].enabled ? state.textures[0].descriptor.address : 0;
     RendererNarrowing n = narrowing(surface, left, right, top, bottom);
-    minimap(n, surface, left <= right ? Box{left, right, top, bottom} : Box{g_extent[0], g_extent[1], g_extent[2], g_extent[3]},
-            texture);
+    minimap(n, surface, left <= right ? Box{left, right, top, bottom}
+                                      : Box{state.extent_left, state.extent_right, state.extent_top, state.extent_bottom},
+            texture, left > right && state.extent_left <= state.extent_right);
     if (g_debug_hud > 0 && left <= right) {
         --g_debug_hud;
         log_line("hud: %.0f..%.0f x %.0f..%.0f on %08X, texture %08X -> %.3f towards %.0f", left, right, top, bottom,
@@ -166,7 +167,7 @@ void renderer_game_draw(const SurfaceState& surface, const DrawState& state, flo
         state.screen_bottom - state.screen_top < 0.9f * surface.height) {
         if (hud_textures.size() > 512) hud_textures.clear();
         hud_textures.insert(texture.descriptor.address);
-    } else if (g_hud_hidden && !flat && (g_screen_space || !surface.zeta_address) && state.blend_enable &&
+    } else if (g_hud_hidden && !flat && (state.screen_space || !surface.zeta_address) && state.blend_enable &&
                state.blend_source == 0x302 &&
                state.blend_destination == 0x303 && hud_textures.count(texture.descriptor.address)) {
         alpha_reference[2] = 1;

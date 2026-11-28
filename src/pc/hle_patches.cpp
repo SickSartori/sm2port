@@ -136,7 +136,51 @@ struct JumpPatch {
 };
 
 // Addresses of the Italian build (build_address moves them to the others; the bytes are checked either way).
+// D3D's fence wait (Italy 0x3C43D0), when the GPU is still far from the fence (8 KB of commands or more), turns the NOPs
+// reserved at the fence into a software method that sets an event (device+0x1DCC) and sleeps on it (0x3C4518). Far is
+// measured from GET, which here follows the drawing; with the render thread the GPU thread has read well past it, so
+// the NOPs could already be read as NOPs: the event never came and the game froze (mc3port: switching cars in the
+// garage at 120 fps, report 159174; the same D3D here). The wait now also ends when the fence is passed, as the spin for a near fence does (signed,
+// like the patched loop at 0x3C450D).
+// The game's own KeWaitForSingleObject (in edi at the hook) waits on the event as before, so its set wakes the game
+// at once; a timeout of 1 ms looks at the fence. (Polling with Sleep(1) cost frames: up to 15 ms a wait.)
+using KeWaitForSingleObjectFunction = int32_t(__stdcall*)(uint32_t object, uint32_t reason, uint32_t mode,
+                                                          uint32_t alertable, int64_t* timeout);
+void __cdecl wait_fence_or_event(uint32_t device, uint32_t fence, uint32_t wait_function) {
+    const auto wait = reinterpret_cast<KeWaitForSingleObjectFunction>(static_cast<uintptr_t>(wait_function));
+    const auto issued = reinterpret_cast<volatile uint32_t*>(device + 0x2C);
+    const auto* done = reinterpret_cast<volatile uint32_t*>(*reinterpret_cast<volatile uint32_t*>(device + 0x30));
+    for (;;) {
+        int64_t timeout = -10000;  // 1 ms, relative, in 100 ns
+        if (wait(device + 0x1DCC, 6, 1, 0, &timeout) == 0) return;  // Executive, UserMode, as the game's own call
+        // Most waits outlast 1 ms with the event still to come (the GPU is simply far from the fence): sleep on it
+        // again. Spinning here instead (4 ms of SwitchToThread after each timeout) kept the game's core busy most of
+        // the time (mc3port: 650 ms a second in a drive, 28 Nov 2026).
+        if (static_cast<int32_t>(*issued - fence) >= static_cast<int32_t>(*issued - *done)) return;
+    }
+}
+
+// Replaces "add esi,1DCCh" at 0x3C451E (esi = device, edi = KeWaitForSingleObject just loaded, ebp = the fence's record, whose first word the spin at 0x3C44FD
+// waits for when it comes from the same place) and returns for the function, as its own epilogue at 0x3C4533 does: pop
+// ebx, ebp, edi, esi; ret 8.
+__declspec(naked) void d3d_fence_event_wait() {
+    __asm {
+        push edi
+        push dword ptr [ebp]
+        push esi
+        call wait_fence_or_event
+        add esp, 12
+        pop ebx
+        pop ebp
+        pop edi
+        pop esi
+        ret 8
+    }
+}
+
 const JumpPatch kJumpPatches[] = {
+    {"D3D fence wait, the event", 0x003C451E, {0x81, 0xC6, 0xCC, 0x1D, 0x00, 0x00},
+     reinterpret_cast<const void*>(&d3d_fence_event_wait)},
     {"D3D kick-off", 0x003C4217, {0x8B, 0x88, 0x10, 0x04, 0x10}, reinterpret_cast<const void*>(&kick_off_without_trap)},
     {"D3D read of GET", 0x003C4090, {0x8B, 0x81, 0x20, 0x1C, 0x00}, reinterpret_cast<const void*>(&read_get_without_trap)},
     {"XAPI QueryPerformanceCounter", 0x003907CC, {0x8B, 0x4C, 0x24, 0x04, 0x0F},
@@ -144,8 +188,30 @@ const JumpPatch kJumpPatches[] = {
     {"D3D rdtsc", 0x003C72A0, {0x0F, 0x31, 0xC3, 0xCC, 0xCC}, reinterpret_cast<const void*>(&rdtsc_function)},
 };
 
+// --- camera ---
+//
+// The camera's update (World 0x16A9F0, sick-xport INDIRIZZI-XBE.md) keeps the camera the player turned while the camera
+// stick is out of its dead zone; once it is back, the game's own cameras take over again (behind Spider-Man while he
+// swings or runs). With the mouse the stick is back at rest between two movements, so the camera kept swinging back
+// against the hand. While the mouse turned the camera lately (input_hle.cpp) the choice of the camera sees the stick as
+// moved. Only the choice: the flag itself [C+0xA5C] stays the stick's, because the free camera brings its distance
+// back to the usual one (World 0x161131) only while the stick is at rest; a held flag left it close to Spider-Man.
+uint8_t g_mouse_holds_camera = 0;
+
+// Replaces "mov al,[esi+0A5Ch]" (6 bytes; read for the choice, followed by "test al,al; je <the game's cameras>") by a
+// call to this and a nop.
+__declspec(naked) void camera_stick_moved() {
+    __asm {
+        mov al, byte ptr [esi + 0A5Ch]
+        or al, g_mouse_holds_camera
+        ret
+    }
+}
+
 const JumpPatch kCallPatches[] = {
     {"game clock", 0x0034E96C, {0x0F, 0x31, 0x89, 0x44, 0x24, 0x0C}, reinterpret_cast<const void*>(&game_clock_read)},
+    {"camera stick moved", 0x0016AAF6, {0x8A, 0x86, 0x5C, 0x0A, 0x00, 0x00},
+     reinterpret_cast<const void*>(&camera_stick_moved)},
 };
 
 struct Patch {
@@ -506,5 +572,7 @@ void apply_hle_patches(const Xbe& xbe) {
         log_line("HLE: %s at %08X redirected", patch.name, address);
     }
 }
+
+void hle_mouse_holds_camera(bool holds) { g_mouse_holds_camera = holds ? 1 : 0; }
 
 }  // namespace xport::pc

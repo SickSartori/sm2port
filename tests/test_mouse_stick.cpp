@@ -1,4 +1,4 @@
-// Mouse look: what goes past full stick deflection is spent later, a reversal drops it, and it is capped.
+// Mouse look: what goes past full stick deflection is spent later, a reversal drops it, it is capped, and the dead zone is skipped.
 
 #include "pc/mouse_stick.h"
 #include "test.h"
@@ -21,5 +21,11 @@ int main() {
     // A huge swipe waits at most kMouseCarryLimit.
     mouse_to_stick(0, 1000 * 32767.0f, carry);
     CHECK(carry == kMouseCarryLimit);
+    // Past the dead zone, each axis on its own: a small movement starts at its edge, the sign kept; full tilt and no
+    // movement untouched.
+    CHECK(mouse_skip_dead_zone(3277, 0.4f) > 0.45f * 32767 && mouse_skip_dead_zone(3277, 0.4f) < 0.47f * 32767);
+    CHECK(mouse_skip_dead_zone(-3277, 0.4f) == -mouse_skip_dead_zone(3277, 0.4f));
+    CHECK(mouse_skip_dead_zone(32767, 0.4f) == 32767 && mouse_skip_dead_zone(-32768, 0.4f) == -32768);
+    CHECK(mouse_skip_dead_zone(0, 0.4f) == 0);
     return test_result();
 }

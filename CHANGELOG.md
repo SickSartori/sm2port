@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.2 (2026-11-28)
+
+### Improved
+
+- **Lighter on the processor**: waiting for the graphics card, the game's core now sleeps instead of checking over and
+  over, as in mc3port (where it went from about 70% busy to about 40% in a drive at 60 fps; not measured here yet).
+- **A log that tells more**: every line has the time since the start, the first lines say how the session before
+  ended (a crash, a freeze, closed normally), and every 5 minutes one line sums up the frame rate and the hitches.
+- **Smoother where the city is busy**: the drawing thread no longer checks the game's memory for changed textures
+  itself, as in mc3port. The texture filter setting applies at once.
+- **Mouse look is smoother**: the camera follows how fast the mouse moves, the same at 30, 60 or 120 fps (at 60
+  and 120 fps it turns faster than before at the same speed setting); a slow movement turns the camera at once
+  instead of waiting in the stick's dead zone and then jumping; and none of the mouse's movement is lost any more
+  between the game's reads. New setting under Controls, Mouse: **invert up and down**.
+- **The camera stays where the mouse puts it**: for 3 seconds after the mouse last moved, the game no longer swings
+  the camera back behind Spider-Man while he swings or runs (`mouse_camera_hold` in sm2port.ini; 0 = as before).
+- **The minimap no longer flickers**: with the drawing on its own thread (the default), the minimap's tilted map
+  was sometimes sized or placed with another draw's position for a frame.
+
+### Fixed
+
+- **A freeze that mc3port had in the garage can't happen here either**: the same graphics code, the same fix.
+- **No more flicker at 21:9**: at high frame rates a frame could be taken for a film and shown at 16:9 for an
+  instant, as in mc3port.
+- **Black Cat's chase meter in one piece** in 16:9 with the round HUD: its right end was narrowed apart from the rest,
+  leaving a gap in the middle (issue #8).
+
 ## 0.2.1 (2026-11-26)
 
 ### New
