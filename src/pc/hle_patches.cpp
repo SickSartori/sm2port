@@ -154,6 +154,15 @@ void __cdecl wait_fence_or_event(uint32_t device, uint32_t fence, uint32_t wait_
         int64_t timeout = -10000;  // 1 ms, relative, in 100 ns
         if (wait(device + 0x1DCC, 6, 1, 0, &timeout) == 0) return;  // Executive, UserMode, as the game's own call
         if (static_cast<int32_t>(*issued - fence) >= static_cast<int32_t>(*issued - *done)) return;
+        // The event did not come in 1 ms: likely lost (its NOP was read before it was patched). No more timed sleeps,
+        // whose 1-2 ms each could push a frame past its blank: the fence is looked at as the drawing passes it.
+        // At most 4 ms so (the game's core is shared by its threads); then the timed wait again.
+        const ULONGLONG until = GetTickCount64() + 4;
+        while (static_cast<int32_t>(*issued - fence) < static_cast<int32_t>(*issued - *done) && GetTickCount64() < until) {
+            SwitchToThread();
+        }
+        if (static_cast<int32_t>(*issued - fence) < static_cast<int32_t>(*issued - *done)) continue;
+        return;
     }
 }
 
