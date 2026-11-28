@@ -1638,7 +1638,7 @@ std::string row_label(const char* button, const char* label) {
 // In the game: a setting the game or the renderer reads only at start (the rows marked "next start") has changed.
 bool restart_pending() {
     for (const char* key :
-         {"game_language", "frame_rate", "vsync", "widescreen", "render_scale", "upscaler", "upscaler_quality", "anisotropy", "sharp_2d", "sharp_textures", "draw_distance"}) {
+         {"game_language", "frame_rate", "vsync", "widescreen", "render_scale", "upscaler", "upscaler_quality", "sharp_2d", "sharp_textures", "draw_distance"}) {
         if (setting(key) != setting_at_start(key)) return true;
     }
     return false;
@@ -1973,7 +1973,7 @@ void Launcher::page_settings() {
                 set_setting("render_scale", kResolutions[resolution].scale);
             }
         }
-        row(t.anisotropy, nullptr, true);
+        row(t.anisotropy, nullptr);  // applies at once (xport 0.2.13)
         const char* levels[] = {"1x", "4x", "8x", "16x"};
         static const float kLevels[] = {1, 4, 8, 16};
         int level = 0;
