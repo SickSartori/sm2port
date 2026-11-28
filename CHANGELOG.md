@@ -15,6 +15,7 @@
 
 ### Fixed
 
+- **A freeze that mc3port had in the garage can't happen here either**: the same graphics code, the same fix.
 - **No more flicker at 21:9**: at high frame rates a frame could be taken for a film and shown at 16:9 for an
   instant, as in mc3port.
 - **Black Cat's chase meter in one piece** in 16:9 with the round HUD: its right end was narrowed apart from the rest,

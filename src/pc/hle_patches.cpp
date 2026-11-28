@@ -136,7 +136,39 @@ struct JumpPatch {
 };
 
 // Addresses of the Italian build (build_address moves them to the others; the bytes are checked either way).
+// D3D's fence wait (Italy 0x3C43D0), when the GPU is still far from the fence (8 KB of commands or more), turns the NOPs
+// reserved at the fence into a software method that sets an event (device+0x1DCC) and sleeps on it (0x3C4518). Far is
+// measured from GET, which here follows the drawing; with the render thread the GPU thread has read well past it, so
+// the NOPs could already be read as NOPs: the event never came and the game froze (mc3port: switching cars in the
+// garage at 120 fps, report 159174; the same D3D here). The wait now also ends when the fence is passed, as the spin for a near fence does (signed,
+// like the patched loop at 0x3C450D).
+void __cdecl wait_fence_or_event(uint32_t device, uint32_t fence) {
+    const auto* signal_state = reinterpret_cast<volatile int32_t*>(device + 0x1DD0);  // the event's header + 4
+    const auto issued = reinterpret_cast<volatile uint32_t*>(device + 0x2C);
+    const auto* done = reinterpret_cast<volatile uint32_t*>(*reinterpret_cast<volatile uint32_t*>(device + 0x30));
+    while (*signal_state == 0 && static_cast<int32_t>(*issued - fence) < static_cast<int32_t>(*issued - *done)) Sleep(1);
+}
+
+// Replaces "add esi,1DCCh" at 0x3C451E (esi = device, ebp = the fence's record, whose first word the spin at 0x3C44FD
+// waits for when it comes from the same place) and returns for the function, as its own epilogue at 0x3C4533 does: pop
+// ebx, ebp, edi, esi; ret 8.
+__declspec(naked) void d3d_fence_event_wait() {
+    __asm {
+        push dword ptr [ebp]
+        push esi
+        call wait_fence_or_event
+        add esp, 8
+        pop ebx
+        pop ebp
+        pop edi
+        pop esi
+        ret 8
+    }
+}
+
 const JumpPatch kJumpPatches[] = {
+    {"D3D fence wait, the event", 0x003C451E, {0x81, 0xC6, 0xCC, 0x1D, 0x00, 0x00},
+     reinterpret_cast<const void*>(&d3d_fence_event_wait)},
     {"D3D kick-off", 0x003C4217, {0x8B, 0x88, 0x10, 0x04, 0x10}, reinterpret_cast<const void*>(&kick_off_without_trap)},
     {"D3D read of GET", 0x003C4090, {0x8B, 0x81, 0x20, 0x1C, 0x00}, reinterpret_cast<const void*>(&read_get_without_trap)},
     {"XAPI QueryPerformanceCounter", 0x003907CC, {0x8B, 0x4C, 0x24, 0x04, 0x0F},
