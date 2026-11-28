@@ -142,22 +142,31 @@ struct JumpPatch {
 // the NOPs could already be read as NOPs: the event never came and the game froze (mc3port: switching cars in the
 // garage at 120 fps, report 159174; the same D3D here). The wait now also ends when the fence is passed, as the spin for a near fence does (signed,
 // like the patched loop at 0x3C450D).
-void __cdecl wait_fence_or_event(uint32_t device, uint32_t fence) {
-    const auto* signal_state = reinterpret_cast<volatile int32_t*>(device + 0x1DD0);  // the event's header + 4
+// The game's own KeWaitForSingleObject (in edi at the hook) waits on the event as before, so its set wakes the game
+// at once; a timeout of 1 ms looks at the fence. (Polling with Sleep(1) cost frames: up to 15 ms a wait.)
+using KeWaitForSingleObjectFunction = int32_t(__stdcall*)(uint32_t object, uint32_t reason, uint32_t mode,
+                                                          uint32_t alertable, int64_t* timeout);
+void __cdecl wait_fence_or_event(uint32_t device, uint32_t fence, uint32_t wait_function) {
+    const auto wait = reinterpret_cast<KeWaitForSingleObjectFunction>(static_cast<uintptr_t>(wait_function));
     const auto issued = reinterpret_cast<volatile uint32_t*>(device + 0x2C);
     const auto* done = reinterpret_cast<volatile uint32_t*>(*reinterpret_cast<volatile uint32_t*>(device + 0x30));
-    while (*signal_state == 0 && static_cast<int32_t>(*issued - fence) < static_cast<int32_t>(*issued - *done)) Sleep(1);
+    for (;;) {
+        int64_t timeout = -10000;  // 1 ms, relative, in 100 ns
+        if (wait(device + 0x1DCC, 6, 1, 0, &timeout) == 0) return;  // Executive, UserMode, as the game's own call
+        if (static_cast<int32_t>(*issued - fence) >= static_cast<int32_t>(*issued - *done)) return;
+    }
 }
 
-// Replaces "add esi,1DCCh" at 0x3C451E (esi = device, ebp = the fence's record, whose first word the spin at 0x3C44FD
+// Replaces "add esi,1DCCh" at 0x3C451E (esi = device, edi = KeWaitForSingleObject just loaded, ebp = the fence's record, whose first word the spin at 0x3C44FD
 // waits for when it comes from the same place) and returns for the function, as its own epilogue at 0x3C4533 does: pop
 // ebx, ebp, edi, esi; ret 8.
 __declspec(naked) void d3d_fence_event_wait() {
     __asm {
+        push edi
         push dword ptr [ebp]
         push esi
         call wait_fence_or_event
-        add esp, 8
+        add esp, 12
         pop ebx
         pop ebp
         pop edi
